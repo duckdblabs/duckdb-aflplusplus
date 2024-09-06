@@ -2,4 +2,5 @@
 .DS_Store
 *.o
 csv_fuzzer
-/fuzz_results
+json_fuzzer
+**/fuzz_results*

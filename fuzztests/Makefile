@@ -1,5 +1,3 @@
-NAME=csv_fuzzer
-
 DUCKDB_DIR=/duckdb
 DUCKDBLIB=$(DUCKDB_DIR)/build/release/src/libduckdb_static.a
 
@@ -23,18 +21,21 @@ CXXFLAGS= -std=c++11
 CC=/AFLplusplus/afl-clang-fast
 CXX=/AFLplusplus/afl-clang-fast++
 
-all: $(NAME)
+all: $(CSV_FUZZER) $(JSON_FUZZER)
 
-$(NAME): csv_fuzz.o $(DUCKDBLIB)
-	$(CXX) csv_fuzz.o $(DUCKDBLIB) $(DUCKDB_DEPS) $(DUCKDB_EXT) -o $(NAME)
+$(CSV_FUZZER): csv_fuzz.o $(DUCKDBLIB)
+	$(CXX) csv_fuzz.o $(DUCKDBLIB) $(DUCKDB_DEPS) $(DUCKDB_EXT) -o $(CSV_FUZZER)
 
-csv_fuzz.o: csv_fuzz.cpp
+$(JSON_FUZZER): json_fuzz.o $(DUCKDBLIB)
+	$(CXX) json_fuzz.o $(DUCKDBLIB) $(DUCKDB_DEPS) $(DUCKDB_EXT) -o $(JSON_FUZZER)
+
+csv_fuzz.o: ./fuzztest_csv/csv_fuzz.cpp
+	$(CXX) $(INC) $(CXXFLAGS) -c $< -o $@
+
+json_fuzz.o: ./fuzztest_json/json_fuzz.cpp
 	$(CXX) $(INC) $(CXXFLAGS) -c $< -o $@
 
 $(DUCKDBLIB):
 	cd $(DUCKDB_DIR) && CC=$(CC) CXX=$(CXX) GEN=ninja BUILD_JSON=1 make
 
-clean:
-	rm -f csv_fuzzer
-	rm -f csv_fuzz.o
-	rm -f temp_csv_input.csv
+.PHONY: all

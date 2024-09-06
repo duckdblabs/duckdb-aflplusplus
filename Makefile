@@ -1,35 +1,55 @@
-# requires docker desktop to run locally
+# !! requires docker desktop to run locally !!
+
+CSV_FUZZER=csv_fuzzer
+JSON_FUZZER=json_fuzzer
 
 # clones duckdb into AFL++ container
 afl-up:
 	@open -a Docker
+	@mkdir -p ./fuzztests/fuzz_results_csv_reader
+	@mkdir -p ./fuzztests/fuzz_results_json_reader
 	@docker pull aflplusplus/aflplusplus > /dev/null
 	@docker run --name afl-container  -d \
-		-v ./fuzztest_csv:/fuzztest_csv \
-		-v ./fuzz_results:/fuzz_results \
+		-v ./fuzztests:/fuzztests \
 		aflplusplus/aflplusplus sleep infinity \
 		> /dev/null
-	@docker exec -w / afl-container git clone https://github.com/duckdb/duckdb.git
+	@docker exec -w / afl-container git clone https://github.com/duckdb/duckdb.git > /dev/null
 	@docker ps
 
-# creates a fuzzable DuckDB executable with AFL++ compiler, in the AFL++ container
-afl-compile:
-	docker exec -w /fuzztest_csv afl-container make
+compile-csv:
+	docker exec -w /fuzztests afl-container make $(CSV_FUZZER) CSV_FUZZER=$(CSV_FUZZER)
 
-# runs afl-fuzz
-afl-run:
-	echo "start fuzzing..."
+compile-json:
+	docker exec -w /fuzztests afl-container make $(JSON_FUZZER) JSON_FUZZER=$(JSON_FUZZER)
+
+fuzz-csv-reader:
 	docker exec afl-container /AFLplusplus/afl-fuzz \
-		-V 10 \
+		-V 100 \
 		-i /duckdb/data/csv \
-		-o /fuzz_results \
+		-o /fuzztests/fuzz_results_csv_reader \
 		-m none \
 		-d \
-		-- /fuzztest_csv/csv_fuzzer
+		-- /fuzztests/$(CSV_FUZZER)
 
-# remove container, but not the image
-afl-clean:
+fuzz-json-reader:
+	docker exec afl-container /AFLplusplus/afl-fuzz \
+		-V 100 \
+		-i /duckdb/data/json \
+		-o /fuzztests/fuzz_results_json_reader \
+		-m none \
+		-d \
+		-- /fuzztests/$(JSON_FUZZER)
+
+# removes container, but not the image
+afl-down:
 	@docker stop -t0 afl-container
 	@docker system prune -f > /dev/null
+	@rm -f ./fuzztests/csv_fuzzer
+	@rm -f ./fuzztests/csv_fuzz.o
+	@rm -f ./fuzztests/json_fuzzer
+	@rm -f ./fuzztests/json_fuzz.o
 
-.PHONY: afl-up afl-compile afl-run afl-clean
+man-page:
+	@docker exec afl-container afl-fuzz -hh || true
+
+.PHONY: afl-up compile-csv compile-json afl-down fuzz-csv-reader fuzz-json-reader afl-down man-page

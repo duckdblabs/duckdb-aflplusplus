@@ -1,17 +1,38 @@
 # duckdb_aflplusplus
 Fuzzing DuckDB with AFL++
 
-## fuzzing function read_csv()
-Run the following commands consequtively to fuzz-test the read_csv function:
-- `make afl-up`
-- `make afl-compile`
-- `make afl-run`
+Implemented fuzz tests:
+- fuzz test the csv reader: function `read_csv()`
+- fuzz test the json reader: function `read_json()`
 
-Clean up afterwards with
-- `make afl-clean`
+## AFL++
+AFL++ is a fuzzer that comes with its own compiler.
 
-## inspect fuzz results
-You can find the crashing scenarios found by the fuzzer, if any, in directory: `fuzz_results/default/crashes`.
+Fuzzing with AFL++ is a multi-step process
+(also see [fuzzing_in_depth](https://github.com/AFLplusplus/AFLplusplus/blob/stable/docs/fuzzing_in_depth.md#a-selecting-the-best-afl-compiler-for-instrumenting-the-target)):
+1. Create a **target executable** by compiling duckdb with the `afl-clang-fast++` compiler
+2. Provide an **input corpus** with typical inputs. E.g. all kinds of valid and invalid csv and json data.
+3. **Fuzzing itself**. `afl++` will call the executable with various inputs based on the corpus to see if it can make it crash
+4. **Evaluate the fuzz outputs.** Many inputs will be invalid, and are supposed to give a gracefull error. Inputs that result in a crash, however indicate that there is a bug. These crash cases need to be evaluated to see if they are reproducible outside the fuzzer.
 
-## fuzzing settings
-The fuzzing settings are currently hardcoded in the Makefile in target `afl-run`.
+## Locally run AFL++ for DuckDB
+Fuzz duckdb with afl++ by executing the folowing steps consequtively.
+
+0. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+1. Create [afl++ container](https://hub.docker.com/r/aflplusplus/aflplusplus) and clone the latest version of duckdb in it. Compiling duckdb and running the fuzzer happens in this container.
+    - `make afl-up`
+2. Compile executables that can be fuzz-tested
+    - `make compile-csv`
+    - `make compile-json`
+3. Run fuzz tests
+    - `make fuzz-csv-reader`
+    - `make fuzz-json-reader`
+4. Inspect the fuzz results to see if there are any inputs that resulted in crashes. They are stored in:
+    - `fuzztests/fuzz_results_csv_reader/default/crashes`
+    - `fuzztests/fuzz_results_json_reader/default/crashes`
+5. Clean up. The container keeps spinning unless explictly stopped; don't skip this step, check with `docker ps`.
+    - `make afl-down`
+
+## Fuzz settings
+The fuzzing settings are currently hardcoded in the `Makefile` in targets `fuzz-csv-reader`, and `fuzz-json-reader`. To see all options:
+- `make man-page` (when the container is running)

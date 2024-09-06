@@ -11,7 +11,7 @@ int main()
     std::string filename = "temp_csv_input.csv";
     int fd = open(filename.c_str(), O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR);
     if (fd < 0) {
-        std::cout << "can't create csv file: " << filename << std::endl;
+        std::cerr << "can't create csv file: " << filename << std::endl;
         exit(1);
     }
     ssize_t n;
@@ -24,7 +24,7 @@ int main()
     }
     close(fd);
 
-    // ingest csv file (to test if crashes duckdb)
+    // ingest csv file (to test if it crashes duckdb)
     duckdb::DuckDB db(nullptr);
     duckdb::Connection con(db);
     std::string query = "SELECT * FROM read_csv('" + filename + "');";
