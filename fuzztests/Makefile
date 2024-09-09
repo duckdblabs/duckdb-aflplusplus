@@ -21,7 +21,7 @@ CXXFLAGS= -std=c++11
 CC=/AFLplusplus/afl-clang-fast
 CXX=/AFLplusplus/afl-clang-fast++
 
-all: $(CSV_FUZZER) $(JSON_FUZZER)
+all: $(CSV_FUZZER) $(JSON_FUZZER) $(PARQUET_FUZZER)
 
 $(CSV_FUZZER): csv_fuzz.o $(DUCKDBLIB)
 	$(CXX) csv_fuzz.o $(DUCKDBLIB) $(DUCKDB_DEPS) $(DUCKDB_EXT) -o $(CSV_FUZZER)
@@ -29,10 +29,16 @@ $(CSV_FUZZER): csv_fuzz.o $(DUCKDBLIB)
 $(JSON_FUZZER): json_fuzz.o $(DUCKDBLIB)
 	$(CXX) json_fuzz.o $(DUCKDBLIB) $(DUCKDB_DEPS) $(DUCKDB_EXT) -o $(JSON_FUZZER)
 
+$(PARQUET_FUZZER): parquet_fuzz.o $(DUCKDBLIB)
+	$(CXX) parquet_fuzz.o $(DUCKDBLIB) $(DUCKDB_DEPS) $(DUCKDB_EXT) -o $(PARQUET_FUZZER)
+
 csv_fuzz.o: ./fuzztest_csv/csv_fuzz.cpp
 	$(CXX) $(INC) $(CXXFLAGS) -c $< -o $@
 
 json_fuzz.o: ./fuzztest_json/json_fuzz.cpp
+	$(CXX) $(INC) $(CXXFLAGS) -c $< -o $@
+
+parquet_fuzz.o: ./fuzztest_parquet/parquet_fuzz.cpp
 	$(CXX) $(INC) $(CXXFLAGS) -c $< -o $@
 
 $(DUCKDBLIB):

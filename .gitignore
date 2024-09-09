@@ -3,4 +3,5 @@
 *.o
 csv_fuzzer
 json_fuzzer
+parquet_fuzzer
 **/fuzz_results*
