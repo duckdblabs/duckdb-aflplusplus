@@ -4,16 +4,10 @@
 #include <string>
 #include <unistd.h>
 
-void fuzz_filereaders(std::string filereadFunction)
+void fifo_fuzzer(std::string filereadFunction)
 {
-    if (filereadFunction != "read_csv" && filereadFunction != "read_json" && filereadFunction != "read_parquet")
-    {
-        std::cerr << "function '" + filereadFunction + "' is not supported" << std::endl;
-        exit(1);
-    }
-
     /*
-    Move data from stdin to pipe, so duckdb can read from it.
+    Move data from stdin to dataPipe, so duckdb can read from it.
     This is needed because duckdb checks the fd for S_ISFIFO.
     example:
       $ cat flights.csv | duckdb -c "SELECT * FROM read_csv('/dev/stdin')"
@@ -46,20 +40,40 @@ void fuzz_filereaders(std::string filereadFunction)
         exit(1);
     }
 
-    // ingest data (to test if it crashes duckdb)
+    // redirect stdin to pipe
     if (dup2(dataPipe[0], STDIN_FILENO) < 0)
     {
         perror(NULL);
         exit(1);
     }
+
+    // ingest data (to test if it crashes duckdb)
     duckdb::DuckDB db(nullptr);
     duckdb::Connection con(db);
     std::string query = "SELECT * FROM " + filereadFunction + "('/dev/stdin');";
     duckdb::unique_ptr<duckdb::MaterializedQueryResult> q_result = con.Query(query);
-    q_result->ToString();
+    // std::cout << q_result->ToString() << std::endl;
+
     if (close(dataPipe[0]) < 0)
     {
         perror(NULL);
         exit(1);
     }
+}
+
+int main()
+{
+    #ifdef DUCKDB_READ_FUNCTION
+        std::string filereadFunction = DUCKDB_READ_FUNCTION;
+        if (filereadFunction != "read_csv" && filereadFunction != "read_json")
+        {
+            std::cerr << "function '" + filereadFunction + "' is not supported" << std::endl;
+            exit(1);
+        }
+        fifo_fuzzer(filereadFunction);
+    #else
+        std::cerr << "read function to fuzz not specified!" << std::endl;
+        exit(1);
+    #endif
+    return 0;
 }

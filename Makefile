@@ -1,8 +1,10 @@
 # !! requires docker desktop to run locally !!
 
-CSV_FUZZER=csv_fuzzer
-JSON_FUZZER=json_fuzzer
-PARQUET_FUZZER=parquet_fuzzer
+CSV_FILE_FUZZER=csv_file_fuzzer
+CSV_FIFO_FUZZER=csv_fifo_fuzzer
+JSON_FILE_FUZZER=json_file_fuzzer
+JSON_FIFO_FUZZER=json_fifo_fuzzer
+PARQUET_FILE_FUZZER=parquet_file_fuzzer
 
 # clones duckdb into AFL++ container
 afl-up:
@@ -15,44 +17,67 @@ afl-up:
 	@docker exec -w / afl-container git clone https://github.com/duckdb/duckdb.git > /dev/null
 	@docker ps
 
-compile-csv:
-	docker exec -w /fuzztests afl-container make $(CSV_FUZZER) CSV_FUZZER=$(CSV_FUZZER)
+compile-fuzzers:
+	docker exec -w /fuzztests afl-container make $(CSV_FILE_FUZZER) CSV_FILE_FUZZER=$(CSV_FILE_FUZZER)
+	docker exec -w /fuzztests afl-container make $(CSV_FIFO_FUZZER) CSV_FIFO_FUZZER=$(CSV_FIFO_FUZZER)
+	docker exec -w /fuzztests afl-container make $(JSON_FILE_FUZZER) JSON_FILE_FUZZER=$(JSON_FILE_FUZZER)
+	docker exec -w /fuzztests afl-container make $(JSON_FIFO_FUZZER) JSON_FIFO_FUZZER=$(JSON_FIFO_FUZZER)
+	docker exec -w /fuzztests afl-container make $(PARQUET_FILE_FUZZER) PARQUET_FILE_FUZZER=$(PARQUET_FILE_FUZZER)
 
-compile-json:
-	docker exec -w /fuzztests afl-container make $(JSON_FUZZER) JSON_FUZZER=$(JSON_FUZZER)
-
-compile-parquet:
-	docker exec -w /fuzztests afl-container make $(PARQUET_FUZZER) PARQUET_FUZZER=$(PARQUET_FUZZER)
-
-fuzz-csv-reader:
-	@mkdir -p ./fuzztests/fuzz_results_csv_reader
+fuzz-csv-file:
+	@mkdir -p ./fuzztests/results_$(CSV_FILE_FUZZER)
+	docker exec afl-container find /duckdb/data/csv -type f -size +10000 -delete
 	docker exec afl-container /AFLplusplus/afl-fuzz \
-		-V 100 \
+		-V 10 \
 		-i /duckdb/data/csv \
-		-o /fuzztests/fuzz_results_csv_reader \
+		-o /fuzztests/results_$(CSV_FILE_FUZZER) \
 		-m none \
 		-d \
-		-- /fuzztests/$(CSV_FUZZER)
+		-- /fuzztests/$(CSV_FILE_FUZZER)
 
-fuzz-json-reader:
-	@mkdir -p ./fuzztests/fuzz_results_json_reader
+fuzz-csv-fifo:
+	@mkdir -p ./fuzztests/results_$(CSV_FIFO_FUZZER)
+	docker exec afl-container find /duckdb/data/csv -type f -size +10000 -delete
 	docker exec afl-container /AFLplusplus/afl-fuzz \
-		-V 100 \
+		-V 10 \
+		-i /duckdb/data/csv \
+		-o /fuzztests/results_$(CSV_FIFO_FUZZER) \
+		-m none \
+		-d \
+		-- /fuzztests/$(CSV_FIFO_FUZZER)
+
+fuzz-json-file:
+	@mkdir -p ./fuzztests/results_$(JSON_FILE_FUZZER)
+	docker exec afl-container find /duckdb/data/json -type f -size +10000 -delete
+	docker exec afl-container /AFLplusplus/afl-fuzz \
+		-V 10 \
 		-i /duckdb/data/json \
-		-o /fuzztests/fuzz_results_json_reader \
+		-o /fuzztests/results_$(JSON_FILE_FUZZER) \
 		-m none \
 		-d \
-		-- /fuzztests/$(JSON_FUZZER)
+		-- /fuzztests/$(JSON_FILE_FUZZER)
 
-fuzz-parquet-reader:
-	@mkdir -p ./fuzztests/fuzz_results_parquet_reader
+fuzz-json-fifo:
+	@mkdir -p ./fuzztests/results_$(JSON_FIFO_FUZZER)
+	docker exec afl-container find /duckdb/data/json -type f -size +10000 -delete
 	docker exec afl-container /AFLplusplus/afl-fuzz \
-		-V 100 \
-		-i /duckdb/data/parquet-testing \
-		-o /fuzztests/fuzz_results_parquet_reader \
+		-V 10 \
+		-i /duckdb/data/json \
+		-o /fuzztests/results_$(JSON_FIFO_FUZZER) \
 		-m none \
 		-d \
-		-- /fuzztests/$(PARQUET_FUZZER)
+		-- /fuzztests/$(JSON_FIFO_FUZZER)
+
+fuzz-parquet-file:
+	@mkdir -p ./fuzztests/results_$(PARQUET_FILE_FUZZER)
+	docker exec afl-container find /duckdb/data/parquet-testing -type f -size +40000 -delete
+	docker exec afl-container /AFLplusplus/afl-fuzz \
+		-V 10 \
+		-i /duckdb/data/parquet-testing \
+		-o /fuzztests/results_$(PARQUET_FILE_FUZZER) \
+		-m none \
+		-d \
+		-- /fuzztests/$(PARQUET_FILE_FUZZER)
 
 # removes container, but not the image
 afl-down:
@@ -68,4 +93,6 @@ afl-down:
 man-page:
 	@docker exec afl-container afl-fuzz -hh || true
 
-.PHONY: afl-up compile-csv compile-json compile-parquet afl-down fuzz-csv-reader fuzz-json-reader fuzz-parquet-reader afl-down man-page
+.PHONY: afl-up compile-fuzzers afl-down \
+		fuzz-csv-file fuzz-csv-fifo fuzz-json-file fuzz-json-fifo fuzz-parquet-file \
+		afl-down man-page
