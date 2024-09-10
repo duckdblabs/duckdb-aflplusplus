@@ -1,16 +1,4 @@
 .vscode
 .DS_Store
 *.o
-csv_file_fuzzer
-json_file_fuzzer
-parquet_file_fuzzer
-csv_fifo_fuzzer
-json_fifo_fuzzer
-**/fuzz_results*
-temp_input_file
-
-*/results_csv_file_fuzzer
-*/results_csv_fifo_fuzzer
-*/results_json_file_fuzzer
-*/results_json_fifo_fuzzer
-*/results_parquet_file_fuzzer
+/fuzz_results*

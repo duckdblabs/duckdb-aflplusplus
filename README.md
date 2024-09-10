@@ -35,9 +35,8 @@ Fuzz duckdb with afl++ by executing the folowing steps consequtively.
         -  equivalent: `$ cat my_json_file | duckdb -c "SELECT * FROM read_json('/dev/stdin')"`
     - `make fuzz-parquet-file`
         -  equivalent: `$ duckdb -c "SELECT * FROM read_parquet('my_parquet_file')"`
-4. Inspect the fuzz results to see if there are any inputs that resulted in crashes. They are stored in:
-    - `fuzztests/fresults_csv_fifo_fuzzer/default/crashes`
-    - etc.
+4. Inspect the fuzz results to see if there are any inputs that resulted in crashes. Results are copied from the container to new directory `fuzz_results`, for example:
+    - `./fuzz_results/csv_file_fuzzer`
 5. Clean up. The container keeps spinning unless explictly stopped; don't skip this step, check with `docker ps`.
     - `make afl-down`
 
