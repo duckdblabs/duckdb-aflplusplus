@@ -5,7 +5,7 @@
 #include <string>
 #include <unistd.h>
 
-void FileReaderFuzzer(std::string filereadFunction) {
+void FileReaderFuzzer(std::string file_read_function) {
 	uint8_t buf[4096];
 
 	// create file from stdin
@@ -28,19 +28,19 @@ void FileReaderFuzzer(std::string filereadFunction) {
 	// ingest file (to test if it crashes duckdb)
 	duckdb::DuckDB db(nullptr);
 	duckdb::Connection con(db);
-	std::string query = "SELECT * FROM " + filereadFunction + "('" + filename + "');";
+	std::string query = "SELECT * FROM " + file_read_function + "('" + filename + "');";
 	duckdb::unique_ptr<duckdb::MaterializedQueryResult> q_result = con.Query(query);
 	// std::cout << q_result->ToString() << std::endl;
 }
 
 int main() {
 #ifdef DUCKDB_READ_FUNCTION
-	std::string filereadFunction = DUCKDB_READ_FUNCTION;
-	if (filereadFunction != "read_csv" && filereadFunction != "read_json" && filereadFunction != "read_parquet") {
-		std::cerr << "function '" + filereadFunction + "' is not supported" << std::endl;
+	std::string file_read_function = DUCKDB_READ_FUNCTION;
+	if (file_read_function != "read_csv" && file_read_function != "read_json" && file_read_function != "read_parquet") {
+		std::cerr << "function '" + file_read_function + "' is not supported" << std::endl;
 		exit(1);
 	}
-	FileReaderFuzzer(filereadFunction);
+	FileReaderFuzzer(file_read_function);
 #else
 	std::cerr << "duckdb read function to fuzz not specified!" << std::endl;
 	exit(1);

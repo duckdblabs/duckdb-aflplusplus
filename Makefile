@@ -97,6 +97,9 @@ afl-down:
 man-page:
 	@docker exec afl-container afl-fuzz -hh || true
 
+format:
+	find src -name "*.cpp" -o -name "*.hpp" | xargs clang-format -i --sort-includes=0 -style=file
+
 .PHONY: afl-up compile-fuzzers afl-down \
 		fuzz-csv-file fuzz-csv-pipe fuzz-json-file fuzz-json-pipe fuzz-parquet-file \
-		afl-down man-page
+		afl-down man-page format
