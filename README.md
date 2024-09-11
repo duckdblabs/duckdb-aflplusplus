@@ -54,7 +54,7 @@ make GEN=ninja BUILD_JSON=1
 - create executable (with normal `clang++` compiler instead of `afl-clang-fast++`)
 ```bash
 cd /my_path/duckdb_aflplusplus/fuzztests
-make CXX=clang++ CC=clang DUCKDB_DIR=/my_path/duckdb csv_file_fuzzer
+make CXX=clang++ DUCKDB_DIR=/my_path/duckdb csv_file_fuzzer
 ```
 
 - run the executalbe:
