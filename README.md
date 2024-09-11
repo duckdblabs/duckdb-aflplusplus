@@ -4,14 +4,14 @@ Fuzzing DuckDB with AFL++
 Implemented fuzz tests:
 - fuzz test the csv reader: function `read_csv()`
 - fuzz test the json reader: function `read_json()`
-- fuzz test the json reader: function `read_parquet()`
+- fuzz test the parquet reader: function `read_parquet()`
 
 ## AFL++
 AFL++ is a fuzzer that comes with its own compiler.
 
 Fuzzing with AFL++ is a multi-step process
 (also see [fuzzing_in_depth](https://github.com/AFLplusplus/AFLplusplus/blob/stable/docs/fuzzing_in_depth.md#a-selecting-the-best-afl-compiler-for-instrumenting-the-target)):
-1. Create a **target executable** by compiling duckdb with the `afl-clang-fast++` compiler
+1. Create a **target executable** by compiling the duckdb library with the `afl-clang-fast++` compiler. The duckdb libaray is included by a main function that specifically executes the functions that need to be tested.
 2. Provide an **input corpus** with typical inputs. E.g. all kinds of valid and invalid csv, json and parquet data.
 3. **Fuzzing itself**. `afl++` will call the executable with various inputs based on the corpus to see if it can make it crash
 4. **Evaluate the fuzz outputs.** Many inputs will be invalid, and are supposed to give a gracefull error. Inputs that result in a crash, however indicate that there is a bug. These crash cases need to be evaluated to see if they are reproducible outside the fuzzer.
@@ -27,11 +27,11 @@ Fuzz duckdb with afl++ by executing the folowing steps consequtively.
 3. Run one or more fuzz tests
     - `make fuzz-csv-file`
         -  equivalent: `$ duckdb -c "SELECT * FROM read_csv('my_csv_file')"`
-    - `make fuzz-csv-fifo`
+    - `make fuzz-csv-pipe`
         -  equivalent: `$ cat my_csv_file | duckdb -c "SELECT * FROM read_csv('/dev/stdin')"`
     - `make fuzz-json-file`
         -  equivalent: `$ duckdb -c "SELECT * FROM read_json('my_json_file')"`
-    - `make fuzz-json-fifo`
+    - `make fuzz-json-pipe`
         -  equivalent: `$ cat my_json_file | duckdb -c "SELECT * FROM read_json('/dev/stdin')"`
     - `make fuzz-parquet-file`
         -  equivalent: `$ duckdb -c "SELECT * FROM read_parquet('my_parquet_file')"`
@@ -41,7 +41,7 @@ Fuzz duckdb with afl++ by executing the folowing steps consequtively.
     - `make afl-down`
 
 ## Fuzz settings
-The fuzzing settings are currently hardcoded in the `Makefile` in targets `fuzz-csv-reader`, `fuzz-json-reader` and `fuzz-parquet-reader`. To see all options:
+The fuzzing settings are currently hardcoded in the `Makefile` in targets `fuzz-csv-file`, `fuzz-csv-pipe`, `fuzz-json-file`, `fuzz-json-pipe`, `fuzz-parquet-file`. To see all options:
 - `make man-page` (when the container is running)
 
 ## Locally testing the fuzz-executables, without AFL++

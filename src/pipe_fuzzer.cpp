@@ -4,7 +4,7 @@
 #include <string>
 #include <unistd.h>
 
-void fifo_fuzzer(std::string filereadFunction)
+void pipe_fuzzer(std::string filereadFunction)
 {
     /*
     Move data from stdin to dataPipe, so duckdb can read from it.
@@ -70,7 +70,7 @@ int main()
             std::cerr << "function '" + filereadFunction + "' is not supported" << std::endl;
             exit(1);
         }
-        fifo_fuzzer(filereadFunction);
+        pipe_fuzzer(filereadFunction);
     #else
         std::cerr << "read function to fuzz not specified!" << std::endl;
         exit(1);

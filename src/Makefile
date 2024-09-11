@@ -1,7 +1,7 @@
 CSV_FILE_FUZZER=csv_file_fuzzer
-CSV_FIFO_FUZZER=csv_fifo_fuzzer
+CSV_PIPE_FUZZER=csv_pipe_fuzzer
 JSON_FILE_FUZZER=json_file_fuzzer
-JSON_FIFO_FUZZER=json_fifo_fuzzer
+JSON_PIPE_FUZZER=json_pipe_fuzzer
 PARQUET_FILE_FUZZER=parquet_file_fuzzer
 
 DUCKDB_DIR=/duckdb
@@ -27,7 +27,7 @@ CXXFLAGS= -std=c++11
 CC=/AFLplusplus/afl-clang-fast
 CXX=/AFLplusplus/afl-clang-fast++
 
-all: $(CSV_FIFO_FUZZER) $(JSON_FIFO_FUZZER) $(PARQUET_FUZZER)
+all: $(CSV_PIPE_FUZZER) $(JSON_PIPE_FUZZER) $(PARQUET_FUZZER)
 
 $(DUCKDBLIB):
 	cd $(DUCKDB_DIR) && CC=$(CC) CXX=$(CXX) GEN=ninja BUILD_JSON=1 make
@@ -45,12 +45,12 @@ $(PARQUET_FILE_FUZZER): $(DUCKDBLIB) file_reader_fuzzer.cpp
 	$(CXX) -D DUCKDB_READ_FUNCTION=\"read_parquet\" file_reader_fuzzer.cpp $(INC) $(CXXFLAGS) $(DUCKDBLIB) $(DUCKDB_DEPS) $(DUCKDB_EXT) -o $(PARQUET_FILE_FUZZER)
 
 
-# fifo fuzzers
+# pipe fuzzers
 
-$(CSV_FIFO_FUZZER): $(DUCKDBLIB) fifo_fuzzer.cpp
-	$(CXX) -D DUCKDB_READ_FUNCTION=\"read_csv\" fifo_fuzzer.cpp $(INC) $(CXXFLAGS) $(DUCKDBLIB) $(DUCKDB_DEPS) $(DUCKDB_EXT) -o $(CSV_FIFO_FUZZER)
+$(CSV_PIPE_FUZZER): $(DUCKDBLIB) pipe_fuzzer.cpp
+	$(CXX) -D DUCKDB_READ_FUNCTION=\"read_csv\" pipe_fuzzer.cpp $(INC) $(CXXFLAGS) $(DUCKDBLIB) $(DUCKDB_DEPS) $(DUCKDB_EXT) -o $(CSV_PIPE_FUZZER)
 
-$(JSON_FIFO_FUZZER): $(DUCKDBLIB) fifo_fuzzer.cpp
-	$(CXX) -D DUCKDB_READ_FUNCTION=\"read_json\" fifo_fuzzer.cpp $(INC) $(CXXFLAGS) $(DUCKDBLIB) $(DUCKDB_DEPS) $(DUCKDB_EXT) -o $(JSON_FIFO_FUZZER)
+$(JSON_PIPE_FUZZER): $(DUCKDBLIB) pipe_fuzzer.cpp
+	$(CXX) -D DUCKDB_READ_FUNCTION=\"read_json\" pipe_fuzzer.cpp $(INC) $(CXXFLAGS) $(DUCKDBLIB) $(DUCKDB_DEPS) $(DUCKDB_EXT) -o $(JSON_PIPE_FUZZER)
 
 .PHONY: all
