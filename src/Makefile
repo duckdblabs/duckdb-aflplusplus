@@ -24,12 +24,13 @@ DUCKDB_EXT=$(DUCKDB_DIR)/build/release/extension/parquet/libparquet_extension.a 
 
 INC=-I$(DUCKDB_DIR)/src/include
 CXXFLAGS= -std=c++11
+CC=/AFLplusplus/afl-clang-fast
 CXX=/AFLplusplus/afl-clang-fast++
 
 all: $(CSV_PIPE_FUZZER) $(JSON_PIPE_FUZZER) $(PARQUET_FUZZER)
 
 $(DUCKDBLIB):
-	cd $(DUCKDB_DIR) && CXX=$(CXX) GEN=ninja BUILD_JSON=1 make
+	cd $(DUCKDB_DIR) && CC=$(CC) CXX=$(CXX) GEN=ninja BUILD_JSON=1 make
 
 
 # file reader fuzzers
