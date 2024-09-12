@@ -2,3 +2,4 @@
 .DS_Store
 *.o
 /fuzz_results*
+/corpus/duckdbfiles

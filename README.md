@@ -35,6 +35,8 @@ Fuzz duckdb with afl++ by executing the folowing steps consequtively.
         -  equivalent: `$ cat my_json_file | duckdb -c "SELECT * FROM read_json('/dev/stdin')"`
     - `make fuzz-parquet-file`
         -  equivalent: `$ duckdb -c "SELECT * FROM read_parquet('my_parquet_file')"`
+    - `make fuzz-duckdb-file`
+        -  equivalent: `$ duckdb -c "ATTACH 'my_duckdb_file' AS tmp_db (READ_ONLY); use tmp_db; show tables;"`
 4. Inspect the fuzz results to see if there are any inputs that resulted in crashes. Results are copied from the container to new directory `fuzz_results`, for example:
     - `./fuzz_results/csv_file_fuzzer`
 5. Clean up. The container keeps spinning unless explictly stopped; don't skip this step, check with `docker ps`.
@@ -53,7 +55,7 @@ make GEN=ninja BUILD_JSON=1
 
 - create executable (with normal `clang++` compiler instead of `afl-clang-fast++`)
 ```bash
-cd /my_path/duckdb_aflplusplus/fuzztests
+cd /my_path/duckdb_aflplusplus/src
 make CXX=clang++ CC=clang DUCKDB_DIR=/my_path/duckdb csv_file_fuzzer
 ```
 

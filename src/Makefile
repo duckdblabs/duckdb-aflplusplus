@@ -3,6 +3,7 @@ CSV_PIPE_FUZZER=csv_pipe_fuzzer
 JSON_FILE_FUZZER=json_file_fuzzer
 JSON_PIPE_FUZZER=json_pipe_fuzzer
 PARQUET_FILE_FUZZER=parquet_file_fuzzer
+DUCKDB_FILE_FUZZER=duckdb_file_fuzzer
 
 DUCKDB_DIR=/duckdb
 DUCKDBLIB=$(DUCKDB_DIR)/build/release/src/libduckdb_static.a
@@ -33,7 +34,7 @@ $(DUCKDBLIB):
 	cd $(DUCKDB_DIR) && CC=$(CC) CXX=$(CXX) GEN=ninja BUILD_JSON=1 make
 
 
-# file reader fuzzers
+# file reader fuzzers (csv, json, parquet)
 
 $(CSV_FILE_FUZZER): $(DUCKDBLIB) file_reader_fuzzer.cpp
 	$(CXX) -D DUCKDB_READ_FUNCTION=\"read_csv\" file_reader_fuzzer.cpp $(INC) $(CXXFLAGS) $(DUCKDBLIB) $(DUCKDB_DEPS) $(DUCKDB_EXT) -o $(CSV_FILE_FUZZER)
@@ -45,12 +46,18 @@ $(PARQUET_FILE_FUZZER): $(DUCKDBLIB) file_reader_fuzzer.cpp
 	$(CXX) -D DUCKDB_READ_FUNCTION=\"read_parquet\" file_reader_fuzzer.cpp $(INC) $(CXXFLAGS) $(DUCKDBLIB) $(DUCKDB_DEPS) $(DUCKDB_EXT) -o $(PARQUET_FILE_FUZZER)
 
 
-# pipe fuzzers
+# pipe fuzzers (csv, json)
 
 $(CSV_PIPE_FUZZER): $(DUCKDBLIB) pipe_fuzzer.cpp
 	$(CXX) -D DUCKDB_READ_FUNCTION=\"read_csv\" pipe_fuzzer.cpp $(INC) $(CXXFLAGS) $(DUCKDBLIB) $(DUCKDB_DEPS) $(DUCKDB_EXT) -o $(CSV_PIPE_FUZZER)
 
 $(JSON_PIPE_FUZZER): $(DUCKDBLIB) pipe_fuzzer.cpp
 	$(CXX) -D DUCKDB_READ_FUNCTION=\"read_json\" pipe_fuzzer.cpp $(INC) $(CXXFLAGS) $(DUCKDBLIB) $(DUCKDB_DEPS) $(DUCKDB_EXT) -o $(JSON_PIPE_FUZZER)
+
+
+# fuzz attaching DuckDB's native storage format
+
+$(DUCKDB_FILE_FUZZER): $(DUCKDBLIB) duckdb_file_fuzzer.cpp
+	$(CXX) duckdb_file_fuzzer.cpp $(INC) $(CXXFLAGS) $(DUCKDBLIB) $(DUCKDB_DEPS) $(DUCKDB_EXT) -o $(DUCKDB_FILE_FUZZER)
 
 .PHONY: all

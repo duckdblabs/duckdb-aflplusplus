@@ -5,6 +5,7 @@ CSV_PIPE_FUZZER=csv_pipe_fuzzer
 JSON_FILE_FUZZER=json_file_fuzzer
 JSON_PIPE_FUZZER=json_pipe_fuzzer
 PARQUET_FILE_FUZZER=parquet_file_fuzzer
+DUCKDB_FILE_FUZZER=duckdb_file_fuzzer
 
 # clones duckdb into AFL++ container
 afl-up:
@@ -23,6 +24,7 @@ compile-fuzzers:
 	docker exec -w /fuzz_src afl-container make $(JSON_FILE_FUZZER) JSON_FILE_FUZZER=$(JSON_FILE_FUZZER)
 	docker exec -w /fuzz_src afl-container make $(JSON_PIPE_FUZZER) JSON_PIPE_FUZZER=$(JSON_PIPE_FUZZER)
 	docker exec -w /fuzz_src afl-container make $(PARQUET_FILE_FUZZER) PARQUET_FILE_FUZZER=$(PARQUET_FILE_FUZZER)
+	docker exec -w /fuzz_src afl-container make $(DUCKDB_FILE_FUZZER) DUCKDB_FILE_FUZZER=$(DUCKDB_FILE_FUZZER)
 
 fuzz-csv-file:
 	docker exec afl-container mkdir -p /fuzz_results/$(CSV_FILE_FUZZER)
@@ -88,6 +90,21 @@ fuzz-parquet-file:
 		-- /fuzz_src/$(PARQUET_FILE_FUZZER)
 	mkdir -p fuzz_results/
 	docker cp afl-container:/fuzz_results/$(PARQUET_FILE_FUZZER) fuzz_results
+
+fuzz-duckdb-file:
+	./scripts/create_duckdb_file_corpus.sh
+	docker exec afl-container mkdir -p /fuzz_results/$(DUCKDB_FILE_FUZZER)
+	docker exec afl-container mkdir -p /corpus/
+	docker cp ./corpus/duckdbfiles afl-container:/corpus/
+	docker exec afl-container /AFLplusplus/afl-fuzz \
+		-V 10 \
+		-i /corpus/duckdbfiles \
+		-o /fuzz_results/$(DUCKDB_FILE_FUZZER) \
+		-m none \
+		-d \
+		-- /fuzz_src/$(DUCKDB_FILE_FUZZER)
+	mkdir -p fuzz_results/
+	docker cp afl-container:/fuzz_results/$(DUCKDB_FILE_FUZZER) fuzz_results
 
 # removes container, but not the image
 afl-down:
