@@ -95,7 +95,9 @@ fuzz-duckdb-file:
 	./scripts/create_duckdb_file_corpus.sh
 	docker exec afl-container mkdir -p /fuzz_results/$(DUCKDB_FILE_FUZZER)
 	docker exec afl-container mkdir -p /corpus/
+	docker exec afl-container mkdir -p /scripts/
 	docker cp ./corpus/duckdbfiles afl-container:/corpus/
+	docker cp ./scripts afl-container:/scripts
 	docker exec afl-container /AFLplusplus/afl-fuzz \
 		-V 10 \
 		-i /corpus/duckdbfiles \
