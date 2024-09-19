@@ -30,9 +30,10 @@ CXX=/AFLplusplus/afl-clang-fast++
 
 all: $(CSV_PIPE_FUZZER) $(JSON_PIPE_FUZZER) $(PARQUET_FUZZER)
 
+# NOTE: after https://github.com/duckdb/duckdb/pull/14033 is merged, use:
+# cd $(DUCKDB_DIR) && CC=$(CC) CXX=$(CXX) GEN=ninja BUILD_JSON=1 FORCE_ASSERT=1 CRASH_ON_ASSERT=1 make
 $(DUCKDBLIB):
-	cd $(DUCKDB_DIR) && CC=$(CC) CXX=$(CXX) GEN=ninja BUILD_JSON=1 make
-
+	cd $(DUCKDB_DIR) && CC=$(CC) CXX=$(CXX) GEN=ninja BUILD_JSON=1 CMAKE_VARS_BUILD="-DASSERT_EXCEPTION=0 -DFORCE_ASSERT=1" make
 
 # file reader fuzzers (csv, json, parquet)
 
