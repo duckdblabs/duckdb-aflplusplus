@@ -10,10 +10,10 @@ int main() {
 	uint8_t buf[4096];
 
 	// create file from stdin
-	std::string db_filename = "temp_input_file";
-	int fd = open(db_filename.c_str(), O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR);
+	std::string db_filepath = "/temp_input_file";
+	int fd = open(db_filepath.c_str(), O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR);
 	if (fd < 0) {
-		std::cerr << "can't create data file: " << db_filename << std::endl;
+		std::cerr << "can't create data file: " << db_filepath << std::endl;
 		exit(1);
 	}
 	ssize_t n;
@@ -31,7 +31,7 @@ int main() {
 	std::string script_path = "/scripts/fix_filesize_header_checksums.py";
 	if (child_pid == 0) {
 		// child process, -> run fixup script
-		if (execl(script_path.c_str(), script_path.c_str(), db_filename.c_str(), (char *)(nullptr)) < 0) {
+		if (execl(script_path.c_str(), script_path.c_str(), db_filepath.c_str(), (char *)(nullptr)) < 0) {
 			perror(NULL);
 			exit(1);
 		}
@@ -50,7 +50,7 @@ int main() {
 		// ingest file (to test if it crashes duckdb)
 		duckdb::DuckDB db(nullptr);
 		duckdb::Connection con(db);
-		std::string query = "ATTACH '" + db_filename + "' AS tmp_db (READ_ONLY); use tmp_db; show tables;";
+		std::string query = "ATTACH '" + db_filepath + "' AS tmp_db (READ_ONLY); use tmp_db; show tables;";
 		duckdb::unique_ptr<duckdb::MaterializedQueryResult> q_result = con.Query(query);
 		std::cout << q_result->ToString() << std::endl;
 	}

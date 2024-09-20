@@ -81,7 +81,7 @@ fuzz-json-pipe:
 fuzz-parquet-file:
 	docker exec afl-container mkdir -p /fuzz_results/$(PARQUET_FILE_FUZZER)
 	docker exec afl-container find /duckdb/data/parquet-testing -type f -size +100k -delete
-	docker exec afl-container /AFLplusplus/afl-fuzz \
+	docker exec afl-container -w / /AFLplusplus/afl-fuzz \
 		-V 10 \
 		-i /duckdb/data/parquet-testing \
 		-o /fuzz_results/$(PARQUET_FILE_FUZZER) \
@@ -97,8 +97,8 @@ fuzz-duckdb-file:
 	docker exec afl-container mkdir -p /corpus/
 	docker exec afl-container mkdir -p /scripts/
 	docker cp ./corpus/duckdbfiles afl-container:/corpus/
-	docker cp ./scripts afl-container:/scripts
-	docker exec afl-container /AFLplusplus/afl-fuzz \
+	docker cp ./scripts afl-container:/
+	docker exec -w / afl-container /AFLplusplus/afl-fuzz \
 		-V 10 \
 		-i /corpus/duckdbfiles \
 		-o /fuzz_results/$(DUCKDB_FILE_FUZZER) \
@@ -120,5 +120,5 @@ format:
 	find src -name "*.cpp" -o -name "*.hpp" | xargs clang-format -i --sort-includes=0 -style=file
 
 .PHONY: afl-up compile-fuzzers afl-down \
-		fuzz-csv-file fuzz-csv-pipe fuzz-json-file fuzz-json-pipe fuzz-parquet-file \
+		fuzz-csv-file fuzz-csv-pipe fuzz-json-file fuzz-json-pipe fuzz-parquet-file fuzz-duckdb-file \
 		afl-down man-page format

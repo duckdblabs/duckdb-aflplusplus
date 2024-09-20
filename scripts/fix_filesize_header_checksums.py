@@ -41,7 +41,6 @@ def correct_headers(db_file):
     db_file.write("DUCK".encode('utf-8'))
     db_file.write(struct.pack('<Q', DUCKDB_STORAGE_VERSION))
     db_file.write("FUZZ".encode('utf-8'))  # add 'FUZZ' for debug purposes
-    db_file.seek(0)
     update_checksum(db_file, 0, 4096)
     # fix table headers (two times 4 KB)
     update_checksum(db_file, 4096, 4096)
