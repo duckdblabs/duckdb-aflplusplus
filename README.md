@@ -5,6 +5,7 @@ Implemented fuzz tests:
 - fuzz test the csv reader: function `read_csv()`
 - fuzz test the json reader: function `read_json()`
 - fuzz test the parquet reader: function `read_parquet()`
+- fuzz test opening duckdb storage files
 
 ## AFL++
 AFL++ is a fuzzer that comes with its own compiler.
@@ -12,7 +13,7 @@ AFL++ is a fuzzer that comes with its own compiler.
 Fuzzing with AFL++ is a multi-step process
 (also see [fuzzing_in_depth](https://github.com/AFLplusplus/AFLplusplus/blob/stable/docs/fuzzing_in_depth.md#a-selecting-the-best-afl-compiler-for-instrumenting-the-target)):
 1. Create a **target executable** by compiling the duckdb library with the `afl-clang-fast++` compiler. The duckdb libaray is included by a main function that specifically executes the functions that need to be tested.
-2. Provide an **input corpus** with typical inputs. E.g. all kinds of valid and invalid csv, json and parquet data.
+2. Provide an **input corpus** with typical inputs. E.g. all kinds of valid and invalid csv, json and parquet data. The corpus for duckdb storage files is created by script `create_duckdb_file_corpus.sh`.
 3. **Fuzzing itself**. `afl++` will call the executable with various inputs based on the corpus to see if it can make it crash
 4. **Evaluate the fuzz outputs.** Many inputs will be invalid, and are supposed to give a gracefull error. Inputs that result in a crash, however indicate that there is a bug. These crash cases need to be evaluated to see if they are reproducible outside the fuzzer.
 
@@ -43,24 +44,23 @@ Fuzz duckdb with afl++ by executing the folowing steps consequtively.
     - `make afl-down`
 
 ## Fuzz settings
-The fuzzing settings are currently hardcoded in the `Makefile` in targets `fuzz-csv-file`, `fuzz-csv-pipe`, `fuzz-json-file`, `fuzz-json-pipe`, `fuzz-parquet-file`. To see all options:
+The fuzzing settings are currently hardcoded in the `Makefile` in targets `fuzz-csv-file`, `fuzz-csv-pipe`, `fuzz-json-file`, `fuzz-json-pipe`, `fuzz-parquet-file`, `fuzz-duckdb-file`. To see all options:
 - `make man-page` (when the container is running)
 
-## Locally testing the fuzz-executables, without AFL++
+## Locally running the fuzz-executables, without AFL++
+The fuzz-executable will make duckdb process the input. It crashes when duckdb does.
 - build duckdb with the json extension.
 ```bash
 cd /my_path/duckdb
-make GEN=ninja BUILD_JSON=1
+make GEN=ninja BUILD_JSON=1 CRASH_ON_ASSERT=1
 ```
-
 - create executable (with normal `clang++` compiler instead of `afl-clang-fast++`)
 ```bash
 cd /my_path/duckdb_aflplusplus/src
 make CXX=clang++ CC=clang DUCKDB_DIR=/my_path/duckdb csv_file_fuzzer
 ```
-
 - run the executalbe:
 ```bash
 ./csv_file_fuzzer
 ```
-- manually type csv input and end with `CTRL-D`; alternatively you can pipe the content of a file into the executalbe
+- manually type csv input and end with `EOF` (`CTRL-D`); alternatively you can pipe the content of a file into the executalbe. `cat mycsv.csv | ./csv_file_fuzzer`
