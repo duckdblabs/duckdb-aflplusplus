@@ -3,3 +3,4 @@
 *.o
 /fuzz_results*
 /corpus/duckdbfiles
+**/tmp/
