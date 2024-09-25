@@ -3,6 +3,7 @@
 '''
 Script to naively fixup duckdb database files that have been corrupted by the mutator function of the fuzzer.
 With this fixup, we bypass the initial validations of the db-file importer, for better fuzz results.
+The script fixes: file size, file headers, and checksums
 '''
 
 import io

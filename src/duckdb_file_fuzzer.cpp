@@ -26,9 +26,9 @@ int main() {
 	}
 	close(fd);
 
-	// run fixup script: fix_filesize_header_checksums.py
+	// run fixup script: fix_duckdb_file.py
 	pid_t child_pid = fork();
-	std::string script_path = "/scripts/fix_filesize_header_checksums.py";
+	std::string script_path = "/scripts/fix_duckdb_file.py";
 	if (child_pid == 0) {
 		// child process, -> run fixup script
 		if (execl(script_path.c_str(), script_path.c_str(), db_filepath.c_str(), (char *)(nullptr)) < 0) {
