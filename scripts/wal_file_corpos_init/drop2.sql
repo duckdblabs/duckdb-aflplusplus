@@ -1,0 +1,1 @@
+DROP TABLE s0.t0;

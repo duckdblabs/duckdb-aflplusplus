@@ -1,0 +1,1 @@
+DROP TYPE ty0;

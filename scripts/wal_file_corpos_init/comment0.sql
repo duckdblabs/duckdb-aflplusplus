@@ -1,0 +1,1 @@
+COMMENT ON TABLE t0 IS 'a';
