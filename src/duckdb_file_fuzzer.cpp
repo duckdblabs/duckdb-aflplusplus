@@ -14,7 +14,7 @@ int main() {
 	int fd = open(db_filepath.c_str(), O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR);
 	if (fd < 0) {
 		std::cerr << "can't create data file: " << db_filepath << std::endl;
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 	ssize_t n;
 	while (true) {
@@ -33,18 +33,18 @@ int main() {
 		// child process, -> run fixup script
 		if (execl(script_path.c_str(), script_path.c_str(), db_filepath.c_str(), (char *)(nullptr)) < 0) {
 			perror(NULL);
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 	} else {
 		// wait for fixup script
 		int stat_loc;
 		if (waitpid(child_pid, &stat_loc, 0) < 0) {
 			perror(NULL);
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 		if (!WIFEXITED(stat_loc)) {
 			std::cerr << "error in running script: " << script_path << std::endl;
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 
 		// ingest file (to test if it crashes duckdb)

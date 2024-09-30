@@ -13,7 +13,7 @@ void FileReaderFuzzer(std::string file_read_function) {
 	int fd = open(filename.c_str(), O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR);
 	if (fd < 0) {
 		std::cerr << "can't create data file: " << filename << std::endl;
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 	ssize_t n;
 	while (true) {
@@ -38,12 +38,12 @@ int main() {
 	std::string file_read_function = DUCKDB_READ_FUNCTION;
 	if (file_read_function != "read_csv" && file_read_function != "read_json" && file_read_function != "read_parquet") {
 		std::cerr << "function '" + file_read_function + "' is not supported" << std::endl;
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 	FileReaderFuzzer(file_read_function);
 #else
 	std::cerr << "duckdb read function to fuzz not specified!" << std::endl;
-	exit(1);
+	exit(EXIT_FAILURE);
 #endif
-	return 0;
+	return EXIT_SUCCESS;
 }
