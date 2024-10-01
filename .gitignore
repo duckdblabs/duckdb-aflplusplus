@@ -1,6 +1,7 @@
 .vscode
 .DS_Store
 *.o
+/build
+/corpus
 /fuzz_results*
-/corpus/**
 **/tmp/

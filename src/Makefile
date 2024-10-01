@@ -5,6 +5,9 @@ JSON_PIPE_FUZZER=json_pipe_fuzzer
 PARQUET_FILE_FUZZER=parquet_file_fuzzer
 DUCKDB_FILE_FUZZER=duckdb_file_fuzzer
 
+BUILD_DIR=/fuzz_build
+WAL_FUZZER=$(BUILD_DIR)/wal_fuzzer
+
 DUCKDB_DIR=/duckdb
 DUCKDBLIB=$(DUCKDB_DIR)/build/release/src/libduckdb_static.a
 
@@ -28,7 +31,7 @@ CXXFLAGS= -std=c++11
 CC=/AFLplusplus/afl-clang-fast
 CXX=/AFLplusplus/afl-clang-fast++
 
-all: $(CSV_PIPE_FUZZER) $(JSON_PIPE_FUZZER) $(PARQUET_FUZZER)
+all: $(CSV_FILE_FUZZER) $(CSV_PIPE_FUZZER) $(JSON_FILE_FUZZER) $(JSON_PIPE_FUZZER) $(PARQUET_FUZZER) $(DUCKDB_FILE_FUZZER) $(WAL_FUZZER)
 
 $(DUCKDBLIB):
 	cd $(DUCKDB_DIR) && CC=$(CC) CXX=$(CXX) GEN=ninja BUILD_JSON=1 CRASH_ON_ASSERT=1 make
@@ -58,5 +61,10 @@ $(JSON_PIPE_FUZZER): $(DUCKDBLIB) pipe_fuzzer.cpp
 
 $(DUCKDB_FILE_FUZZER): $(DUCKDBLIB) duckdb_file_fuzzer.cpp
 	$(CXX) duckdb_file_fuzzer.cpp $(INC) $(CXXFLAGS) $(DUCKDBLIB) $(DUCKDB_DEPS) $(DUCKDB_EXT) -o $(DUCKDB_FILE_FUZZER)
+
+# wal file fuzzer
+$(WAL_FUZZER): $(DUCKDBLIB) wal_fuzzer.cpp
+	@mkdir -p $(@D)
+	$(CXX) wal_fuzzer.cpp $(INC) $(CXXFLAGS) $(DUCKDBLIB) $(DUCKDB_DEPS) $(DUCKDB_EXT) -o $(WAL_FUZZER)
 
 .PHONY: all

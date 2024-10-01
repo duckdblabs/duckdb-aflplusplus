@@ -7,6 +7,9 @@ JSON_PIPE_FUZZER=json_pipe_fuzzer
 PARQUET_FILE_FUZZER=parquet_file_fuzzer
 DUCKDB_FILE_FUZZER=duckdb_file_fuzzer
 
+BUILD_DIR=/fuzz_build
+WAL_FUZZER=$(BUILD_DIR)/wal_fuzzer
+
 # clones duckdb into AFL++ container
 afl-up:
 	@open -a Docker
@@ -15,6 +18,7 @@ afl-up:
 		aflplusplus/aflplusplus sleep infinity \
 		> /dev/null
 	@docker cp src afl-container:/fuzz_src > /dev/null
+	@docker cp scripts afl-container:/
 	@docker ps
 
 compile-fuzzers:
@@ -25,6 +29,7 @@ compile-fuzzers:
 	docker exec -w /fuzz_src afl-container make $(JSON_PIPE_FUZZER) JSON_PIPE_FUZZER=$(JSON_PIPE_FUZZER)
 	docker exec -w /fuzz_src afl-container make $(PARQUET_FILE_FUZZER) PARQUET_FILE_FUZZER=$(PARQUET_FILE_FUZZER)
 	docker exec -w /fuzz_src afl-container make $(DUCKDB_FILE_FUZZER) DUCKDB_FILE_FUZZER=$(DUCKDB_FILE_FUZZER)
+	docker exec -w /fuzz_src afl-container make $(WAL_FUZZER) WAL_FUZZER=$(WAL_FUZZER)
 
 fuzz-csv-file:
 	docker exec afl-container mkdir -p /fuzz_results/$(CSV_FILE_FUZZER)
@@ -95,9 +100,7 @@ fuzz-duckdb-file:
 	./scripts/create_duckdb_file_corpus.sh
 	docker exec afl-container mkdir -p /fuzz_results/$(DUCKDB_FILE_FUZZER)
 	docker exec afl-container mkdir -p /corpus/
-	docker exec afl-container mkdir -p /scripts/
 	docker cp ./corpus/duckdbfiles afl-container:/corpus/
-	docker cp ./scripts afl-container:/
 	docker exec -w / afl-container /AFLplusplus/afl-fuzz \
 		-V 10 \
 		-i /corpus/duckdbfiles \
@@ -107,6 +110,24 @@ fuzz-duckdb-file:
 		-- /fuzz_src/$(DUCKDB_FILE_FUZZER)
 	mkdir -p fuzz_results/
 	docker cp afl-container:/fuzz_results/$(DUCKDB_FILE_FUZZER) fuzz_results
+
+fuzz-wall-file:
+	./scripts/create_wal_file_corpus.sh
+	docker exec afl-container mkdir -p /fuzz_results/wal_fuzzer
+	docker exec afl-container mkdir -p /corpus/
+	docker exec afl-container mkdir -p /scripts/
+	docker cp ./corpus/walfiles afl-container:/corpus/
+	docker exec afl-container mkdir -p /fuzz_build
+	docker cp ./build/base_db afl-container:/fuzz_build/base_db
+	docker exec -w / afl-container /AFLplusplus/afl-fuzz \
+		-V 10 \
+		-i /corpus/walfiles \
+		-o /fuzz_results/wal_fuzzer \
+		-m none \
+		-d \
+		-- $(WAL_FUZZER)
+	mkdir -p fuzz_results/
+	docker cp afl-container:/fuzz_results/wal_fuzzer fuzz_results
 
 # removes container, but not the image
 afl-down:
@@ -120,5 +141,6 @@ format:
 	find src -name "*.cpp" -o -name "*.hpp" | xargs clang-format -i --sort-includes=0 -style=file
 
 .PHONY: afl-up compile-fuzzers afl-down \
-		fuzz-csv-file fuzz-csv-pipe fuzz-json-file fuzz-json-pipe fuzz-parquet-file fuzz-duckdb-file \
+		fuzz-csv-file fuzz-csv-pipe fuzz-json-file fuzz-json-pipe fuzz-parquet-file \
+		fuzz-duckdb-file fuzz-wall-file \
 		afl-down man-page format

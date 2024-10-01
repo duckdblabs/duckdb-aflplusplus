@@ -5,11 +5,19 @@ import struct
 import sys
 from typing import BinaryIO
 
+'''
+Script to naively fixup duckdb wal files that have been corrupted by the mutator function of the fuzzer.
+With this fixup, we bypass the initial validations of the WriteAheadLogDeserializer, for better fuzz results.
+The script fixes: file size, file header, and checksums
+'''
+
 
 def fix_wal_file(wal_file_path: str):
     if not os.path.isfile(wal_file_path):
         sys.exit(f"ERROR. wal file not found: '{wal_file_path}'")
     file_size = os.stat(wal_file_path).st_size
+    if file_size < 24:
+        return  # file is too small to be valid anyway
     with open(wal_file_path, 'r+b') as wal_file:
         correct_file_header(wal_file)
         correct_entry(wal_file, file_size)
@@ -29,6 +37,7 @@ def correct_file_header(wal_file: BinaryIO):
         wal_file.seek(0)
         wal_file.write(expected_header)
 
+
 # every entry has uint64 size, and uint64 checksum, followed by the wal entry itself
 def correct_entry(wal_file: BinaryIO, file_size: int):
     entry_start_pos = 8  # first entry starts after 8-byte file header
@@ -47,7 +56,7 @@ def validate_and_correct_entry_size(entry_start_pos: int, file_size: int, wal_fi
         if entry_data_size > 40000:
             # actual file size not congruent with size value in file; fix by changing size value in file
             wal_file.seek(entry_start_pos)
-            entry_data_size = file_size - entry_start_pos - 16
+            entry_data_size = max(0, file_size - entry_start_pos - 16)
             wal_file.write(struct.pack('<Q', entry_data_size))
             # print(f"updated size at pos '{entry_start_pos}' to {entry_data_size} ('{entry_data_size.to_bytes(8, 'little').hex()}')")
         else:
