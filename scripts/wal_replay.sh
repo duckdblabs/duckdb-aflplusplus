@@ -23,37 +23,42 @@ COUNTER=0
 ERROR_COUNTER=0
 CRASH_COUNTER=0
 
-> $CRASH_LOG
-for wal_file in $WAL_FILES_DIR/*;
-do
+>$CRASH_LOG
+shopt -s nullglob
+for wal_file in $WAL_FILES_DIR/*; do
     # make sure the db-storage file and the wal have corresponding names
-    cp $BASE_DB_PATH $TEMP_DB  # 'base_db' needs to be refreshed every loop!
+    cp $BASE_DB_PATH $TEMP_DB # 'base_db' needs to be refreshed every loop!
     cp $wal_file "${TEMP_DB}.wal"
 
-    { $DUCKDB_EXECUTABLE_FULLPATH -c "ATTACH '$TEMP_DB' AS tmp_db (READ_ONLY); use tmp_db; show tables;" 1> /dev/null; } 2> $TEMP_ERROR
+    { $DUCKDB_EXECUTABLE_FULLPATH -c "ATTACH '$TEMP_DB' AS tmp_db (READ_ONLY); use tmp_db; show tables;" 1>/dev/null; } 2>$TEMP_ERROR
     exit_status=$?
     if [ "$exit_status" -ne "0" ]; then
         wal_name=$(basename ${wal_file})
         if [ "$exit_status" -eq "1" ]; then
-            if $CHECK_INTERNAL_ERRORS ; then
+            if $CHECK_INTERNAL_ERRORS; then
                 echo "error when reading $wal_name, exit status: $exit_status"
-                echo "error when reading $wal_name, exit status: $exit_status" >> $CRASH_LOG
-                cat $TEMP_ERROR >> $CRASH_LOG
-                echo "" >> $CRASH_LOG
+                echo "error when reading $wal_name, exit status: $exit_status" >>$CRASH_LOG
+                cat $TEMP_ERROR >>$CRASH_LOG
+                echo "" >>$CRASH_LOG
             fi
-            ((ERROR_COUNTER+=1))
+            ((ERROR_COUNTER += 1))
         else
             echo -e "${ANSI_RED}CRASH when reading $wal_name, exit status: $exit_status${ANSI_RESET}"
-            echo "CRASH when reading $wal_name, exit status: $exit_status" >> $CRASH_LOG
-            cat $TEMP_ERROR >> $CRASH_LOG
-            echo "" >> $CRASH_LOG
-            ((CRASH_COUNTER+=1))
+            echo "CRASH when reading $wal_name, exit status: $exit_status" >>$CRASH_LOG
+            cat $TEMP_ERROR >>$CRASH_LOG
+            echo "" >>$CRASH_LOG
+            ((CRASH_COUNTER += 1))
         fi
     fi
-    ((COUNTER+=1))
+    ((COUNTER += 1))
 done
 
-echo -e "${ANSI_GREEN}$COUNTER wal files have been processed; ${ANSI_RED}nr of crashes: $CRASH_COUNTER; ${ANSI_CYAN}nr of (internal) errors: '$ERROR_COUNTER'${ANSI_RESET}"
+msg="${ANSI_GREEN}$COUNTER wal files have been processed; \
+${ANSI_RED}nr of crashes: $CRASH_COUNTER; \
+${ANSI_CYAN}nr of (internal) errors: '$ERROR_COUNTER'${ANSI_RESET}; \
+nr of non-reproducible cases: $((COUNTER - CRASH_COUNTER - ERROR_COUNTER))"
+
+echo -e $msg
 echo "see \"$CRASH_LOG\" for more details"
 rm -f $TEMP_ERROR
 rm -f $TEMP_DB
