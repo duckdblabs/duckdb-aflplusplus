@@ -1,14 +1,20 @@
-CSV_FILE_FUZZER=csv_file_fuzzer
-CSV_PIPE_FUZZER=csv_pipe_fuzzer
-JSON_FILE_FUZZER=json_file_fuzzer
-JSON_PIPE_FUZZER=json_pipe_fuzzer
-PARQUET_FILE_FUZZER=parquet_file_fuzzer
-DUCKDB_FILE_FUZZER=duckdb_file_fuzzer
+# container lay-out
+SRC_DIR=/duckdb_aflplusplus/src
+SCRIPT_DIR=/duckdb_aflplusplus/scripts
+BUILD_DIR=/duckdb_aflplusplus/build
+CORPUS_DIR=/duckdb_aflplusplus/corpus
+RESULT_DIR=/duckdb_aflplusplus/fuzz_results
+DUCKDB_DIR=/duckdb
 
-BUILD_DIR=/fuzz_build
+# fuzz targets (executables)
+CSV_FILE_FUZZER=$(BUILD_DIR)/csv_file_fuzzer
+CSV_PIPE_FUZZER=$(BUILD_DIR)/csv_pipe_fuzzer
+JSON_FILE_FUZZER=$(BUILD_DIR)/json_file_fuzzer
+JSON_PIPE_FUZZER=$(BUILD_DIR)/json_pipe_fuzzer
+PARQUET_FILE_FUZZER=$(BUILD_DIR)/parquet_file_fuzzer
+DUCKDB_FILE_FUZZER=$(BUILD_DIR)/duckdb_file_fuzzer
 WAL_FUZZER=$(BUILD_DIR)/wal_fuzzer
 
-DUCKDB_DIR=/duckdb
 DUCKDBLIB=$(DUCKDB_DIR)/build/release/src/libduckdb_static.a
 
 DUCKDB_DEPS=$(DUCKDB_DIR)/build/release/third_party/fmt/libduckdb_fmt.a \
@@ -36,6 +42,7 @@ all: $(CSV_FILE_FUZZER) $(CSV_PIPE_FUZZER) $(JSON_FILE_FUZZER) $(JSON_PIPE_FUZZE
 $(DUCKDBLIB):
 	cd $(DUCKDB_DIR) && CC=$(CC) CXX=$(CXX) GEN=ninja BUILD_JSON=1 CRASH_ON_ASSERT=1 make
 
+
 # file reader fuzzers (csv, json, parquet)
 
 $(CSV_FILE_FUZZER): $(DUCKDBLIB) file_reader_fuzzer.cpp
@@ -62,7 +69,9 @@ $(JSON_PIPE_FUZZER): $(DUCKDBLIB) pipe_fuzzer.cpp
 $(DUCKDB_FILE_FUZZER): $(DUCKDBLIB) duckdb_file_fuzzer.cpp
 	$(CXX) duckdb_file_fuzzer.cpp $(INC) $(CXXFLAGS) $(DUCKDBLIB) $(DUCKDB_DEPS) $(DUCKDB_EXT) -o $(DUCKDB_FILE_FUZZER)
 
+
 # wal file fuzzer
+
 $(WAL_FUZZER): $(DUCKDBLIB) wal_fuzzer.cpp
 	@mkdir -p $(@D)
 	$(CXX) wal_fuzzer.cpp $(INC) $(CXXFLAGS) $(DUCKDBLIB) $(DUCKDB_DEPS) $(DUCKDB_EXT) -o $(WAL_FUZZER)

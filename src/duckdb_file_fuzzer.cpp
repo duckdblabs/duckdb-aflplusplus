@@ -8,9 +8,10 @@
 
 int main() {
 	uint8_t buf[4096];
+	std::string script_path = "/duckdb_aflplusplus/scripts/fix_duckdb_file.py";
+	std::string db_filepath = "/duckdb_aflplusplus/build/tmp_db_file";
 
 	// create file from stdin
-	std::string db_filepath = "/temp_input_file";
 	int fd = open(db_filepath.c_str(), O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR);
 	if (fd < 0) {
 		std::cerr << "can't create data file: " << db_filepath << std::endl;
@@ -28,7 +29,6 @@ int main() {
 
 	// run fixup script: fix_duckdb_file.py
 	pid_t child_pid = fork();
-	std::string script_path = "/scripts/fix_duckdb_file.py";
 	if (child_pid == 0) {
 		// child process, -> run fixup script
 		if (execl(script_path.c_str(), script_path.c_str(), db_filepath.c_str(), (char *)(nullptr)) < 0) {

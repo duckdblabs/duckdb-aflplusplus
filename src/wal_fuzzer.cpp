@@ -13,10 +13,10 @@ Note: all received wall file data will be processed with the same base database 
 */
 int main() {
 	uint8_t buf[4096];
-	std::string base_db_filepath = "/fuzz_build/base_db";
-	std::string tmp_db_filepath = "/fuzz_build/tmp_db";
-	std::string wal_filepath = "/fuzz_build/tmp_db.wal";
-	std::string script_path = "/scripts/fix_wal_file.py";
+	std::string base_db_filepath = "/duckdb_aflplusplus/build/base_db";
+	std::string tmp_db_filepath = "/duckdb_aflplusplus/build/tmp_db";
+	std::string wal_filepath = "/duckdb_aflplusplus/build/tmp_db.wal";
+	std::string script_path = "/duckdb_aflplusplus/scripts/fix_wal_file.py";
 
 	// read wal file data from stdin and save it as file
 	int fd = open(wal_filepath.c_str(), O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR);
