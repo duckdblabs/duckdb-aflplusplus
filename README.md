@@ -6,16 +6,20 @@ Implemented fuzz tests:
 - fuzz test the json reader: function `read_json()`
 - fuzz test the parquet reader: function `read_parquet()`
 - fuzz test opening duckdb storage files
+- fuzz test processing write-ahead log file (wal)
 
 ## AFL++
 AFL++ is a fuzzer that comes with its own compiler.
 
 Fuzzing with AFL++ is a multi-step process
 (also see [fuzzing_in_depth](https://github.com/AFLplusplus/AFLplusplus/blob/stable/docs/fuzzing_in_depth.md#a-selecting-the-best-afl-compiler-for-instrumenting-the-target)):
-1. Create a **target executable** by compiling the duckdb library with the `afl-clang-fast++` compiler. The duckdb libaray is included by a main function that specifically executes the functions that need to be tested.
-2. Provide an **input corpus** with typical inputs. E.g. all kinds of valid and invalid csv, json and parquet data. The corpus for duckdb storage files is created by script `create_duckdb_file_corpus.sh`.
+1. Create a **target executable** by compiling the duckdb library (and the main function that includes it) with the `afl-clang-fast++` compiler. The main function specifically executes the functions that need to be tested.
+2. Provide an **input corpus** with typical inputs (valid or invalid). Depending on the fuzz scenario, this can be:
+    - data inputs files: csv, json, parquet
+    - duckdb database files - created by script `create_duckdb_file_corpus.sh`
+    - duckdb wal files (write-ahead log) - created by script `create_wal_file_corpus.sh`
 3. **Fuzzing itself**. `afl++` will call the executable with various inputs based on the corpus to see if it can make it crash
-4. **Evaluate the fuzz outputs.** Many inputs will be invalid, and are supposed to give a gracefull error. Inputs that result in a crash, however indicate that there is a bug. These crash cases need to be evaluated to see if they are reproducible outside the fuzzer.
+4. **Evaluate the fuzz outputs.** Many inputs will be invalid, and are supposed to give a gracefull error. Inputs that result in a crash, however, indicate that there is a bug. These crash cases are saved and need to be evaluated to see if they are reproducible outside the fuzzer.
 
 ## Run AFL++ for DuckDB in local container
 Fuzz duckdb with afl++ by executing the folowing steps consequtively.
@@ -38,6 +42,8 @@ Fuzz duckdb with afl++ by executing the folowing steps consequtively.
         -  equivalent: `$ duckdb -c "SELECT * FROM read_parquet('my_parquet_file')"`
     - `make fuzz-duckdb-file`
         -  equivalent: `$ duckdb -c "ATTACH 'my_duckdb_file' AS tmp_db (READ_ONLY); use tmp_db; show tables;"`
+    - `make fuzz-wall-file`
+        -  equivalent: attaching a database file (see: `make fuzz-duckdb-file`) with a corresponding wal file
 4. Inspect the fuzz results to see if there are any inputs that resulted in crashes. Results are copied from the container to new directory `fuzz_results`, for example:
     - `./fuzz_results/csv_file_fuzzer`
 5. Clean up. The container keeps spinning unless explictly stopped; don't skip this step, check with `docker ps`.
