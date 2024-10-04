@@ -8,15 +8,20 @@
 #include <unistd.h>
 
 /*
-Fuzzing the wall file.
-Note: all received wall file data will be processed with the same base database file!
+Fuzzing the wal file.
+Note: all received wal file data will be processed with the same base database file!
 */
 int main() {
 	uint8_t buf[4096];
-	std::string base_db_filepath = "/duckdb_aflplusplus/build/base_db";
-	std::string tmp_db_filepath = "/duckdb_aflplusplus/build/tmp_db";
-	std::string wal_filepath = "/duckdb_aflplusplus/build/tmp_db.wal";
-	std::string script_path = "/duckdb_aflplusplus/scripts/fix_wal_file.py";
+#ifdef DUCKDB_AFLPLUSPLUS_DIR
+	std::string duckdb_aflplusplus_dir = DUCKDB_AFLPLUSPLUS_DIR;
+	std::string base_db_filepath = duckdb_aflplusplus_dir + "/build/base_db";
+	std::string tmp_db_filepath = duckdb_aflplusplus_dir + "/build/tmp_db";
+	std::string wal_filepath = duckdb_aflplusplus_dir + "/build/tmp_db.wal";
+	std::string script_path = duckdb_aflplusplus_dir + "/scripts/fix_wal_file.py";
+#else
+	static_assert(false, "error: DUCKDB_AFLPLUSPLUS_DIR not defined");
+#endif
 
 	// read wal file data from stdin and save it as file
 	int fd = open(wal_filepath.c_str(), O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR);
@@ -37,7 +42,6 @@ int main() {
 	// run fixup script: fix_wal_file.py
 	pid_t child_pid = fork();
 	if (child_pid == 0) {
-		std::cout << "child!" << std::endl;
 		// child process, -> run fixup script
 		if (execl(script_path.c_str(), script_path.c_str(), wal_filepath.c_str(), (char *)(nullptr)) < 0) {
 			perror(NULL);

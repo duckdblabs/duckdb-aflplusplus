@@ -8,8 +8,13 @@
 
 int main() {
 	uint8_t buf[4096];
-	std::string script_path = "/duckdb_aflplusplus/scripts/fix_duckdb_file.py";
-	std::string db_filepath = "/duckdb_aflplusplus/build/tmp_db_file";
+#ifdef DUCKDB_AFLPLUSPLUS_DIR
+	std::string duckdb_aflplusplus_dir = DUCKDB_AFLPLUSPLUS_DIR;
+	std::string script_path = duckdb_aflplusplus_dir + "/scripts/fix_duckdb_file.py";
+	std::string db_filepath = duckdb_aflplusplus_dir + "/build/tmp_db_file";
+#else
+	static_assert(false, "error: DUCKDB_AFLPLUSPLUS_DIR not defined");
+#endif
 
 	// create file from stdin
 	int fd = open(db_filepath.c_str(), O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR);

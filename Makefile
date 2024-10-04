@@ -1,20 +1,23 @@
-# !! requires docker desktop to run locally !!
+# local setting (set local path to duckdb repository); only for target 'compile-fuzzers-local'
+DUCKDB_LOCAL_DIR ?= ${HOME}/git/duckdb
 
 # container lay-out
-SRC_DIR=/duckdb_aflplusplus/src
-SCRIPT_DIR=/duckdb_aflplusplus/scripts
-BUILD_DIR=/duckdb_aflplusplus/build
-CORPUS_DIR=/duckdb_aflplusplus/corpus
-RESULT_DIR=/duckdb_aflplusplus/fuzz_results
+DUCKDB_DIR             = /duckdb
+DUCKDB_AFLPLUSPLUS_DIR = /duckdb_aflplusplus
+SRC_DIR    = $(DUCKDB_AFLPLUSPLUS_DIR)/src
+SCRIPT_DIR = $(DUCKDB_AFLPLUSPLUS_DIR)/scripts
+BUILD_DIR  = $(DUCKDB_AFLPLUSPLUS_DIR)/build
+CORPUS_DIR = $(DUCKDB_AFLPLUSPLUS_DIR)/corpus
+RESULT_DIR = $(DUCKDB_AFLPLUSPLUS_DIR)/fuzz_results
 
 # fuzz targets (executables)
-CSV_FILE_FUZZER=$(BUILD_DIR)/csv_file_fuzzer
-CSV_PIPE_FUZZER=$(BUILD_DIR)/csv_pipe_fuzzer
-JSON_FILE_FUZZER=$(BUILD_DIR)/json_file_fuzzer
-JSON_PIPE_FUZZER=$(BUILD_DIR)/json_pipe_fuzzer
-PARQUET_FILE_FUZZER=$(BUILD_DIR)/parquet_file_fuzzer
-DUCKDB_FILE_FUZZER=$(BUILD_DIR)/duckdb_file_fuzzer
-WAL_FUZZER=$(BUILD_DIR)/wal_fuzzer
+CSV_FILE_FUZZER     = $(BUILD_DIR)/csv_file_fuzzer
+CSV_PIPE_FUZZER     = $(BUILD_DIR)/csv_pipe_fuzzer
+JSON_FILE_FUZZER    = $(BUILD_DIR)/json_file_fuzzer
+JSON_PIPE_FUZZER    = $(BUILD_DIR)/json_pipe_fuzzer
+PARQUET_FILE_FUZZER = $(BUILD_DIR)/parquet_file_fuzzer
+DUCKDB_FILE_FUZZER  = $(BUILD_DIR)/duckdb_file_fuzzer
+WAL_FUZZER          = $(BUILD_DIR)/wal_fuzzer
 
 # clones duckdb into AFL++ container
 afl-up:
@@ -34,13 +37,15 @@ afl-up:
 
 compile-fuzzers:
 	docker exec -w / afl-container git clone https://github.com/duckdb/duckdb.git > /dev/null
-	docker exec -w $(SRC_DIR) afl-container make $(CSV_FILE_FUZZER) CSV_FILE_FUZZER=$(CSV_FILE_FUZZER)
-	docker exec -w $(SRC_DIR) afl-container make $(CSV_PIPE_FUZZER) CSV_PIPE_FUZZER=$(CSV_PIPE_FUZZER)
-	docker exec -w $(SRC_DIR) afl-container make $(JSON_FILE_FUZZER) JSON_FILE_FUZZER=$(JSON_FILE_FUZZER)
-	docker exec -w $(SRC_DIR) afl-container make $(JSON_PIPE_FUZZER) JSON_PIPE_FUZZER=$(JSON_PIPE_FUZZER)
-	docker exec -w $(SRC_DIR) afl-container make $(PARQUET_FILE_FUZZER) PARQUET_FILE_FUZZER=$(PARQUET_FILE_FUZZER)
-	docker exec -w $(SRC_DIR) afl-container make $(DUCKDB_FILE_FUZZER) DUCKDB_FILE_FUZZER=$(DUCKDB_FILE_FUZZER)
-	docker exec -w $(SRC_DIR) afl-container make $(WAL_FUZZER) WAL_FUZZER=$(WAL_FUZZER)
+	docker exec -w $(SRC_DIR) \
+		-e CC=/AFLplusplus/afl-clang-fast \
+		-e CXX=/AFLplusplus/afl-clang-fast++ afl-container \
+		make all
+
+compile-fuzzers-local:
+	$(eval ROOT_DIR := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST)))))
+	mkdir -p $(ROOT_DIR)/build
+	cd src && DUCKDB_DIR=$(DUCKDB_LOCAL_DIR) DUCKDB_AFLPLUSPLUS_DIR=$(ROOT_DIR) make all
 
 fuzz-csv-file:
 	docker exec afl-container mkdir -p $(RESULT_DIR)/csv_file_fuzzer
@@ -121,7 +126,7 @@ fuzz-duckdb-file:
 	mkdir -p fuzz_results/
 	docker cp afl-container:$(RESULT_DIR)/duckdb_file_fuzzer fuzz_results
 
-fuzz-wall-file:
+fuzz-wal-file:
 	./scripts/create_wal_file_corpus.sh
 	docker exec afl-container mkdir -p $(RESULT_DIR)/wal_fuzzer
 	docker cp ./corpus/walfiles afl-container:$(CORPUS_DIR)
@@ -149,5 +154,5 @@ format:
 
 .PHONY: afl-up compile-fuzzers afl-down \
 		fuzz-csv-file fuzz-csv-pipe fuzz-json-file fuzz-json-pipe fuzz-parquet-file \
-		fuzz-duckdb-file fuzz-wall-file \
+		fuzz-duckdb-file fuzz-wal-file \
 		afl-down man-page format

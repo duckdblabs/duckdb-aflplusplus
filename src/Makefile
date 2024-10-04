@@ -1,19 +1,21 @@
 # container lay-out
-SRC_DIR=/duckdb_aflplusplus/src
-SCRIPT_DIR=/duckdb_aflplusplus/scripts
-BUILD_DIR=/duckdb_aflplusplus/build
-CORPUS_DIR=/duckdb_aflplusplus/corpus
-RESULT_DIR=/duckdb_aflplusplus/fuzz_results
-DUCKDB_DIR=/duckdb
+DUCKDB_DIR             ?= /duckdb
+DUCKDB_AFLPLUSPLUS_DIR ?= /duckdb_aflplusplus
+
+SRC_DIR    ?= $(DUCKDB_AFLPLUSPLUS_DIR)/src
+SCRIPT_DIR ?= $(DUCKDB_AFLPLUSPLUS_DIR)/scripts
+BUILD_DIR  ?= $(DUCKDB_AFLPLUSPLUS_DIR)/build
+CORPUS_DIR ?= $(DUCKDB_AFLPLUSPLUS_DIR)/corpus
+RESULT_DIR ?= $(DUCKDB_AFLPLUSPLUS_DIR)/fuzz_results
 
 # fuzz targets (executables)
-CSV_FILE_FUZZER=$(BUILD_DIR)/csv_file_fuzzer
-CSV_PIPE_FUZZER=$(BUILD_DIR)/csv_pipe_fuzzer
-JSON_FILE_FUZZER=$(BUILD_DIR)/json_file_fuzzer
-JSON_PIPE_FUZZER=$(BUILD_DIR)/json_pipe_fuzzer
-PARQUET_FILE_FUZZER=$(BUILD_DIR)/parquet_file_fuzzer
-DUCKDB_FILE_FUZZER=$(BUILD_DIR)/duckdb_file_fuzzer
-WAL_FUZZER=$(BUILD_DIR)/wal_fuzzer
+CSV_FILE_FUZZER     ?= $(BUILD_DIR)/csv_file_fuzzer
+CSV_PIPE_FUZZER     ?= $(BUILD_DIR)/csv_pipe_fuzzer
+JSON_FILE_FUZZER    ?= $(BUILD_DIR)/json_file_fuzzer
+JSON_PIPE_FUZZER    ?= $(BUILD_DIR)/json_pipe_fuzzer
+PARQUET_FILE_FUZZER ?= $(BUILD_DIR)/parquet_file_fuzzer
+DUCKDB_FILE_FUZZER  ?= $(BUILD_DIR)/duckdb_file_fuzzer
+WAL_FUZZER          ?= $(BUILD_DIR)/wal_fuzzer
 
 DUCKDBLIB=$(DUCKDB_DIR)/build/release/src/libduckdb_static.a
 
@@ -32,10 +34,8 @@ DUCKDB_DEPS=$(DUCKDB_DIR)/build/release/third_party/fmt/libduckdb_fmt.a \
 DUCKDB_EXT=$(DUCKDB_DIR)/build/release/extension/parquet/libparquet_extension.a \
 	$(DUCKDB_DIR)/build/release/extension/json/libjson_extension.a
 
-INC=-I$(DUCKDB_DIR)/src/include
-CXXFLAGS= -std=c++11
-CC=/AFLplusplus/afl-clang-fast
-CXX=/AFLplusplus/afl-clang-fast++
+INC =-I$(DUCKDB_DIR)/src/include
+CXXFLAGS = -std=c++11 -DDUCKDB_DIR=\"$(DUCKDB_DIR)\" -DDUCKDB_AFLPLUSPLUS_DIR=\"$(DUCKDB_AFLPLUSPLUS_DIR)\"
 
 all: $(CSV_FILE_FUZZER) $(CSV_PIPE_FUZZER) $(JSON_FILE_FUZZER) $(JSON_PIPE_FUZZER) $(PARQUET_FUZZER) $(DUCKDB_FILE_FUZZER) $(WAL_FUZZER)
 
@@ -73,7 +73,6 @@ $(DUCKDB_FILE_FUZZER): $(DUCKDBLIB) duckdb_file_fuzzer.cpp
 # wal file fuzzer
 
 $(WAL_FUZZER): $(DUCKDBLIB) wal_fuzzer.cpp
-	@mkdir -p $(@D)
 	$(CXX) wal_fuzzer.cpp $(INC) $(CXXFLAGS) $(DUCKDBLIB) $(DUCKDB_DEPS) $(DUCKDB_EXT) -o $(WAL_FUZZER)
 
 .PHONY: all

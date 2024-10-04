@@ -42,8 +42,7 @@ int main() {
 	}
 	FileReaderFuzzer(file_read_function);
 #else
-	std::cerr << "duckdb read function to fuzz not specified!" << std::endl;
-	exit(EXIT_FAILURE);
+	static_assert(false, "error: DUCKDB_READ_FUNCTION not defined");
 #endif
 	return EXIT_SUCCESS;
 }
