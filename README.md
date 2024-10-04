@@ -52,13 +52,16 @@ Fuzzing DuckDB with AFL++ is a multi-step process
     - For duckdb file inputs, the input files from AFL++ should be post-processed with script `fix_duckdb_file.py`. Afterwards, they can be reproduced by opening the duckdb file with duckdb:
         - `$ duckdb my_duckdb_file`
         - `$ duckdb -c "ATTACH 'my_duckdb_file' AS tmp_db (READ_ONLY); use tmp_db; show tables;"`
+
+        To reproduce the entire output folder `fuzz_results/duckdb_file_fuzzer/default/crashes`, use script `test_duckdb_output.sh`.
     - For wal inputs, the AFL++ input files should be post-processed with script `fix_wal_file.py` or in bulk with `fix_wal_files.sh`. A corresponding database file is required to process the fixed wal file. Note that the database file is constant (`base_db`), while the wal file is different each run of the fuzzer.
     To reproduce a crash, rename the crashing wal file to `base_db.wal`, place it next to `base_db` and open `base_db` with duckdb.
-    To create the `base_db`:
-    ```bash
-    source ./scripts/create_base_db.sh
-    create_base_db
-    ```
+        To create the `base_db`:
+        ```bash
+        source ./scripts/create_base_db.sh
+        create_base_db
+        ```
+        To reproduce the entire output folder `fuzz_results/wal_fuzzer/default/crashes`, first run `fix_wal_files.sh`, followed by `wal_replay.sh`
 
 ## Run the AFL++ fuzzer for DuckDB in local container
 Fuzz duckdb with afl++ by executing the folowing steps consequtively.
