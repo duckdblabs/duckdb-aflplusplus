@@ -49,10 +49,10 @@ compile-fuzzers-local:
 
 fuzz-csv-file:
 	docker exec afl-container mkdir -p $(RESULT_DIR)/csv_file_fuzzer
-	docker exec afl-container find /duckdb/data/csv -type f -size +40k -delete
+	docker exec afl-container find $(DUCKDB_DIR)/data/csv -type f -size +40k -delete
 	docker exec afl-container /AFLplusplus/afl-fuzz \
 		-V 3600 \
-		-i /duckdb/data/csv \
+		-i $(DUCKDB_DIR)/data/csv \
 		-o $(RESULT_DIR)/csv_file_fuzzer \
 		-m none \
 		-d \
@@ -62,10 +62,10 @@ fuzz-csv-file:
 
 fuzz-csv-pipe:
 	docker exec afl-container mkdir -p $(RESULT_DIR)/csv_pipe_fuzzer
-	docker exec afl-container find /duckdb/data/csv -type f -size +40k -delete
+	docker exec afl-container find $(DUCKDB_DIR)/data/csv -type f -size +40k -delete
 	docker exec afl-container /AFLplusplus/afl-fuzz \
 		-V 3600 \
-		-i /duckdb/data/csv \
+		-i $(DUCKDB_DIR)/data/csv \
 		-o $(RESULT_DIR)/csv_pipe_fuzzer \
 		-m none \
 		-d \
@@ -75,10 +75,10 @@ fuzz-csv-pipe:
 
 fuzz-json-file:
 	docker exec afl-container mkdir -p $(RESULT_DIR)/json_file_fuzzer
-	docker exec afl-container find /duckdb/data/json -type f -size +40k -delete
+	docker exec afl-container find $(DUCKDB_DIR)/data/json -type f -size +40k -delete
 	docker exec afl-container /AFLplusplus/afl-fuzz \
 		-V 3600 \
-		-i /duckdb/data/json \
+		-i $(DUCKDB_DIR)/data/json \
 		-o $(RESULT_DIR)/json_file_fuzzer \
 		-m none \
 		-d \
@@ -88,10 +88,10 @@ fuzz-json-file:
 
 fuzz-json-pipe:
 	docker exec afl-container mkdir -p $(RESULT_DIR)/json_pipe_fuzzer
-	docker exec afl-container find /duckdb/data/json -type f -size +40k -delete
+	docker exec afl-container find $(DUCKDB_DIR)/data/json -type f -size +40k -delete
 	docker exec afl-container /AFLplusplus/afl-fuzz \
 		-V 3600 \
-		-i /duckdb/data/json \
+		-i $(DUCKDB_DIR)/data/json \
 		-o $(RESULT_DIR)/json_pipe_fuzzer \
 		-m none \
 		-d \
@@ -101,10 +101,10 @@ fuzz-json-pipe:
 
 fuzz-parquet-file:
 	docker exec afl-container mkdir -p $(RESULT_DIR)/parquet_fuzzer
-	docker exec afl-container find /duckdb/data/parquet-testing -type f -size +100k -delete
+	docker exec afl-container find $(DUCKDB_DIR)/data/parquet-testing -type f -size +100k -delete
 	docker exec afl-container -w / /AFLplusplus/afl-fuzz \
 		-V 3600 \
-		-i /duckdb/data/parquet-testing \
+		-i $(DUCKDB_DIR)/data/parquet-testing \
 		-o $(RESULT_DIR)/parquet_fuzzer \
 		-m none \
 		-d \
