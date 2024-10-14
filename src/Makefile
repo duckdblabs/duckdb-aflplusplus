@@ -32,7 +32,8 @@ DUCKDB_DEPS=$(DUCKDB_DIR)/build/release/third_party/fmt/libduckdb_fmt.a \
 	$(DUCKDB_DIR)/build/release/third_party/yyjson/libduckdb_yyjson.a
 
 DUCKDB_EXT=$(DUCKDB_DIR)/build/release/extension/parquet/libparquet_extension.a \
-	$(DUCKDB_DIR)/build/release/extension/json/libjson_extension.a
+	$(DUCKDB_DIR)/build/release/extension/json/libjson_extension.a \
+	$(DUCKDB_DIR)/build/release/extension/jemalloc/libjemalloc_extension.a 
 
 INC =-I$(DUCKDB_DIR)/src/include
 CXXFLAGS = -std=c++11 -DDUCKDB_DIR=\"$(DUCKDB_DIR)\" -DDUCKDB_AFLPLUSPLUS_DIR=\"$(DUCKDB_AFLPLUSPLUS_DIR)\"
