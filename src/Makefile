@@ -37,6 +37,11 @@ DUCKDB_EXT=$(DUCKDB_DIR)/build/release/extension/parquet/libparquet_extension.a 
 INC =-I$(DUCKDB_DIR)/src/include
 CXXFLAGS = -std=c++11 -DDUCKDB_DIR=\"$(DUCKDB_DIR)\" -DDUCKDB_AFLPLUSPLUS_DIR=\"$(DUCKDB_AFLPLUSPLUS_DIR)\"
 
+ifeq (${BUILD_JEMALLOC}, 1)
+	CXXFLAGS:=${CXXFLAGS} -DBUILD_JEMALLOC=1
+	DUCKDB_EXT:=${DUCKDB_EXT} $(DUCKDB_DIR)/build/release/extension/jemalloc/libjemalloc_extension.a
+endif
+
 all: $(CSV_FILE_FUZZER) $(CSV_PIPE_FUZZER) $(JSON_FILE_FUZZER) $(JSON_PIPE_FUZZER) $(PARQUET_FUZZER) $(DUCKDB_FILE_FUZZER) $(WAL_FUZZER)
 
 $(DUCKDBLIB):
