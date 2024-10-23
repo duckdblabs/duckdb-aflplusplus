@@ -122,7 +122,7 @@ fuzz-parquet-file:
 	docker cp afl-container:$(RESULT_DIR)/parquet_fuzzer fuzz_results
 
 fuzz-duckdb-file:
-	./scripts/create_duckdb_file_corpus.sh
+	./scripts/create_duckdb_file_corpus.sh "./scripts/duckdb_corpus_init" "./corpus/duckdbfiles"
 	docker exec afl-container mkdir -p $(RESULT_DIR)/duckdb_file_fuzzer
 	docker cp ./corpus/duckdbfiles afl-container:$(CORPUS_DIR)
 	docker exec -w / afl-container /AFLplusplus/afl-fuzz \
