@@ -18,8 +18,8 @@ PARQUET_FILE_FUZZER      ?= $(BUILD_DIR)/parquet_file_fuzzer
 DUCKDB_FILE_FUZZER       ?= $(BUILD_DIR)/duckdb_file_fuzzer
 WAL_FUZZER               ?= $(BUILD_DIR)/wal_fuzzer
 
-CC  = /AFLplusplus/afl-clang-fast
-CXX = /AFLplusplus/afl-clang-fast++
+CC  ?= /AFLplusplus/afl-clang-fast
+CXX ?= /AFLplusplus/afl-clang-fast++
 
 DUCKDBLIB=$(DUCKDB_DIR)/build/release/src/libduckdb_static.a
 
@@ -33,9 +33,11 @@ DUCKDB_DEPS=$(DUCKDB_DIR)/build/release/third_party/fmt/libduckdb_fmt.a \
 	$(DUCKDB_DIR)/build/release/third_party/fastpforlib/libduckdb_fastpforlib.a \
 	$(DUCKDB_DIR)/build/release/third_party/mbedtls/libduckdb_mbedtls.a \
 	$(DUCKDB_DIR)/build/release/third_party/fsst/libduckdb_fsst.a \
-	$(DUCKDB_DIR)/build/release/third_party/yyjson/libduckdb_yyjson.a
+	$(DUCKDB_DIR)/build/release/third_party/yyjson/libduckdb_yyjson.a \
+	$(DUCKDB_DIR)/build/release/third_party/zstd/libduckdb_zstd.a
 
-DUCKDB_EXT=$(DUCKDB_DIR)/build/release/extension/parquet/libparquet_extension.a \
+DUCKDB_EXT= $(DUCKDB_DIR)/build/release/extension/core_functions/libcore_functions_extension.a \
+	$(DUCKDB_DIR)/build/release/extension/parquet/libparquet_extension.a \
 	$(DUCKDB_DIR)/build/release/extension/json/libjson_extension.a
 
 INC =-I$(DUCKDB_DIR)/src/include
@@ -57,36 +59,36 @@ $(DUCKDBLIB):
 # file reader fuzzers (csv, json, parquet)
 
 $(CSV_FILE_FUZZER): $(DUCKDBLIB) file_reader_fuzzer.cpp
-	$(CXX) -D DUCKDB_READ_FUNCTION=\"read_csv\" file_reader_fuzzer.cpp $(INC) $(CXXFLAGS) $(DUCKDBLIB) $(DUCKDB_DEPS) $(DUCKDB_EXT) -o $(CSV_FILE_FUZZER)
+	$(CXX) -D DUCKDB_READ_FUNCTION=\"read_csv\" file_reader_fuzzer.cpp $(INC) $(CXXFLAGS) $(DUCKDBLIB) $(DUCKDB_EXT) $(DUCKDB_DEPS) -o $(CSV_FILE_FUZZER)
 
 $(CSV_FILE_PARMETER_FUZZER): $(DUCKDBLIB) csv_parameter_fuzzer.cpp
-	$(CXX) -D DUCKDB_READ_FUNCTION=\"read_csv\" csv_parameter_fuzzer.cpp $(INC) $(CXXFLAGS) $(DUCKDBLIB) $(DUCKDB_DEPS) $(DUCKDB_EXT) -o $(CSV_FILE_PARMETER_FUZZER)
+	$(CXX) -D DUCKDB_READ_FUNCTION=\"read_csv\" csv_parameter_fuzzer.cpp $(INC) $(CXXFLAGS) $(DUCKDBLIB) $(DUCKDB_EXT) $(DUCKDB_DEPS) -o $(CSV_FILE_PARMETER_FUZZER)
 
 $(JSON_FILE_FUZZER): $(DUCKDBLIB) file_reader_fuzzer.cpp
-	$(CXX) -D DUCKDB_READ_FUNCTION=\"read_json\" file_reader_fuzzer.cpp $(INC) $(CXXFLAGS) $(DUCKDBLIB) $(DUCKDB_DEPS) $(DUCKDB_EXT) -o $(JSON_FILE_FUZZER)
+	$(CXX) -D DUCKDB_READ_FUNCTION=\"read_json\" file_reader_fuzzer.cpp $(INC) $(CXXFLAGS) $(DUCKDBLIB) $(DUCKDB_EXT) $(DUCKDB_DEPS) -o $(JSON_FILE_FUZZER)
 
 $(PARQUET_FILE_FUZZER): $(DUCKDBLIB) file_reader_fuzzer.cpp
-	$(CXX) -D DUCKDB_READ_FUNCTION=\"read_parquet\" file_reader_fuzzer.cpp $(INC) $(CXXFLAGS) $(DUCKDBLIB) $(DUCKDB_DEPS) $(DUCKDB_EXT) -o $(PARQUET_FILE_FUZZER)
+	$(CXX) -D DUCKDB_READ_FUNCTION=\"read_parquet\" file_reader_fuzzer.cpp $(INC) $(CXXFLAGS) $(DUCKDBLIB) $(DUCKDB_EXT) $(DUCKDB_DEPS) -o $(PARQUET_FILE_FUZZER)
 
 
 # pipe fuzzers (csv, json)
 
 $(CSV_PIPE_FUZZER): $(DUCKDBLIB) pipe_fuzzer.cpp
-	$(CXX) -D DUCKDB_READ_FUNCTION=\"read_csv\" pipe_fuzzer.cpp $(INC) $(CXXFLAGS) $(DUCKDBLIB) $(DUCKDB_DEPS) $(DUCKDB_EXT) -o $(CSV_PIPE_FUZZER)
+	$(CXX) -D DUCKDB_READ_FUNCTION=\"read_csv\" pipe_fuzzer.cpp $(INC) $(CXXFLAGS) $(DUCKDBLIB) $(DUCKDB_EXT) $(DUCKDB_DEPS) -o $(CSV_PIPE_FUZZER)
 
 $(JSON_PIPE_FUZZER): $(DUCKDBLIB) pipe_fuzzer.cpp
-	$(CXX) -D DUCKDB_READ_FUNCTION=\"read_json\" pipe_fuzzer.cpp $(INC) $(CXXFLAGS) $(DUCKDBLIB) $(DUCKDB_DEPS) $(DUCKDB_EXT) -o $(JSON_PIPE_FUZZER)
+	$(CXX) -D DUCKDB_READ_FUNCTION=\"read_json\" pipe_fuzzer.cpp $(INC) $(CXXFLAGS) $(DUCKDBLIB) $(DUCKDB_EXT) $(DUCKDB_DEPS) -o $(JSON_PIPE_FUZZER)
 
 
 # fuzz attaching DuckDB's native storage format
 
 $(DUCKDB_FILE_FUZZER): $(DUCKDBLIB) duckdb_file_fuzzer.cpp
-	$(CXX) duckdb_file_fuzzer.cpp $(INC) $(CXXFLAGS) $(DUCKDBLIB) $(DUCKDB_DEPS) $(DUCKDB_EXT) -o $(DUCKDB_FILE_FUZZER)
+	$(CXX) duckdb_file_fuzzer.cpp $(INC) $(CXXFLAGS) $(DUCKDBLIB) $(DUCKDB_EXT) $(DUCKDB_DEPS) -o $(DUCKDB_FILE_FUZZER)
 
 
 # wal file fuzzer
 
 $(WAL_FUZZER): $(DUCKDBLIB) wal_fuzzer.cpp
-	$(CXX) wal_fuzzer.cpp $(INC) $(CXXFLAGS) $(DUCKDBLIB) $(DUCKDB_DEPS) $(DUCKDB_EXT) -o $(WAL_FUZZER)
+	$(CXX) wal_fuzzer.cpp $(INC) $(CXXFLAGS) $(DUCKDBLIB) $(DUCKDB_EXT) $(DUCKDB_DEPS) -o $(WAL_FUZZER)
 
 .PHONY: all duckdb-lib

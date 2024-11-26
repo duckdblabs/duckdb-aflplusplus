@@ -3,8 +3,8 @@
 #include <fcntl.h>
 #include <iostream>
 #include <string>
-#include <vector>
 #include <unistd.h>
+#include <vector>
 
 std::string GetParameterString(uint8_t scenario_id) {
 	std::vector<std::string> parameter_scenarios;

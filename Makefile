@@ -21,8 +21,8 @@ DUCKDB_FILE_FUZZER       = $(BUILD_DIR)/duckdb_file_fuzzer
 WAL_FUZZER               = $(BUILD_DIR)/wal_fuzzer
 
 # duckdb version
-DUCKDB_COMMIT_ISH   ?= v1.1.3
-# DUCKDB_COMMIT_ISH   ?= main
+# DUCKDB_COMMIT_ISH   ?= v1.1.3
+DUCKDB_COMMIT_ISH   ?= main
 
 # clones duckdb into AFL++ container
 afl-up:
@@ -51,14 +51,26 @@ checkout-duckdb:
 	docker exec -w $(DUCKDB_DIR) afl-container git checkout $(DUCKDB_COMMIT_ISH)
 
 compile-duckdb: checkout-duckdb
-	docker exec -w $(SRC_DIR) afl-container make duckdb-lib
+	docker exec -w $(SRC_DIR) \
+		-e CC=/AFLplusplus/afl-clang-fast \
+		-e CXX=/AFLplusplus/afl-clang-fast++ \
+		afl-container \
+		make duckdb-lib
 
 re-compile-duckdb: checkout-duckdb
 	docker exec -w $(DUCKDB_DIR) afl-container make clean
-	docker exec -w $(SRC_DIR) afl-container make duckdb-lib
+	docker exec -w $(SRC_DIR) \
+		-e CC=/AFLplusplus/afl-clang-fast \
+		-e CXX=/AFLplusplus/afl-clang-fast++ \
+		afl-container \
+		make duckdb-lib
 
 compile-fuzzers: compile-duckdb
-	docker exec -w $(SRC_DIR) afl-container make all
+	docker exec -w $(SRC_DIR) \
+		-e CC=/AFLplusplus/afl-clang-fast \
+		-e CXX=/AFLplusplus/afl-clang-fast++ \
+		afl-container \
+		make all
 
 compile-fuzzers-CI:
 	docker exec -w / afl-container git clone https://github.com/duckdb/duckdb.git > /dev/null
@@ -195,4 +207,4 @@ format:
 .PHONY: afl-up compile-fuzzers afl-down \
 		fuzz-csv-file fuzz-csv-file-parameter fuzz-csv-pipe fuzz-json-file fuzz-json-pipe fuzz-parquet-file \
 		fuzz-duckdb-file fuzz-wal-file \
-		afl-down man-page format
+		man-page format
