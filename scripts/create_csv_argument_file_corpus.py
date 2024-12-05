@@ -6,15 +6,14 @@ The created json can be used as input for fuzzing the read_csv() function
 '''
 
 import json
-import re
 from pathlib import Path
 
-FILE_DIR = Path('~/git/duckdb/test/').expanduser()
+FILE_DIR_TO_SCRAPE = Path('~/git/duckdb/test/').expanduser()
 CSV_CORPUS_JSON = Path(__file__).parents[1] / 'corpus/csv/csv_parameter.json'
 
 
 def main():
-    all_test_files = FILE_DIR.rglob("*")
+    all_test_files = FILE_DIR_TO_SCRAPE.rglob('*')
     file_reader_expressions = []
 
     for test_file in all_test_files:
@@ -25,8 +24,8 @@ def main():
         except UnicodeDecodeError:
             # skip for now: non-unicode files
             continue
-        for read_csv_expression in find_function_expression(file_content, 'read_csv'):
-            file_and_argument_str = read_csv_expression.partition("read_csv(")[2].rpartition(")")[0]
+        for read_csv_expression in find_function_expressions(file_content, 'read_csv'):
+            file_and_argument_str = read_csv_expression.partition('read_csv(')[2].rpartition(')')[0]
             expression_obj = create_file_reader_dict(file_and_argument_str)
             if expression_obj:
                 file_reader_expressions.append(expression_obj)
@@ -34,12 +33,12 @@ def main():
     # write file
     CSV_CORPUS_JSON.parent.mkdir(parents=True, exist_ok=True)
     with CSV_CORPUS_JSON.open('w') as csv_corpus_json:
-        json.dump(file_reader_expressions, csv_corpus_json)
+        json.dump(file_reader_expressions, csv_corpus_json, sort_keys=True, indent=4)
 
 
 # returns a list of function calls found in a text
 # follows the sting up to the correct closing parenthesis
-def find_function_expression(text: str, function_str: str) -> list[str]:
+def find_function_expressions(text: str, function_str: str) -> list[str]:
     if function_str[-1:] != '(':
         function_str += '('
     found_expressions = []
@@ -63,44 +62,82 @@ def find_function_expression(text: str, function_str: str) -> list[str]:
 
 
 def create_file_reader_dict(file_and_argument_str: str) -> dict | None:
-    if file_and_argument_str[0] == "[":
+    if file_and_argument_str[0] == '[':
         # skip for now: multiple files
         return None
-    file_name, _, arguments = file_and_argument_str.partition(",")
-    if not arguments or '*' in file_name:
-        # skip for now: no arguments or wildcard in filename
+    file_name, _, arguments = file_and_argument_str.partition(',')
+    if not arguments or any(char in file_name for char in '*[]'):
+        # skip for now: no arguments or filename with wildcard or option ranges, e.g. [0-9]
         return None
-    file_name = file_name.strip().replace("'", "").replace("\"", "")
+    file_name = file_name.replace('\'', '').replace('\"', '').strip()
     arguments = arguments.strip()
     if file_name[0:4] != 'data':
         # skip for now: reads from exteneral sources
         return None
     return dict(
         {
-            "arguments": dict(
+            'arguments': dict(
                 {
-                    (lambda x: (x[0].strip(), x[2].strip()))(arg.partition('='))
+                    (lambda x: (clean_parameter_name(x[0]), x[2].strip()))(arg.partition('='))
                     for arg in split_argument_string(arguments)
                 }
             ),
-            "data_file": file_name,
+            'data_file': file_name,
         }
     )
 
 
-# split by comma, except commas within quotes, or parentheses: "" '' [] () {}
+def clean_parameter_name(parameter_str: str) -> str:
+    parameter_str = parameter_str.strip()
+    if parameter_str[-1] == ':':
+        parameter_str = parameter_str[:-1].strip()
+    return parameter_str.lower()
+
+
+# split on comma, but only when not within quotes or parentheses: "" '' [] () {}
 def split_argument_string(argument_string):
-    # Temporarily replace non-splitting commas by placeholder byte, so we can safely split
-    placeholder = '\x01'
-    argument_string = re.sub(
-        r'("(?:.|\n)*?")|(\'(?:.|\n)*?\')|(\[(?:.|\n)*?\])|(\((?:.|\n)*?\))|(\{(?:.|\n)*?\})',
-        lambda m: m.group(0).replace(',', placeholder),
-        argument_string,
-    )
-    argument_list = argument_string.split(',')
-    argument_list = [argument.replace(placeholder, ',') for argument in argument_list]
+    # 'stack' opening parentheses: [ ( { and quotes: ' " in a string to keep track of the nesting
+    # note that quotes can only occur at the top
+    state_stack = ''
+
+    argument_list = []
+    idx = 0
+    start_idx = 0
+    while idx < len(argument_string):
+        state_char = state_stack[-1] if state_stack else None
+        char = argument_string[idx]
+
+        if char not in ['\"', '\'', '[', ']', '(', ')', '{', '}', ',']:
+            # no special char: do nothing
+            idx += 1
+            continue
+        if state_char in ['\"', '\''] and char != state_char:
+            # inside of quotes, and not closing them yet: do nothing
+            idx += 1
+            continue
+
+        match char:
+            case '\"' | '\'':
+                if char != state_char:
+                    state_stack = state_stack + char
+                else:
+                    state_stack = state_stack[:-1]
+            case '[' | '(' | '{':
+                state_stack = state_stack + char
+            case ']' | ')' | '}':
+                assert (
+                    (state_char == '[' and char == ']')
+                    or (state_char == '(' and char == ')')
+                    or (state_char == '{' and char == '}')
+                )
+                state_stack = state_stack[:-1]
+            case ',':
+                if not state_stack:
+                    argument_list.append(argument_string[start_idx:idx])
+                    start_idx = idx + 1
+        idx += 1
     return argument_list
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
