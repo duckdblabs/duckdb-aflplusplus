@@ -11,18 +11,23 @@ CORPUS_DIR = $(DUCKDB_AFLPLUSPLUS_DIR)/corpus
 RESULT_DIR = $(DUCKDB_AFLPLUSPLUS_DIR)/fuzz_results
 
 # fuzz targets (executables)
-CSV_FILE_FUZZER     = $(BUILD_DIR)/csv_file_fuzzer
-CSV_PIPE_FUZZER     = $(BUILD_DIR)/csv_pipe_fuzzer
-JSON_FILE_FUZZER    = $(BUILD_DIR)/json_file_fuzzer
-JSON_PIPE_FUZZER    = $(BUILD_DIR)/json_pipe_fuzzer
-PARQUET_FILE_FUZZER = $(BUILD_DIR)/parquet_file_fuzzer
-DUCKDB_FILE_FUZZER  = $(BUILD_DIR)/duckdb_file_fuzzer
-WAL_FUZZER          = $(BUILD_DIR)/wal_fuzzer
+CSV_FILE_FUZZER          = $(BUILD_DIR)/csv_file_fuzzer
+CSV_FILE_PARMETER_FUZZER = $(BUILD_DIR)/csv_file_parameter_fuzzer
+CSV_PIPE_FUZZER          = $(BUILD_DIR)/csv_pipe_fuzzer
+JSON_FILE_FUZZER         = $(BUILD_DIR)/json_file_fuzzer
+JSON_PIPE_FUZZER         = $(BUILD_DIR)/json_pipe_fuzzer
+PARQUET_FILE_FUZZER      = $(BUILD_DIR)/parquet_file_fuzzer
+DUCKDB_FILE_FUZZER       = $(BUILD_DIR)/duckdb_file_fuzzer
+WAL_FUZZER               = $(BUILD_DIR)/wal_fuzzer
+
+# duckdb version
+# DUCKDB_COMMIT_ISH   ?= v1.1.3
+DUCKDB_COMMIT_ISH   ?= main
 
 # clones duckdb into AFL++ container
 afl-up:
 	@open -a Docker
-	@sleep 2
+	@sleep 3
 	@docker pull aflplusplus/aflplusplus > /dev/null
 	@docker run --name afl-container  -d \
 		aflplusplus/aflplusplus sleep infinity \
@@ -33,13 +38,38 @@ afl-up:
 	@docker exec afl-container mkdir -p $(BUILD_DIR)
 	@docker exec afl-container mkdir -p $(CORPUS_DIR)
 	@docker exec afl-container mkdir -p $(RESULT_DIR)
+	docker exec -w / afl-container git clone https://github.com/duckdb/duckdb.git --no-checkout > /dev/null
 	@docker ps
 
-compile-fuzzers:
-	docker exec -w / afl-container git clone https://github.com/duckdb/duckdb.git > /dev/null
+copy-src-to-container:
+	@docker exec afl-container rm -rf $(SRC_DIR) > /dev/null
+	@docker cp src afl-container:$(SRC_DIR) > /dev/null
+
+checkout-duckdb:
+	docker exec -w $(DUCKDB_DIR) afl-container git checkout main
+	docker exec -w $(DUCKDB_DIR) afl-container git pull
+	docker exec -w $(DUCKDB_DIR) afl-container git checkout $(DUCKDB_COMMIT_ISH)
+
+compile-duckdb: checkout-duckdb
 	docker exec -w $(SRC_DIR) \
 		-e CC=/AFLplusplus/afl-clang-fast \
-		-e CXX=/AFLplusplus/afl-clang-fast++ afl-container \
+		-e CXX=/AFLplusplus/afl-clang-fast++ \
+		afl-container \
+		make duckdb-lib
+
+re-compile-duckdb: checkout-duckdb
+	docker exec -w $(DUCKDB_DIR) afl-container make clean
+	docker exec -w $(SRC_DIR) \
+		-e CC=/AFLplusplus/afl-clang-fast \
+		-e CXX=/AFLplusplus/afl-clang-fast++ \
+		afl-container \
+		make duckdb-lib
+
+compile-fuzzers: compile-duckdb
+	docker exec -w $(SRC_DIR) \
+		-e CC=/AFLplusplus/afl-clang-fast \
+		-e CXX=/AFLplusplus/afl-clang-fast++ \
+		afl-container \
 		make all
 
 compile-fuzzers-CI:
@@ -68,6 +98,19 @@ fuzz-csv-file:
 		-- $(CSV_FILE_FUZZER)
 	mkdir -p fuzz_results/
 	docker cp afl-container:$(RESULT_DIR)/csv_file_fuzzer fuzz_results
+
+fuzz-csv-file-parameter:
+	docker exec afl-container mkdir -p $(RESULT_DIR)/csv_file_parameter_fuzzer
+	docker exec afl-container find $(DUCKDB_DIR)/data/csv -type f -size +40k -delete
+	docker exec afl-container /AFLplusplus/afl-fuzz \
+		-V 3600 \
+		-i $(DUCKDB_DIR)/data/csv \
+		-o $(RESULT_DIR)/csv_file_parameter_fuzzer \
+		-m none \
+		-d \
+		-- $(CSV_FILE_PARMETER_FUZZER)
+	mkdir -p fuzz_results/
+	docker cp afl-container:$(RESULT_DIR)/csv_file_parameter_fuzzer fuzz_results
 
 fuzz-csv-pipe:
 	docker exec afl-container mkdir -p $(RESULT_DIR)/csv_pipe_fuzzer
@@ -162,6 +205,6 @@ format:
 	find src -name "*.cpp" -o -name "*.hpp" | xargs clang-format -i --sort-includes=0 -style=file
 
 .PHONY: afl-up compile-fuzzers afl-down \
-		fuzz-csv-file fuzz-csv-pipe fuzz-json-file fuzz-json-pipe fuzz-parquet-file \
+		fuzz-csv-file fuzz-csv-file-parameter fuzz-csv-pipe fuzz-json-file fuzz-json-pipe fuzz-parquet-file \
 		fuzz-duckdb-file fuzz-wal-file \
-		afl-down man-page format
+		man-page format

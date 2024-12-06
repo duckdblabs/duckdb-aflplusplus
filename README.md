@@ -28,6 +28,7 @@ Fuzzing DuckDB with AFL++ is a multi-step process
         - reads the test-data from stdin
         - stores the data in a temporary file or pipe
         - if applicable, post-processes the incoming data to fix checksums, magic bytes, and size information, to prevent simple rejection scenarios
+        - in some cases (e.g. `fuzz-csv-file-parameter`) the post-processing also determines which extra parameters apply when calling specific duckdb functions
         - calls duckdb library function to process the data
     - DuckDB library functions
         - try to ingest and process the test-data; in case of bugs, this might crash the target executable
@@ -49,6 +50,7 @@ Fuzzing DuckDB with AFL++ is a multi-step process
         - `$ duckdb -c "SELECT * FROM read_json('my_json_file')"`
         - `$ cat my_json_file | duckdb -c "SELECT * FROM read_json('/dev/stdin')"`
         - `$ duckdb -c "SELECT * FROM read_parquet('my_parquet_file')"`
+    - When fuzzing the csv reader with extra parameters (`fuzz-csv-file-parameter`), the crashes should be reproduced with script: `reproduce_csv_parameter_fuzzer_crashes.py`. The reason is that the first byte contains the parameter scenario info, and is not part of the actual csv input.
     - For duckdb file inputs, the input files from AFL++ should be post-processed with script `fix_duckdb_file.py`. Afterwards, they can be reproduced by opening the duckdb file with duckdb:
         - `$ duckdb my_duckdb_file`
         - `$ duckdb -c "ATTACH 'my_duckdb_file' AS tmp_db (READ_ONLY); use tmp_db; show tables;"`
@@ -73,6 +75,7 @@ Fuzz duckdb with afl++ by executing the folowing steps consequtively.
     - `make compile-fuzzers`
 3. Run one or more fuzz tests (see the `Makefile` for the corpus selection and fuzz options)
     - `make fuzz-csv-file`
+    - `make fuzz-csv-file-parameter`
     - `make fuzz-csv-pipe`
     - `make fuzz-json-file`
     - `make fuzz-json-pipe`
@@ -118,8 +121,8 @@ Steps:
         ```bash
         ./build/csv_file_fuzzer
         ```
-    - **duckdb_file_fuzzer**:
-        Similar to the file readers above. DuckDB files created by the afl++ fuzzer need to be post-processed. See section "reproduce crashes" above.
+    - **duckdb_file_fuzzer / fuzz-csv-file-parameter**:
+        Similar to the file readers above. DuckDB files and csv files with extra parameter info created by the afl++ fuzzer need to be post-processed. See section "reproduce crashes" above.
     - **wal_fuzzer**:
         wal files created by the afl++ fuzzer need to be post-processed. See section "reproduces crashes" above.
         To process wal files, the base_db should also be present.
