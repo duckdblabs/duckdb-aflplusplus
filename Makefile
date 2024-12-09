@@ -69,6 +69,7 @@ compile-fuzzers: compile-duckdb
 	docker exec -w $(SRC_DIR) \
 		-e CC=/AFLplusplus/afl-clang-fast \
 		-e CXX=/AFLplusplus/afl-clang-fast++ \
+		-e BUILD_JEMALLOC=1 \
 		afl-container \
 		make all
 
