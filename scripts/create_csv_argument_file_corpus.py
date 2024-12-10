@@ -107,6 +107,10 @@ def split_argument_string(argument_string):
         state_char = state_stack[-1] if state_stack else None
         char = argument_string[idx]
 
+        # last char: add tail end
+        if idx == len(argument_string) - 1 and char != ',':
+            argument_list.append(argument_string[start_idx:])
+            break
         if char not in ['\"', '\'', '[', ']', '(', ')', '{', '}', ',']:
             # no special char: do nothing
             idx += 1
@@ -133,8 +137,10 @@ def split_argument_string(argument_string):
                 state_stack = state_stack[:-1]
             case ',':
                 if not state_stack:
+                    # split on comma, we are not within quotes or parentheses
                     argument_list.append(argument_string[start_idx:idx])
                     start_idx = idx + 1
+
         idx += 1
     return argument_list
 
