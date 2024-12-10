@@ -15,6 +15,7 @@ CSV_CORPUS_JSON = Path(__file__).parents[1] / 'corpus/csv/csv_parameter.json'
 def main():
     all_test_files = FILE_DIR_TO_SCRAPE.rglob('*')
     file_reader_expressions = []
+    scenario_id = 0
 
     for test_file in all_test_files:
         if not test_file.is_file():
@@ -26,14 +27,15 @@ def main():
             continue
         for read_csv_expression in find_function_expressions(file_content, 'read_csv'):
             file_and_argument_str = read_csv_expression.partition('read_csv(')[2].rpartition(')')[0]
-            expression_obj = create_file_reader_dict(file_and_argument_str)
+            expression_obj = create_file_reader_dict(file_and_argument_str, scenario_id)
             if expression_obj:
                 file_reader_expressions.append(expression_obj)
+                scenario_id += 1
 
     # write file
     CSV_CORPUS_JSON.parent.mkdir(parents=True, exist_ok=True)
     with CSV_CORPUS_JSON.open('w') as csv_corpus_json:
-        json.dump(file_reader_expressions, csv_corpus_json, sort_keys=True, indent=4)
+        json.dump(file_reader_expressions, csv_corpus_json, indent=4)
 
 
 # returns a list of function calls found in a text
@@ -61,7 +63,7 @@ def find_function_expressions(text: str, function_str: str) -> list[str]:
     return found_expressions
 
 
-def create_file_reader_dict(file_and_argument_str: str) -> dict | None:
+def create_file_reader_dict(file_and_argument_str: str, scenario_id: int) -> dict | None:
     if file_and_argument_str[0] == '[':
         # skip for now: multiple files
         return None
@@ -74,17 +76,15 @@ def create_file_reader_dict(file_and_argument_str: str) -> dict | None:
     if file_name[0:4] != 'data':
         # skip for now: reads from exteneral sources
         return None
-    return dict(
+    scenario_dict = {'id': scenario_id}
+    scenario_dict['data_file'] = file_name
+    scenario_dict['arguments'] = dict(
         {
-            'arguments': dict(
-                {
-                    (lambda x: (clean_parameter_name(x[0]), x[2].strip()))(arg.partition('='))
-                    for arg in split_argument_string(arguments)
-                }
-            ),
-            'data_file': file_name,
+            (lambda x: (clean_parameter_name(x[0]), x[2].strip()))(arg.partition('='))
+            for arg in split_argument_string(arguments)
         }
     )
+    return scenario_dict
 
 
 def clean_parameter_name(parameter_str: str) -> str:

@@ -125,7 +125,7 @@ fuzz-csv-file-parameter-flex:
 		-o $(RESULT_DIR)/csv_file_parameter_flex_fuzzer \
 		-m none \
 		-d \
-		-- $(CSV_FILE_PARMETER_FUZZER)
+		-- $(CSV_FILE_PARMETER_FLEX_FUZZER)
 	mkdir -p fuzz_results/
 	docker cp afl-container:$(RESULT_DIR)/csv_file_parameter_flex_fuzzer fuzz_results
 

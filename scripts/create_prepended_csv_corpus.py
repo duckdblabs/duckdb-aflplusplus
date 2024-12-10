@@ -89,17 +89,17 @@ def main():
     OUT_DIR.mkdir()
 
     # prepend arguments to csv data
-    for count, scenario in enumerate(scenario_list):
+    for scenario in scenario_list:
         if not all(len(arg) < 256 for arg in scenario['arguments'].values()):
             nr_rejcts_arg_too_long += 1
             continue
-        file_name = f"{count:04d}_prepended_csv"
+        file_name = f"{scenario['id']:04d}_prepended"
         csv_content_bytes = (DUCKDB_DIR / Path(scenario['data_file'])).read_bytes()
         # exclude larger files, they are less suitable for fuzzing
         if len(csv_content_bytes) > 5000:
             nr_rejcts_csv_content_too_long += 1
             continue
-        argument_bytes = encode_csv_arguments(scenario['arguments'], count)
+        argument_bytes = encode_csv_arguments(scenario['arguments'])
         (OUT_DIR / file_name).write_bytes(argument_bytes + csv_content_bytes)
         nr_corpus_files_created += 1
 
@@ -110,7 +110,7 @@ def main():
     print(f"{nr_corpus_files_created} corpus files created")
 
 
-def encode_csv_arguments(arguments: dict[str, str], scenario_count: int) -> bytes:
+def encode_csv_arguments(arguments: dict[str, str]) -> bytes:
     # header: 1 byte with the number of arguments
     assert len(arguments) < 256
     encoded_arguments = len(arguments).to_bytes(1)
@@ -146,7 +146,7 @@ def encode_csv_arguments(arguments: dict[str, str], scenario_count: int) -> byte
                 )
             case 'VARCHAR':
                 encoded_arguments = encoded_arguments + (
-                    param_idx.to_bytes(1) + len(value).to_bytes(1) + value.encode()
+                    param_idx.to_bytes(1) + len(value.encode()).to_bytes(1) + value.encode()
                 )
             case _:
                 raise ValueError(f"invalid parameter type: {param_type}")
