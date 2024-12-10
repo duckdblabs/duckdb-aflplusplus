@@ -6,7 +6,7 @@ COUNTER=0
 ERROR_COUNTER=0
 CRASH_COUNTER=0
 
-mkdir -p report
+mkdir -p ../report
 mkdir -p tmp
 mkdir -p fixed_checksum_internal_error_files
 mkdir -p fixed_checksum_crash_files
@@ -29,8 +29,8 @@ do
     ((COUNTER+=1))
 done
 
-mv tmp report
-mv fixed_checksum_internal_error_files report
-mv fixed_checksum_crash_files report
+mv tmp ../report
+mv fixed_checksum_internal_error_files ../report
+mv fixed_checksum_crash_files ../report
 
 echo "$COUNTER duckdb files have been read, nr of graceful errors: '$ERROR_COUNTER', nr of crashes: $CRASH_COUNTER"
