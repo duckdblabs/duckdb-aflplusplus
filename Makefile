@@ -55,6 +55,7 @@ compile-duckdb: checkout-duckdb
 	docker exec -w $(SRC_DIR) \
 		-e CC=/AFLplusplus/afl-clang-fast \
 		-e CXX=/AFLplusplus/afl-clang-fast++ \
+		-e BUILD_JEMALLOC=1 \
 		afl-container \
 		make duckdb-lib
 
@@ -115,10 +116,12 @@ fuzz-csv-file-parameter:
 	docker cp afl-container:$(RESULT_DIR)/csv_file_parameter_fuzzer fuzz_results
 
 fuzz-csv-file-parameter-flex:
-	./scripts/create_prepended_csv_corpus.py
+	$(eval ROOT_DIR := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST)))))
+	$(ROOT_DIR)/scripts/create_csv_argument_file_corpus.py
+	$(ROOT_DIR)/scripts/create_prepended_csv_corpus.py
 	docker exec afl-container mkdir -p $(RESULT_DIR)/csv_file_parameter_flex_fuzzer
 	docker exec afl-container mkdir -p $(CORPUS_DIR)/csv/corpus_prepended
-	docker cp ./corpus/csv/corpus_prepended afl-container:$(CORPUS_DIR)/csv/corpus_prepended
+	docker cp $(ROOT_DIR)/corpus/csv/corpus_prepended afl-container:$(CORPUS_DIR)/csv
 	docker exec afl-container /AFLplusplus/afl-fuzz \
 		-V 3600 \
 		-i $(CORPUS_DIR)/csv/corpus_prepended \

@@ -78,6 +78,9 @@ READ_CSV_PARAMETERS_DICT = {param[0]: (param_idx, param[1]) for param_idx, param
 
 
 def main():
+    if not CSV_CORPUS_JSON.exists():
+        print(f"file not found: {CSV_CORPUS_JSON}")
+        exit(1)
     file_content = CSV_CORPUS_JSON.read_text()
     scenario_list = json.loads(file_content)
     nr_corpus_files_created = 0
