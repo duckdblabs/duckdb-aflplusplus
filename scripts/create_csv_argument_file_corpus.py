@@ -5,6 +5,7 @@ This script scrapes occurences of 'read_csv()' from the test directory, and stor
 The created json can be used as input for fuzzing the read_csv() function
 '''
 
+import duckdb
 import json
 from pathlib import Path
 
@@ -36,6 +37,23 @@ def main():
     CSV_CORPUS_JSON.parent.mkdir(parents=True, exist_ok=True)
     with CSV_CORPUS_JSON.open('w') as csv_corpus_json:
         json.dump(file_reader_expressions, csv_corpus_json, indent=4)
+
+    # prune with duckdb, keep 1 record per data_file
+    query = f"""
+    copy (
+    select
+        row_number() OVER () id,
+        data_file,
+        max(arguments) as arguments
+    from
+        read_json ('{CSV_CORPUS_JSON.absolute()}', map_inference_threshold=5)
+    group by
+        data_file,
+    order by
+        all
+    ) to '{CSV_CORPUS_JSON.absolute()}' (array true);
+    """
+    duckdb.sql(query)
 
 
 # returns a list of function calls found in a text
