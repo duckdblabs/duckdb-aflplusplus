@@ -11,15 +11,15 @@ CORPUS_DIR = $(DUCKDB_AFLPLUSPLUS_DIR)/corpus
 RESULT_DIR = $(DUCKDB_AFLPLUSPLUS_DIR)/fuzz_results
 
 # fuzz targets (executables)
-CSV_FILE_FUZZER               = $(BUILD_DIR)/csv_file_fuzzer
-CSV_FILE_PARMETER_FUZZER      = $(BUILD_DIR)/csv_file_parameter_fuzzer
-CSV_FILE_PARMETER_FLEX_FUZZER = $(BUILD_DIR)/csv_file_parameter_flex_fuzzer
-CSV_PIPE_FUZZER               = $(BUILD_DIR)/csv_pipe_fuzzer
-JSON_FILE_FUZZER              = $(BUILD_DIR)/json_file_fuzzer
-JSON_PIPE_FUZZER              = $(BUILD_DIR)/json_pipe_fuzzer
-PARQUET_FILE_FUZZER           = $(BUILD_DIR)/parquet_file_fuzzer
-DUCKDB_FILE_FUZZER            = $(BUILD_DIR)/duckdb_file_fuzzer
-WAL_FUZZER                    = $(BUILD_DIR)/wal_fuzzer
+CSV_FILE_FUZZER                = $(BUILD_DIR)/csv_file_fuzzer
+CSV_FILE_PARAMETER_FUZZER      = $(BUILD_DIR)/csv_file_parameter_fuzzer
+CSV_FILE_PARAMETER_FLEX_FUZZER = $(BUILD_DIR)/csv_file_parameter_flex_fuzzer
+CSV_PIPE_FUZZER                = $(BUILD_DIR)/csv_pipe_fuzzer
+JSON_FILE_FUZZER               = $(BUILD_DIR)/json_file_fuzzer
+JSON_PIPE_FUZZER               = $(BUILD_DIR)/json_pipe_fuzzer
+PARQUET_FILE_FUZZER            = $(BUILD_DIR)/parquet_file_fuzzer
+DUCKDB_FILE_FUZZER             = $(BUILD_DIR)/duckdb_file_fuzzer
+WAL_FUZZER                     = $(BUILD_DIR)/wal_fuzzer
 
 # duckdb version
 # DUCKDB_COMMIT_ISH   ?= v1.1.3
@@ -110,7 +110,7 @@ fuzz-csv-file-parameter:
 		-o $(RESULT_DIR)/csv_file_parameter_fuzzer \
 		-m none \
 		-d \
-		-- $(CSV_FILE_PARMETER_FUZZER)
+		-- $(CSV_FILE_PARAMETER_FUZZER)
 	mkdir -p fuzz_results/
 	docker cp afl-container:$(RESULT_DIR)/csv_file_parameter_fuzzer fuzz_results
 
@@ -125,7 +125,7 @@ fuzz-csv-file-parameter-flex:
 		-o $(RESULT_DIR)/csv_file_parameter_flex_fuzzer \
 		-m none \
 		-d \
-		-- $(CSV_FILE_PARMETER_FLEX_FUZZER)
+		-- $(CSV_FILE_PARAMETER_FLEX_FUZZER)
 	mkdir -p fuzz_results/
 	docker cp afl-container:$(RESULT_DIR)/csv_file_parameter_flex_fuzzer fuzz_results
 
