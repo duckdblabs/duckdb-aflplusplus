@@ -85,6 +85,9 @@ def main():
     reproductions = []
     REPRODUCTION_PATH.mkdir(parents=True, exist_ok=True)
     for fuzz_file in sorted(FUZZ_RESULT_PATH.iterdir()):
+        if ("README.txt" == fuzz_file.name):
+            # skip readme file that afl++ adds to the 'crashes' directory
+            continue
         argument_str, file_content = decode_file(fuzz_file)
         file_name = fuzz_file.name + "_restored.csv"
         (REPRODUCTION_PATH / file_name).write_bytes(file_content)
@@ -125,7 +128,7 @@ def decode_file(fuzz_file: Path) -> tuple[str, str]:
                     argument_content = 'true'
             case 'INTEGER':
                 argument_content = (
-                    str(int.from_bytes(content[idx : idx + argument_length], byteorder='little', signed=True))
+                    str(int.from_bytes(content[idx : idx + 8], byteorder='little', signed=True))
                     if argument_length >= 8 and idx + argument_length <= nr_bytes
                     else "42"
                 )
