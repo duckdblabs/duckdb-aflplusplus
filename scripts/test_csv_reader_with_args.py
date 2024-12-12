@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 
 '''
-Script to reproduce the crash-cases created by the csv_file_parameter_flex_fuzzer
+Script to reproduce the crashes when using function 'read_csv' (found by: csv_file_parameter_flex_fuzzer)
 The script takes the following inputs:
-- a directory with csv files
-- file _REPRODUCTIONS.json, which lists the parameters that should be used when reading these files to reproduce the issue
-The required inputs can be created from the raw fuzz crash cases with script: decode_prepended_csv.py
+- a directory 'REPRODUCTION_DIR' with problematic csv files
+- file _REPRODUCTIONS.json, which lists the parameters for read_csv() per file to use to reproduce the issues
 '''
 
 from pathlib import Path
@@ -16,8 +15,12 @@ import shutil
 
 # duckdb should be compiled with: BUILD_JSON=1 CRASH_ON_ASSERT=1 BUILD_JEMALLOC=1
 DUCKDB_PATH = Path("~/git/duckdb/build/release/duckdb").expanduser()
+
+# inputs:
 REPRODUCTION_DIR = Path("~/Desktop/csv_issues").expanduser()
 REPRODUCTION_JSON = REPRODUCTION_DIR / "_REPRODUCTIONS.json"
+
+# output:
 REPRODUCTION_LOG = REPRODUCTION_DIR / "_reproductions.log"
 
 ANSI_RESET = "\033[0m"
@@ -68,8 +71,8 @@ def main():
     # print summary
     print(f"{count_total} - scenarios executed")
     print(f"{ANSI_GREEN}{count_success}{ANSI_RESET} - scenarios with exit status 0 (OK)")
-    print(f"{ANSI_GREEN}{count_regular_errors}{ANSI_RESET} - scenarios with exit status 1 (Regular Error)")
-    print(f"{ANSI_RED}{count_internal_errors}{ANSI_RESET} - scenarios with other exit status (Internal Error)")
+    print(f"{ANSI_GREEN}{count_regular_errors}{ANSI_RESET} - scenarios with exit status 1 (Regular Error, assuming duckdb is compiled with CRASH_ON_ASSERT)")
+    print(f"{ANSI_RED}{count_internal_errors}{ANSI_RESET} - scenarios with other exit status (Internal Exception / Assertion Error)")
     print(f"{ANSI_RED}{count_crashing_errors}{ANSI_RESET} - scenarios with crash")
     print(f"for details, see: {REPRODUCTION_LOG}")
 
@@ -95,8 +98,11 @@ def create_logging(fd_log: io.TextIOWrapper, res: subprocess.CompletedProcess, c
     fd_log.write(f"{res.args}\n")
     fd_log.write(f"{res.returncode}\n")
     if res.returncode != 0 and res.returncode != 1:
-        fd_log.write(f"{res.stderr.decode()}\n")
-    fd_log.write(f"\n")
+        if not res.stderr.decode():
+            fd_log.write(f"CRASH!\n")
+        else:
+            fd_log.write(f"{res.stderr.decode()}")
+    fd_log.write(f"\n\n")
 
 
 if __name__ == "__main__":

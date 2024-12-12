@@ -80,16 +80,16 @@ DUCKDB_PATH = Path("~/git/duckdb/build/release/duckdb").expanduser()
 FUZZ_RESULT_PATH = Path("~/Desktop/crashes").expanduser()
 REPRODUCTION_PATH = Path("~/Desktop/csv_issues").expanduser()
 
-
 def main():
     reproductions = []
     REPRODUCTION_PATH.mkdir(parents=True, exist_ok=True)
-    for fuzz_file in sorted(FUZZ_RESULT_PATH.iterdir()):
-        if ("README.txt" == fuzz_file.name):
+
+    for count, fuzz_file in enumerate(sorted(FUZZ_RESULT_PATH.iterdir())):
+        if "README.txt" == fuzz_file.name:
             # skip readme file that afl++ adds to the 'crashes' directory
             continue
         argument_str, file_content = decode_file(fuzz_file)
-        file_name = fuzz_file.name + "_restored.csv"
+        file_name = f"case_{count}"
         (REPRODUCTION_PATH / file_name).write_bytes(file_content)
         reproductions.append({'file_name': file_name, 'arguments': argument_str})
 
@@ -112,7 +112,7 @@ def decode_file(fuzz_file: Path) -> tuple[str, str]:
     # 1 byte: length of argument value (max 255) -> N
     # N bytes: argument value
     for _ in range(nr_arguments):
-        if (idx + 2 >= nr_bytes):
+        if idx + 2 >= nr_bytes:
             break
         param_enum = content[idx] % len(READ_CSV_PARAMETERS)
         idx += 1
