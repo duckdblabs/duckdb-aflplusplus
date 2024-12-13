@@ -65,8 +65,8 @@ $(CSV_FILE_FUZZER): $(DUCKDBLIB) file_reader_fuzzer.cpp
 $(CSV_FILE_PARAMETER_FUZZER): $(DUCKDBLIB) csv_parameter_fuzzer.cpp
 	$(CXX) -D DUCKDB_READ_FUNCTION=\"read_csv\" csv_parameter_fuzzer.cpp $(INC) $(CXXFLAGS) $(DUCKDBLIB) $(DUCKDB_EXT) $(DUCKDB_DEPS) -o $(CSV_FILE_PARAMETER_FUZZER)
 
-$(CSV_FILE_PARAMETER_FLEX_FUZZER): $(DUCKDBLIB) csv_parameter_flex_fuzzer.cpp
-	$(CXX) -D DUCKDB_READ_FUNCTION=\"read_csv\" csv_parameter_flex_fuzzer.cpp $(INC) $(CXXFLAGS) $(DUCKDBLIB) $(DUCKDB_EXT) $(DUCKDB_DEPS) -o $(CSV_FILE_PARAMETER_FLEX_FUZZER)
+$(CSV_FILE_PARAMETER_FLEX_FUZZER): $(DUCKDBLIB) parameter_flex_fuzzer.cpp csv_parameters.cpp
+	$(CXX) -D DUCKDB_READ_FUNCTION=\"read_csv\" parameter_flex_fuzzer.cpp csv_parameters.cpp $(INC) $(CXXFLAGS) $(DUCKDBLIB) $(DUCKDB_EXT) $(DUCKDB_DEPS) -o $(CSV_FILE_PARAMETER_FLEX_FUZZER)
 
 $(JSON_FILE_FUZZER): $(DUCKDBLIB) file_reader_fuzzer.cpp
 	$(CXX) -D DUCKDB_READ_FUNCTION=\"read_json\" file_reader_fuzzer.cpp $(INC) $(CXXFLAGS) $(DUCKDBLIB) $(DUCKDB_EXT) $(DUCKDB_DEPS) -o $(JSON_FILE_FUZZER)

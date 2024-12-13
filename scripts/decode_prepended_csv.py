@@ -5,7 +5,7 @@ Script to convert csv files with prepended parameter info into a csv file and a 
 Use it to convert results from into reproducible scenarios:
 - use the csv file and parameter string with read_csv()
 The decoding logic should be kept in sync with:
-- csv_parameter_flex_fuzzer.cpp  (same decoding logic, but with c++, used during fuzzing)
+- parameter_flex_fuzzer.cpp  (same decoding logic, but with c++, used during fuzzing)
 - create_prepended_csv_corpus.py  (encodes and prepends parameter string to csv file)
 '''
 
@@ -14,7 +14,7 @@ import json
 
 # NOTE: keep this list in sync with:
 #  - 'create_prepended_csv_corpus.py' AND
-#  - 'csv_parameter_flex_fuzzer.cpp'
+#  - 'csv_parameters.cpp'
 # NOTE: types here are simplified to 'BOOLEAN', 'INTEGER', and 'VARCHAR'
 # VARCHAR is also used for all complex types (lists, structs, etc)
 READ_CSV_PARAMETERS = [

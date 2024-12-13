@@ -14,7 +14,7 @@ CSV_CORPUS_JSON = CSV_CORPUS_ROOT_DIR / 'csv_parameter.json'
 OUT_DIR = CSV_CORPUS_ROOT_DIR / 'corpus_prepended'
 DUCKDB_DIR = FILE_DIR_TO_SCRAPE = Path('~/git/duckdb/').expanduser()
 
-# NOTE: keep this list in sync with 'csv_parameter_flex_fuzzer.cpp' !!
+# NOTE: keep this list in sync with 'src/csv_parameters.cpp' !!
 # NOTE: types here are simplified to 'BOOLEAN', 'INTEGER', and 'VARCHAR'
 # VARCHAR is also used for all complex types (lists, structs, etc)
 READ_CSV_PARAMETERS = [
