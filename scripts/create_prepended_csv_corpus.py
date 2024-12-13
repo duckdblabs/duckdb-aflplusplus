@@ -2,7 +2,7 @@
 
 '''
 This script creates a csv fuzz corpus by prepending the parameter info to the csv data.
-The input 'CSV_CORPUS_JSON' is created by script 'create_csv_argument_file_corpus.py'
+The input 'CSV_CORPUS_JSON' is created by script 'create_file_corpus_json.py'
 '''
 
 import json

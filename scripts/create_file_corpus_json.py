@@ -1,21 +1,35 @@
 #!/usr/bin/env python3
 
 '''
-This script scrapes occurences of 'read_csv()' from the test directory, and stores them in a JSON-file
-The created json can be used as input for fuzzing the read_csv() function
+This script scrapes occurences of function calls (read_csv, read_json)
+from the test directory, and stores them in a JSON-file
+The created json can be used as input for fuzzing these functions
 '''
 
 import duckdb
 import json
+import sys
 from pathlib import Path
 
 FILE_DIR_TO_SCRAPE = Path('~/git/duckdb/test/').expanduser()
 CSV_CORPUS_JSON = Path(__file__).parents[1] / 'corpus/csv/csv_parameter.json'
+JSON_CORPUS_JSON = Path(__file__).parents[1] / 'corpus/json/json_parameter.json'
 
 
-def main():
+def main(argv: list):
+    function_to_scrape = argv[1]
+    match function_to_scrape:
+        case 'read_csv':
+            corpus_json_path = CSV_CORPUS_JSON
+            functions_to_scrape = ['read_csv', 'read_csv_auto']
+        case 'read_json':
+            corpus_json_path = JSON_CORPUS_JSON
+            functions_to_scrape = ['read_json', 'read_json_auto']
+        case _:
+            raise ValueError(f"invalid input: {function_to_scrape}")
+
     all_test_files = FILE_DIR_TO_SCRAPE.rglob('*')
-    file_reader_expressions = []
+    function_expressions = []
     scenario_id = 0
 
     for test_file in all_test_files:
@@ -26,34 +40,22 @@ def main():
         except UnicodeDecodeError:
             # skip for now: non-unicode files
             continue
-        for read_csv_expression in find_function_expressions(file_content, 'read_csv'):
-            file_and_argument_str = read_csv_expression.partition('read_csv(')[2].rpartition(')')[0]
-            expression_obj = create_file_reader_dict(file_and_argument_str, scenario_id)
-            if expression_obj:
-                file_reader_expressions.append(expression_obj)
-                scenario_id += 1
+        for func in functions_to_scrape:
+            for expression in find_function_expressions(file_content, func):
+                file_and_argument_str = expression.partition(f'{func}(')[2].rpartition(')')[0]
+                expression_obj = create_file_reader_dict(file_and_argument_str, scenario_id)
+                if expression_obj:
+                    function_expressions.append(expression_obj)
+                    scenario_id += 1
 
     # write file
-    CSV_CORPUS_JSON.parent.mkdir(parents=True, exist_ok=True)
-    with CSV_CORPUS_JSON.open('w') as csv_corpus_json:
-        json.dump(file_reader_expressions, csv_corpus_json, indent=4)
+    corpus_json_path.parent.mkdir(parents=True, exist_ok=True)
+    with corpus_json_path.open('w') as corpus_json:
+        json.dump(function_expressions, corpus_json, indent=4)
 
     # prune with duckdb, keep 1 record per data_file
-    query = f"""
-    copy (
-    select
-        row_number() OVER () id,
-        data_file,
-        max(arguments) as arguments
-    from
-        read_json ('{CSV_CORPUS_JSON.absolute()}', map_inference_threshold=5)
-    group by
-        data_file,
-    order by
-        all
-    ) to '{CSV_CORPUS_JSON.absolute()}' (array true);
-    """
-    duckdb.sql(query)
+    if len(function_expressions) > 100:
+        prune_corpus_json(corpus_json_path.absolute())
 
 
 # returns a list of function calls found in a text
@@ -158,10 +160,30 @@ def split_argument_string(argument_string):
                     # split on comma, we are not within quotes or parentheses
                     argument_list.append(argument_string[start_idx:idx])
                     start_idx = idx + 1
-
         idx += 1
     return argument_list
 
 
-if __name__ == '__main__':
-    main()
+# prune with duckdb, keep 1 record per data_file
+def prune_corpus_json(corpus_json_full_path: str) -> None:
+    query = f"""
+    copy (
+    select
+        row_number() OVER () id,
+        data_file,
+        max(arguments) as arguments
+    from
+        read_json ('{corpus_json_full_path}', map_inference_threshold=5)
+    group by
+        data_file,
+    order by
+        all
+    ) to '{corpus_json_full_path}' (array true);
+    """
+    duckdb.sql(query)
+
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        sys.exit("ERROR. provide the function to scrape as first argument")
+    main(sys.argv)

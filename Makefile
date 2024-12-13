@@ -117,7 +117,7 @@ fuzz-csv-file-parameter:
 
 fuzz-csv-file-parameter-flex:
 	$(eval ROOT_DIR := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST)))))
-	$(ROOT_DIR)/scripts/create_csv_argument_file_corpus.py
+	$(ROOT_DIR)/scripts/create_file_corpus_json.py read_csv
 	$(ROOT_DIR)/scripts/create_prepended_csv_corpus.py
 	docker exec afl-container mkdir -p $(RESULT_DIR)/csv_file_parameter_flex_fuzzer
 	docker exec afl-container mkdir -p $(CORPUS_DIR)/csv/corpus_prepended
