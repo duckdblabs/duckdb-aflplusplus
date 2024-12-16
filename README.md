@@ -124,7 +124,7 @@ Steps:
     - **duckdb_file_fuzzer / fuzz-csv-file-parameter**:
         Similar to the file readers above. DuckDB files and csv files with extra parameter info created by the afl++ fuzzer need to be post-processed. See section "reproduce crashes" above.
     - **wal_fuzzer**:
-        wal files created by the afl++ fuzzer need to be post-processed. See section "reproduces crashes" above.
+        wal files created by the afl++ fuzzer need to be post-processed. See section "reproduce crashes" above.
         To process wal files, the base_db should also be present.
         ```bash
         # create base_db in build dir
