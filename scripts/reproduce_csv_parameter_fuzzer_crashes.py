@@ -76,7 +76,7 @@ def main():
         else:
             # try to reproduce with extra arguments
             res = subprocess.run(f"{DUCKDB_PATH} -c \"select * from read_csv('{newfile}', {arguments});\"", shell=True, capture_output=True)
-            if res.returncode < 0:
+            if res.returncode < 0 or res.returncode > 1:
                 scenariodir = REPRODUCTION_PATH / f"scenario_{scenario_idx}_{arguments.split('=')[0].strip()}"
                 scenariodir.mkdir(parents=True, exist_ok=True)
                 shutil.move(newfile, scenariodir)
