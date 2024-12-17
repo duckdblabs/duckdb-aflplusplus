@@ -52,7 +52,6 @@ def main(argv: list[str]):
 
     # prepend arguments to data
     for scenario in scenario_list:
-        print(type(scenario['arguments'].values()))
         if not all(len(arg) < 256 for arg in scenario['arguments'].values()):
             nr_rejects_arg_too_long += 1
             continue

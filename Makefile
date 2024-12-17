@@ -11,15 +11,16 @@ CORPUS_DIR = $(DUCKDB_AFLPLUSPLUS_DIR)/corpus
 RESULT_DIR = $(DUCKDB_AFLPLUSPLUS_DIR)/fuzz_results
 
 # fuzz targets (executables)
-CSV_FILE_FUZZER                = $(BUILD_DIR)/csv_file_fuzzer
-CSV_FILE_PARAMETER_FUZZER      = $(BUILD_DIR)/csv_file_parameter_fuzzer
-CSV_FILE_PARAMETER_FLEX_FUZZER = $(BUILD_DIR)/csv_file_parameter_flex_fuzzer
-CSV_PIPE_FUZZER                = $(BUILD_DIR)/csv_pipe_fuzzer
-JSON_FILE_FUZZER               = $(BUILD_DIR)/json_file_fuzzer
-JSON_PIPE_FUZZER               = $(BUILD_DIR)/json_pipe_fuzzer
-PARQUET_FILE_FUZZER            = $(BUILD_DIR)/parquet_file_fuzzer
-DUCKDB_FILE_FUZZER             = $(BUILD_DIR)/duckdb_file_fuzzer
-WAL_FUZZER                     = $(BUILD_DIR)/wal_fuzzer
+CSV_FILE_FUZZER                 = $(BUILD_DIR)/csv_file_fuzzer
+CSV_FILE_PARAMETER_FUZZER       = $(BUILD_DIR)/csv_file_parameter_fuzzer
+CSV_FILE_PARAMETER_FLEX_FUZZER  = $(BUILD_DIR)/csv_file_parameter_flex_fuzzer
+CSV_PIPE_FUZZER                 = $(BUILD_DIR)/csv_pipe_fuzzer
+JSON_FILE_FUZZER                = $(BUILD_DIR)/json_file_fuzzer
+JSON_FILE_PARAMETER_FLEX_FUZZER = $(BUILD_DIR)/json_file_parameter_flex_fuzzer
+JSON_PIPE_FUZZER                = $(BUILD_DIR)/json_pipe_fuzzer
+PARQUET_FILE_FUZZER             = $(BUILD_DIR)/parquet_file_fuzzer
+DUCKDB_FILE_FUZZER              = $(BUILD_DIR)/duckdb_file_fuzzer
+WAL_FUZZER                      = $(BUILD_DIR)/wal_fuzzer
 
 # duckdb version
 # DUCKDB_COMMIT_ISH   ?= v1.1.3
@@ -39,7 +40,7 @@ afl-up:
 	@docker exec afl-container mkdir -p $(BUILD_DIR)
 	@docker exec afl-container mkdir -p $(CORPUS_DIR)
 	@docker exec afl-container mkdir -p $(RESULT_DIR)
-	docker exec -w / afl-container git clone https://github.com/duckdb/duckdb.git --no-checkout > /dev/null
+	docker exec -w / afl-container git clone https://github.com/duckdb/duckdb.git --no-checkout
 	@docker ps
 
 copy-src-to-container:
@@ -64,10 +65,11 @@ re-compile-duckdb: checkout-duckdb
 	docker exec -w $(SRC_DIR) \
 		-e CC=/AFLplusplus/afl-clang-fast \
 		-e CXX=/AFLplusplus/afl-clang-fast++ \
+		-e BUILD_JEMALLOC=1 \
 		afl-container \
 		make duckdb-lib
 
-compile-fuzzers: compile-duckdb
+compile-fuzzers: copy-src-to-container compile-duckdb
 	docker exec -w $(SRC_DIR) \
 		-e CC=/AFLplusplus/afl-clang-fast \
 		-e CXX=/AFLplusplus/afl-clang-fast++ \

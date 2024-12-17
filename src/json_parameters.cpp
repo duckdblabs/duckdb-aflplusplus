@@ -1,5 +1,6 @@
-# include <vector>
 # include <string>
+# include <tuple>
+# include <vector>
 
 extern const std::vector<std::tuple<std::string, std::string>> g_all_parameters = {
     std::make_tuple("auto_detect", "BOOLEAN"),
