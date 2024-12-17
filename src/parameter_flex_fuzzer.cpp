@@ -55,6 +55,13 @@ void FileReaderFuzzer(std::string file_read_function) {
 					} else {
 						argument_str = "true";
 					}
+				} else if (parameter_type == "DOUBLE") {
+					if (read_len == argument_length && read_len >= sizeof(double)) {
+						argument_num = *reinterpret_cast<double *>(argument_buf);
+						argument_str = std::to_string(argument_num);
+					} else {
+						argument_str = "0.1";
+					}
 				} else {
 					throw std::logic_error("parameter type not supported");
 				}
