@@ -12,6 +12,7 @@ import sys
 from pathlib import Path
 
 FILE_DIR_TO_SCRAPE = Path('~/git/duckdb/test/').expanduser()
+DUCKDB_DIR = Path('~/git/duckdb/').expanduser()
 CSV_CORPUS_JSON = Path(__file__).parents[1] / 'corpus/csv/csv_parameter.json'
 JSON_CORPUS_JSON = Path(__file__).parents[1] / 'corpus/json/json_parameter.json'
 
@@ -95,6 +96,9 @@ def create_file_reader_dict(file_and_argument_str: str, scenario_id: int) -> dic
     arguments = arguments.strip()
     if file_name[0:4] != 'data':
         # skip for now: reads from exteneral sources
+        return None
+    if not (DUCKDB_DIR / file_name).exists():
+        # skip: file not found
         return None
     scenario_dict = {'id': scenario_id}
     scenario_dict['data_file'] = file_name
@@ -185,5 +189,5 @@ def prune_corpus_json(corpus_json_full_path: str) -> None:
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        sys.exit("ERROR. provide the function to scrape as first argument")
+        sys.exit("ERROR. provide the target function to scrape ('read_csv' or 'read_json') as first argument")
     main(sys.argv)

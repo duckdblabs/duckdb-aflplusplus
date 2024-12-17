@@ -1,4 +1,4 @@
-# duckdb_aflplusplus
+# duckdb-aflplusplus
 Fuzzing DuckDB with AFL++
 
 Implemented fuzz tests:
@@ -11,13 +11,16 @@ Implemented fuzz tests:
 ## The fuzz process
 AFL++ is a fuzzer that comes with its own compiler.
 
-Fuzzing DuckDB with AFL++ is a multi-step process
+Fuzzing DuckDB with AFL++ consists of the following steps:
 (also see [fuzzing_in_depth](https://github.com/AFLplusplus/AFLplusplus/blob/stable/docs/fuzzing_in_depth.md#a-selecting-the-best-afl-compiler-for-instrumenting-the-target)). Note that there are make-commands to run most of these steps, they are listed further down.
+
 1. Create a **target executable** by compiling the duckdb library and the wrapper source code with the main function with the `afl-clang-fast++` compiler.
+
 2. Provide an **input corpus** with typical inputs (valid or invalid). Depending on the fuzz scenario, this can be:
     - data inputs files: csv, json, parquet
     - duckdb database files - created by script `create_duckdb_file_corpus.sh`
     - duckdb wal files (write-ahead log) - created by script `create_wal_file_corpus.sh`
+
 3. **Fuzzing itself**
 
     `afl++` will call the target executable with various inputs based on the corpus to see if it can make it crash. The steps are as follows:
@@ -36,12 +39,11 @@ Fuzzing DuckDB with AFL++ is a multi-step process
         - keeps track of crashing scenarios and store them as fuzz results
 
 4. **Inspect fuzz results**
-
     - The fuzz results need to be inspected to see if there are any inputs that resulted in crashes.
     - The fuzz results are copied from the container to this repository to new directory `fuzz_results`.
     - Note that many generated inputs will be invalid, but will give a graceful error. These cases are OK, so they will not go into the `crashes` subfolder.
 
-4. **Reproduce crashes**
+5. **Reproduce crashes**
 
     Note: the `fuzz_results` directory contains the original inputs, before they were post-processed!
     - For csv, json, and parquet inputs, the crash cases should directly reproducible by importing these files into duckdb:
@@ -98,10 +100,10 @@ Steps:
 
 1. Compile DuckDB source code
 
-    Checkout the duckdb source code (`duckdb/duckdb`) and compile
+    Checkout the duckdb source code (`duckdb/duckdb`) and compile with the following flags:
     ```bash
     cd /my_path/duckdb
-    make GEN=ninja BUILD_JSON=1 CRASH_ON_ASSERT=1
+    make GEN=ninja BUILD_JSON=1 BUILD_JEMALLOC=1 CRASH_ON_ASSERT=1
     ```
 2. Compile fuzz-executables
 

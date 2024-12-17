@@ -118,7 +118,7 @@ fuzz-csv-file-parameter:
 fuzz-csv-file-parameter-flex:
 	$(eval ROOT_DIR := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST)))))
 	$(ROOT_DIR)/scripts/create_file_corpus_json.py read_csv
-	$(ROOT_DIR)/scripts/create_prepended_csv_corpus.py
+	$(ROOT_DIR)/scripts/create_prepended_corpus.py read_csv
 	docker exec afl-container mkdir -p $(RESULT_DIR)/csv_file_parameter_flex_fuzzer
 	docker exec afl-container mkdir -p $(CORPUS_DIR)/csv/corpus_prepended
 	docker cp $(ROOT_DIR)/corpus/csv/corpus_prepended afl-container:$(CORPUS_DIR)/csv
@@ -157,6 +157,23 @@ fuzz-json-file:
 		-- $(JSON_FILE_FUZZER)
 	mkdir -p fuzz_results/
 	docker cp afl-container:$(RESULT_DIR)/json_file_fuzzer fuzz_results
+
+fuzz-json-file-parameter-flex:
+	$(eval ROOT_DIR := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST)))))
+	$(ROOT_DIR)/scripts/create_file_corpus_json.py read_json
+	$(ROOT_DIR)/scripts/create_prepended_corpus.py read_json
+	docker exec afl-container mkdir -p $(RESULT_DIR)/json_file_parameter_flex_fuzzer
+	docker exec afl-container mkdir -p $(CORPUS_DIR)/json/corpus_prepended
+	docker cp $(ROOT_DIR)/corpus/json/corpus_prepended afl-container:$(CORPUS_DIR)/json
+	docker exec afl-container /AFLplusplus/afl-fuzz \
+		-V 3600 \
+		-i $(CORPUS_DIR)/json/corpus_prepended \
+		-o $(RESULT_DIR)/json_file_parameter_flex_fuzzer \
+		-m none \
+		-d \
+		-- $(JSON_FILE_PARAMETER_FLEX_FUZZER)
+	mkdir -p fuzz_results/
+	docker cp afl-container:$(RESULT_DIR)/json_file_parameter_flex_fuzzer fuzz_results
 
 fuzz-json-pipe:
 	docker exec afl-container mkdir -p $(RESULT_DIR)/json_pipe_fuzzer
@@ -225,6 +242,7 @@ format:
 	find src -name "*.cpp" -o -name "*.hpp" | xargs clang-format -i --sort-includes=0 -style=file
 
 .PHONY: afl-up compile-fuzzers afl-down \
-		fuzz-csv-file fuzz-csv-file-parameter fuzz-csv-pipe fuzz-json-file fuzz-json-pipe fuzz-parquet-file \
+		fuzz-csv-file fuzz-csv-file-parameter fuzz-csv-file-parameter-flex fuzz-csv-pipe \
+		fuzz-json-file fuzz-json-pipe fuzz-json-file-parameter-flex fuzz-parquet-file \
 		fuzz-duckdb-file fuzz-wal-file \
 		man-page format

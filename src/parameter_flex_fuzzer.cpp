@@ -1,4 +1,4 @@
-// fuzzer to call file readers like read_csv() and read_json with multiple parameters.
+// fuzzer to call file readers like read_csv() and read_json() with multiple parameters.
 
 #include "duckdb.hpp"
 
