@@ -89,7 +89,7 @@ compile-fuzzers-CI:
 compile-fuzzers-local:
 	$(eval ROOT_DIR := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST)))))
 	mkdir -p $(ROOT_DIR)/build
-	cd src && DUCKDB_DIR=$(DUCKDB_LOCAL_DIR) DUCKDB_AFLPLUSPLUS_DIR=$(ROOT_DIR) make all
+	cd src && DUCKDB_DIR=$(DUCKDB_LOCAL_DIR) DUCKDB_AFLPLUSPLUS_DIR=$(ROOT_DIR) BUILD_JEMALLOC=1 make all
 
 fuzz-csv-file:
 	docker exec afl-container mkdir -p $(RESULT_DIR)/csv_file_fuzzer
