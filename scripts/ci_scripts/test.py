@@ -44,5 +44,9 @@ for file_type in file_types:
         ]
         try:
             subprocess.run(fix_command, check=True, text=True, capture_output=True)
+        except subprocess.CalledProcessError as e:
+            print(f"Script run failed with error: {e}")
     try:
         subprocess.run(reproduce_command, check=True, text=True, capture_output=True)
+    except subprocess.CalledProcessError as e:
+        print(f"Make fuzz { file_type } failed with error: {e}")
