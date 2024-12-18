@@ -38,10 +38,8 @@ def main(argv: list[str]):
         case 'read_json':
             parameters = read_tuples_from_cpp(FUZZ_SRC_DIR / 'json_parameters.cpp')
 
-
-    reproductions = []
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-
+    reproductions = []
     for count, fuzz_file in enumerate(sorted(INPUT_DIR.iterdir())):
         if "README.txt" == fuzz_file.name:
             # skip readme file that afl++ adds to the 'crashes' directory
