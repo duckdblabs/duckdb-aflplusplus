@@ -93,7 +93,7 @@ fuzz-csv-file:
 	docker exec afl-container mkdir -p $(RESULT_DIR)/csv_file_fuzzer
 	docker exec afl-container find $(DUCKDB_DIR)/data/csv -type f -size +40k -delete
 	docker exec afl-container /AFLplusplus/afl-fuzz \
-		-V 3600 \
+		-V 300 \
 		-i $(DUCKDB_DIR)/data/csv \
 		-o $(RESULT_DIR)/csv_file_fuzzer \
 		-m none \
@@ -106,7 +106,7 @@ fuzz-csv-file-parameter:
 	docker exec afl-container mkdir -p $(RESULT_DIR)/csv_file_parameter_fuzzer
 	docker exec afl-container find $(DUCKDB_DIR)/data/csv -type f -size +40k -delete
 	docker exec afl-container /AFLplusplus/afl-fuzz \
-		-V 3600 \
+		-V 300 \
 		-i $(DUCKDB_DIR)/data/csv \
 		-o $(RESULT_DIR)/csv_file_parameter_fuzzer \
 		-m none \
@@ -123,7 +123,7 @@ fuzz-csv-file-parameter-flex:
 	docker exec afl-container mkdir -p $(CORPUS_DIR)/csv/corpus_prepended
 	docker cp $(ROOT_DIR)/corpus/csv/corpus_prepended afl-container:$(CORPUS_DIR)/csv
 	docker exec afl-container /AFLplusplus/afl-fuzz \
-		-V 3600 \
+		-V 300 \
 		-i $(CORPUS_DIR)/csv/corpus_prepended \
 		-o $(RESULT_DIR)/csv_file_parameter_flex_fuzzer \
 		-m none \
@@ -136,7 +136,7 @@ fuzz-csv-pipe:
 	docker exec afl-container mkdir -p $(RESULT_DIR)/csv_pipe_fuzzer
 	docker exec afl-container find $(DUCKDB_DIR)/data/csv -type f -size +40k -delete
 	docker exec afl-container /AFLplusplus/afl-fuzz \
-		-V 3600 \
+		-V 300 \
 		-i $(DUCKDB_DIR)/data/csv \
 		-o $(RESULT_DIR)/csv_pipe_fuzzer \
 		-m none \
@@ -149,7 +149,7 @@ fuzz-json-file:
 	docker exec afl-container mkdir -p $(RESULT_DIR)/json_file_fuzzer
 	docker exec afl-container find $(DUCKDB_DIR)/data/json -type f -size +40k -delete
 	docker exec afl-container /AFLplusplus/afl-fuzz \
-		-V 3600 \
+		-V 300 \
 		-i $(DUCKDB_DIR)/data/json \
 		-o $(RESULT_DIR)/json_file_fuzzer \
 		-m none \
@@ -162,7 +162,7 @@ fuzz-json-pipe:
 	docker exec afl-container mkdir -p $(RESULT_DIR)/json_pipe_fuzzer
 	docker exec afl-container find $(DUCKDB_DIR)/data/json -type f -size +40k -delete
 	docker exec afl-container /AFLplusplus/afl-fuzz \
-		-V 3600 \
+		-V 300 \
 		-i $(DUCKDB_DIR)/data/json \
 		-o $(RESULT_DIR)/json_pipe_fuzzer \
 		-m none \
@@ -175,7 +175,7 @@ fuzz-parquet-file:
 	docker exec afl-container mkdir -p $(RESULT_DIR)/parquet_fuzzer
 	docker exec afl-container find $(DUCKDB_DIR)/data/parquet-testing -type f -size +100k -delete
 	docker exec afl-container -w / /AFLplusplus/afl-fuzz \
-		-V 3600 \
+		-V 300 \
 		-i $(DUCKDB_DIR)/data/parquet-testing \
 		-o $(RESULT_DIR)/parquet_fuzzer \
 		-m none \
@@ -189,7 +189,7 @@ fuzz-duckdb-file:
 	docker exec afl-container mkdir -p $(RESULT_DIR)/duckdb_file_fuzzer
 	docker cp ./corpus/duckdbfiles afl-container:$(CORPUS_DIR)
 	docker exec -w / afl-container /AFLplusplus/afl-fuzz \
-		-V 3600 \
+		-V 300 \
 		-i $(CORPUS_DIR)/duckdbfiles \
 		-o $(RESULT_DIR)/duckdb_file_fuzzer \
 		-m none \
@@ -204,7 +204,7 @@ fuzz-wal-file:
 	docker cp ./corpus/walfiles afl-container:$(CORPUS_DIR)
 	docker cp ./build/base_db afl-container:$(BUILD_DIR)/base_db
 	docker exec -w / afl-container /AFLplusplus/afl-fuzz \
-		-V 3600 \
+		-V 300 \
 		-i $(CORPUS_DIR)/walfiles \
 		-o $(RESULT_DIR)/wal_fuzzer \
 		-m none \
