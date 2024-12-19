@@ -11,16 +11,16 @@ CORPUS_DIR = $(DUCKDB_AFLPLUSPLUS_DIR)/corpus
 RESULT_DIR = $(DUCKDB_AFLPLUSPLUS_DIR)/fuzz_results
 
 # fuzz targets (executables)
-CSV_FILE_FUZZER                 = $(BUILD_DIR)/csv_file_fuzzer
-CSV_FILE_PARAMETER_FUZZER       = $(BUILD_DIR)/csv_file_parameter_fuzzer
-CSV_FILE_PARAMETER_FLEX_FUZZER  = $(BUILD_DIR)/csv_file_parameter_flex_fuzzer
-CSV_PIPE_FUZZER                 = $(BUILD_DIR)/csv_pipe_fuzzer
-JSON_FILE_FUZZER                = $(BUILD_DIR)/json_file_fuzzer
-JSON_FILE_PARAMETER_FLEX_FUZZER = $(BUILD_DIR)/json_file_parameter_flex_fuzzer
-JSON_PIPE_FUZZER                = $(BUILD_DIR)/json_pipe_fuzzer
-PARQUET_FILE_FUZZER             = $(BUILD_DIR)/parquet_file_fuzzer
-DUCKDB_FILE_FUZZER              = $(BUILD_DIR)/duckdb_file_fuzzer
-WAL_FUZZER                      = $(BUILD_DIR)/wal_fuzzer
+CSV_BASE_FUZZER         ?= $(BUILD_DIR)/csv_base_fuzzer
+CSV_SINGLE_PARAM_FUZZER ?= $(BUILD_DIR)/csv_single_param_fuzzer
+CSV_MULTI_PARAM_FUZZER  ?= $(BUILD_DIR)/csv_multi_param_fuzzer
+CSV_PIPE_FUZZER         ?= $(BUILD_DIR)/csv_pipe_fuzzer
+JSON_BASE_FUZZER        ?= $(BUILD_DIR)/json_base_fuzzer
+JSON_MULTI_PARAM_FUZZER ?= $(BUILD_DIR)/json_multi_param_fuzzer
+JSON_PIPE_FUZZER        ?= $(BUILD_DIR)/json_pipe_fuzzer
+PARQUET_BASE_FUZZER     ?= $(BUILD_DIR)/parquet_base_fuzzer
+DUCKDB_FILE_FUZZER      ?= $(BUILD_DIR)/duckdb_file_fuzzer
+WAL_FUZZER              ?= $(BUILD_DIR)/wal_fuzzer
 
 # duckdb version
 # DUCKDB_COMMIT_ISH   ?= v1.1.3
@@ -91,48 +91,48 @@ compile-fuzzers-local:
 	mkdir -p $(ROOT_DIR)/build
 	cd src && DUCKDB_DIR=$(DUCKDB_LOCAL_DIR) DUCKDB_AFLPLUSPLUS_DIR=$(ROOT_DIR) BUILD_JEMALLOC=1 make all
 
-fuzz-csv-file:
-	docker exec afl-container mkdir -p $(RESULT_DIR)/csv_file_fuzzer
+fuzz-csv-base:
+	docker exec afl-container mkdir -p $(RESULT_DIR)/csv_base_fuzzer
 	docker exec afl-container find $(DUCKDB_DIR)/data/csv -type f -size +40k -delete
 	docker exec afl-container /AFLplusplus/afl-fuzz \
 		-V 3600 \
 		-i $(DUCKDB_DIR)/data/csv \
-		-o $(RESULT_DIR)/csv_file_fuzzer \
+		-o $(RESULT_DIR)/csv_base_fuzzer \
 		-m none \
 		-d \
-		-- $(CSV_FILE_FUZZER)
+		-- $(CSV_BASE_FUZZER)
 	mkdir -p fuzz_results/
-	docker cp afl-container:$(RESULT_DIR)/csv_file_fuzzer fuzz_results
+	docker cp afl-container:$(RESULT_DIR)/csv_base_fuzzer fuzz_results
 
-fuzz-csv-file-parameter:
-	docker exec afl-container mkdir -p $(RESULT_DIR)/csv_file_parameter_fuzzer
+fuzz-csv-single-param:
+	docker exec afl-container mkdir -p $(RESULT_DIR)/csv_single_param_fuzzer
 	docker exec afl-container find $(DUCKDB_DIR)/data/csv -type f -size +40k -delete
 	docker exec afl-container /AFLplusplus/afl-fuzz \
 		-V 3600 \
 		-i $(DUCKDB_DIR)/data/csv \
-		-o $(RESULT_DIR)/csv_file_parameter_fuzzer \
+		-o $(RESULT_DIR)/csv_single_param_fuzzer \
 		-m none \
 		-d \
-		-- $(CSV_FILE_PARAMETER_FUZZER)
+		-- $(CSV_SINGLE_PARAM_FUZZER)
 	mkdir -p fuzz_results/
-	docker cp afl-container:$(RESULT_DIR)/csv_file_parameter_fuzzer fuzz_results
+	docker cp afl-container:$(RESULT_DIR)/csv_single_param_fuzzer fuzz_results
 
-fuzz-csv-file-parameter-flex:
+fuzz-csv-multi-param:
 	$(eval ROOT_DIR := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST)))))
-	$(ROOT_DIR)/scripts/create_file_corpus_json.py read_csv
-	$(ROOT_DIR)/scripts/create_prepended_corpus.py read_csv
-	docker exec afl-container mkdir -p $(RESULT_DIR)/csv_file_parameter_flex_fuzzer
+	$(ROOT_DIR)/scripts/create_multi_param_corpus_info.py read_csv
+	$(ROOT_DIR)/scripts/create_multi_param_corpus.py read_csv
+	docker exec afl-container mkdir -p $(RESULT_DIR)/csv_multi_param_fuzzer
 	docker exec afl-container mkdir -p $(CORPUS_DIR)/csv/corpus_prepended
 	docker cp $(ROOT_DIR)/corpus/csv/corpus_prepended afl-container:$(CORPUS_DIR)/csv
 	docker exec afl-container /AFLplusplus/afl-fuzz \
 		-V 3600 \
 		-i $(CORPUS_DIR)/csv/corpus_prepended \
-		-o $(RESULT_DIR)/csv_file_parameter_flex_fuzzer \
+		-o $(RESULT_DIR)/csv_multi_param_fuzzer \
 		-m none \
 		-d \
-		-- $(CSV_FILE_PARAMETER_FLEX_FUZZER)
+		-- $(CSV_MULTI_PARAM_FUZZER)
 	mkdir -p fuzz_results/
-	docker cp afl-container:$(RESULT_DIR)/csv_file_parameter_flex_fuzzer fuzz_results
+	docker cp afl-container:$(RESULT_DIR)/csv_multi_param_fuzzer fuzz_results
 
 fuzz-csv-pipe:
 	docker exec afl-container mkdir -p $(RESULT_DIR)/csv_pipe_fuzzer
@@ -147,35 +147,35 @@ fuzz-csv-pipe:
 	mkdir -p fuzz_results/
 	docker cp afl-container:$(RESULT_DIR)/csv_pipe_fuzzer fuzz_results
 
-fuzz-json-file:
-	docker exec afl-container mkdir -p $(RESULT_DIR)/json_file_fuzzer
+fuzz-json-base:
+	docker exec afl-container mkdir -p $(RESULT_DIR)/json_base_fuzzer
 	docker exec afl-container find $(DUCKDB_DIR)/data/json -type f -size +40k -delete
 	docker exec afl-container /AFLplusplus/afl-fuzz \
 		-V 3600 \
 		-i $(DUCKDB_DIR)/data/json \
-		-o $(RESULT_DIR)/json_file_fuzzer \
+		-o $(RESULT_DIR)/json_base_fuzzer \
 		-m none \
 		-d \
-		-- $(JSON_FILE_FUZZER)
+		-- $(JSON_BASE_FUZZER)
 	mkdir -p fuzz_results/
-	docker cp afl-container:$(RESULT_DIR)/json_file_fuzzer fuzz_results
+	docker cp afl-container:$(RESULT_DIR)/json_base_fuzzer fuzz_results
 
-fuzz-json-file-parameter-flex:
+fuzz-json-multi-param:
 	$(eval ROOT_DIR := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST)))))
-	$(ROOT_DIR)/scripts/create_file_corpus_json.py read_json
-	$(ROOT_DIR)/scripts/create_prepended_corpus.py read_json
-	docker exec afl-container mkdir -p $(RESULT_DIR)/json_file_parameter_flex_fuzzer
+	$(ROOT_DIR)/scripts/create_multi_param_corpus_info.py read_json
+	$(ROOT_DIR)/scripts/create_multi_param_corpus.py read_json
+	docker exec afl-container mkdir -p $(RESULT_DIR)/json_multi_param_fuzzer
 	docker exec afl-container mkdir -p $(CORPUS_DIR)/json/corpus_prepended
 	docker cp $(ROOT_DIR)/corpus/json/corpus_prepended afl-container:$(CORPUS_DIR)/json
 	docker exec afl-container /AFLplusplus/afl-fuzz \
 		-V 3600 \
 		-i $(CORPUS_DIR)/json/corpus_prepended \
-		-o $(RESULT_DIR)/json_file_parameter_flex_fuzzer \
+		-o $(RESULT_DIR)/json_multi_param_fuzzer \
 		-m none \
 		-d \
-		-- $(JSON_FILE_PARAMETER_FLEX_FUZZER)
+		-- $(JSON_MULTI_PARAM_FUZZER)
 	mkdir -p fuzz_results/
-	docker cp afl-container:$(RESULT_DIR)/json_file_parameter_flex_fuzzer fuzz_results
+	docker cp afl-container:$(RESULT_DIR)/json_multi_param_fuzzer fuzz_results
 
 fuzz-json-pipe:
 	docker exec afl-container mkdir -p $(RESULT_DIR)/json_pipe_fuzzer
@@ -190,18 +190,18 @@ fuzz-json-pipe:
 	mkdir -p fuzz_results/
 	docker cp afl-container:$(RESULT_DIR)/json_pipe_fuzzer fuzz_results
 
-fuzz-parquet-file:
-	docker exec afl-container mkdir -p $(RESULT_DIR)/parquet_fuzzer
+fuzz-parquet-base:
+	docker exec afl-container mkdir -p $(RESULT_DIR)/parquet_base_fuzzer
 	docker exec afl-container find $(DUCKDB_DIR)/data/parquet-testing -type f -size +100k -delete
 	docker exec afl-container -w / /AFLplusplus/afl-fuzz \
 		-V 3600 \
 		-i $(DUCKDB_DIR)/data/parquet-testing \
-		-o $(RESULT_DIR)/parquet_fuzzer \
+		-o $(RESULT_DIR)/parquet_base_fuzzer \
 		-m none \
 		-d \
-		-- $(PARQUET_FILE_FUZZER)
+		-- $(PARQUET_BASE_FUZZER)
 	mkdir -p fuzz_results/
-	docker cp afl-container:$(RESULT_DIR)/parquet_fuzzer fuzz_results
+	docker cp afl-container:$(RESULT_DIR)/parquet_base_fuzzer fuzz_results
 
 fuzz-duckdb-file:
 	./scripts/create_duckdb_file_corpus.sh "./scripts/duckdb_corpus_init" "./corpus/duckdbfiles"
@@ -244,7 +244,7 @@ format:
 	find src -name "*.cpp" -o -name "*.hpp" | xargs clang-format -i --sort-includes=0 -style=file
 
 .PHONY: afl-up compile-fuzzers afl-down \
-		fuzz-csv-file fuzz-csv-file-parameter fuzz-csv-file-parameter-flex fuzz-csv-pipe \
-		fuzz-json-file fuzz-json-pipe fuzz-json-file-parameter-flex fuzz-parquet-file \
+		fuzz-csv-base fuzz-csv-single-param fuzz-csv-multi-param fuzz-csv-pipe \
+		fuzz-json-base fuzz-json-pipe fuzz-json-multi-param fuzz-parquet-base \
 		fuzz-duckdb-file fuzz-wal-file \
 		man-page format

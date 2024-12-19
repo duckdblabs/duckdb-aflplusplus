@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
 '''
-Script to reproduce the crash-cases created by the csv_parameter_fuzzer
-Note that the content of 'SCENARIOS' should be equal to the scenarios used in csv_parameter_fuzzer.cpp
+Script to reproduce the crash-cases created by fuzzer: csv_single_param_fuzzer
+Note that the content of 'SCENARIOS' should be equal to the scenarios used in csv_single_param_fuzzer.cpp
 to correctly reproduce the error case
 '''
 
@@ -15,7 +15,7 @@ DUCKDB_PATH = Path("~/git/duckdb/build/release/duckdb").expanduser()
 FUZZ_RESULT_PATH = Path("~/Desktop/crashes").expanduser()
 REPRODUCTION_PATH = Path("~/Desktop/csv_issues").expanduser()
 
-# scenarios copied from csv_parameter_fuzzer.cpp
+# scenarios copied from csv_single_param_fuzzer.cpp
 SCENARIOS = [
     "all_varchar=true",
     "allow_quoted_nulls=false",

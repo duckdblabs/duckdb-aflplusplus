@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
 
 '''
-This script creates a fuzz corpus by prepending the parameter info to test corpus.
-The input 'csv_parameter.json' or 'json_parameter.json' is created by script 'create_file_corpus_json.py'
+This script creates a fuzz corpus by prepending the parameter info to the data files.
+Input:
+    - directory 'duckdb/data'
+    - file 'csv_parameter.json' or 'json_parameter.json'; created by script 'create_multi_param_corpus_info.py'
+    - file 'csv_parameters.cpp' or 'json_parameters.cpp'
+Output:
+    - a corpus directory to be used with 'multi_param' fuzzers
 '''
 
 import json

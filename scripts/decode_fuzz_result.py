@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 '''
-This script reverses the encoding done by script 'create_prepended_corpus.py'
+This script reverses the encoding done by script 'create_multi_param_corpus.py'
 Input:
   - a directory of csv or json files with prepended argument info
 Output:
@@ -12,8 +12,8 @@ Usage:
   - Reproduce the fuzz result by igesting the original file with read_csv() / read_json with the argument string.
 Note:
   - The decoding logic should be kept in sync with:
-    - parameter_flex_fuzzer.cpp (same decoding logic, but with c++, used during fuzzing)
-    - create_prepended_corpus.py (encodes and prepends parameter string to a csv/json file)
+    - file_fuzzer_multi_param.cpp (same decoding logic, but with c++, used during fuzzing)
+    - create_multi_param_corpus.py (encodes and prepends parameter string to a csv/json file)
 '''
 
 from pathlib import Path
@@ -41,7 +41,7 @@ def main(argv: list[str]):
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     reproductions = []
     for count, fuzz_file in enumerate(sorted(INPUT_DIR.iterdir())):
-        if "README.txt" == fuzz_file.name:
+        if fuzz_file.name == "README.txt":
             # skip readme file that afl++ adds to the 'crashes' directory
             continue
         argument_str, file_content = decode_file(fuzz_file, parameters)

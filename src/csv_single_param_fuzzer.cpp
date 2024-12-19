@@ -82,7 +82,7 @@ int main() {
 #ifdef DUCKDB_READ_FUNCTION
 	std::string file_read_function = DUCKDB_READ_FUNCTION;
 	if (file_read_function != "read_csv") {
-		std::cerr << "function '" + file_read_function + "' is not supported for csv_parameter_fuzzer" << std::endl;
+		std::cerr << "function '" + file_read_function + "' is not supported for csv_fuzzer_single_param" << std::endl;
 		exit(EXIT_FAILURE);
 	}
 	FileReaderFuzzer(file_read_function);

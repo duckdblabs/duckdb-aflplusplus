@@ -3,7 +3,7 @@
 '''
 This script scrapes occurences of function calls (read_csv, read_json)
 from the test directory, and stores them in a JSON-file
-The created json can be used as input for fuzzing these functions
+The created json can be used as input for script 'create_multi_param_corpus.py'
 '''
 
 import duckdb
