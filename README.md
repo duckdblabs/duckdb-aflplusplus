@@ -59,7 +59,7 @@ Note that there are make-commands to run most of these steps, they are listed fu
         - `$ cat my_json_file | duckdb -c "SELECT * FROM read_json('/dev/stdin')"`
         - `$ duckdb -c "SELECT * FROM read_parquet('my_parquet_file')"`
     - For `csv_single_param_fuzzer`, the crashes should be reproduced with script: `test_csv_reader_single_param.py`. The reason is that the first byte contains the parameter scenario info, and is not part of the actual csv input.
-    - For `multi_param_fuzzer`, the crashes cases should first be decoded with script `decode_fuzz_result.py`. See step 5 of [Appendix A - encoding arguments to corpus files](#appendix-a---encoding-arguments-to-corpus-files).
+    - For `multi_param_fuzzer`, the crashes cases should first be decoded with script `decode_multi_param_files.py`. See step 5 of [Appendix A - encoding arguments to corpus files](#appendix-a---encoding-arguments-to-corpus-files).
     - For duckdb file inputs (`duckdb_file_fuzzer`), the input files from AFL++ should be post-processed with script `fix_duckdb_file.py`. Afterwards, they can be reproduced by opening the duckdb file with duckdb:
         - `$ duckdb my_duckdb_file`
         - `$ duckdb -c "ATTACH 'my_duckdb_file' AS tmp_db (READ_ONLY); use tmp_db; show tables;"`
@@ -69,7 +69,7 @@ Note that there are make-commands to run most of these steps, they are listed fu
     To reproduce a crash, rename the crashing wal file to `base_db.wal`, place it next to `base_db` and open `base_db` with duckdb.
         To create the `base_db`:
         ```bash
-        source ./scripts/create_base_db.sh
+        source ./scripts/corpus_creation/create_base_db.sh
         create_base_db
         ```
         To reproduce the entire output folder `fuzz_results/wal_fuzzer/default/crashes`, first run `fix_wal_files.sh`, followed by `wal_replay.sh`
@@ -147,13 +147,13 @@ Steps:
 
         ```bash
         # create base_db in build dir
-        source ./scripts/create_base_db.sh
+        source ./scripts/corpus_creation/create_base_db.sh
         cd build
         create_base_db
         cd ..
 
         # create valid wal files
-        ./scripts/create_wal_file_corpus.sh
+        ./scripts/corpus_creation/create_wal_file_corpus.sh
 
         # run wal_fuzzer
         < ./corpus/walfiles/create1.wal ./build/wal_fuzzer
@@ -223,6 +223,6 @@ The fuzzer might also change the N values, in case the N value is incompatible w
 
 4. The target executable decodes the prepended argument bytes and trims them from the input data. The duckdb function is called with the decoded argument string.
 
-5. To reproduce crashses found this way use `decode_fuzz_result.py` to recreate the argument string / input file combinations that caused crashes. Afterwards, the reproducible scenarios created this way can be executed by scripts like:
+5. To reproduce crashses found this way use `decode_multi_param_files.py` to recreate the argument string / input file combinations that caused crashes. Afterwards, the reproducible scenarios created this way can be executed by scripts like:
     - `test_csv_reader_with_args.py`
     - `test_json_reader_with_args.py`

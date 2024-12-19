@@ -10,7 +10,7 @@ int main() {
 	uint8_t buf[4096];
 #ifdef DUCKDB_AFLPLUSPLUS_DIR
 	std::string duckdb_aflplusplus_dir = DUCKDB_AFLPLUSPLUS_DIR;
-	std::string script_path = duckdb_aflplusplus_dir + "/scripts/fix_duckdb_file.py";
+	std::string script_path = duckdb_aflplusplus_dir + "/scripts/fuzz_utils/fix_duckdb_file.py";
 	std::string db_filepath = duckdb_aflplusplus_dir + "/build/tmp_db_file";
 #else
 	static_assert(false, "error: DUCKDB_AFLPLUSPLUS_DIR not defined");
