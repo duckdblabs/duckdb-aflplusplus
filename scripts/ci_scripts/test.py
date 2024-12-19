@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
 import subprocess
+import os
+import glob
 
 try:
     subprocess.run(["make", "compile-fuzzers-CI"], check=True)
@@ -23,35 +25,38 @@ for file_type in file_types:
 
     print(f"➡️ Run Tests")
 
-    # if file_type in ["csv", "json", "parquet"]:
-    if file_type in ["csv", "parquet"]:
-        for file_type in ["csv", "parquet"]:
-            reproduce_command = [
-                "bash",
-                f"scripts/test_{ file_type }_reader.sh"
+    crashes_dir = "fuzz_results/*_file_fuzzer/default/crashes/"
+    files = glob.glob(crashes_dir)
+    if len(files) > 0:
+        switch file_type:
+            case "csv" | "parquet":
+                reproduce_command = [
+                    "bash",
+                    f"scripts/test_{ file_type }_reader.sh"
+                    ]
+            case "duckdb":
+                reproduce_command = [
+                    "bash",
+                    "scripts/test_duckdb_output.sh"
                 ]
-    elif file_type == 'duckdb':
-        reproduce_command = [
-            "bash",
-            "scripts/test_duckdb_output.sh"
-        ]
-    else: # wal does everything for all crash files
-        fix_command = [
-            "bash",
-            "./scripts/fix_wal_files.sh"
-        ]
-        reproduce_command = [
-            "bash",
-            "./scripts/wal_replay.sh"
-        ]
+            case  "wal": # wal does everything for all crash files
+                fix_command = [
+                    "bash",
+                    "./scripts/fix_wal_files.sh"
+                ]
+                reproduce_command = [
+                    "bash",
+                    "./scripts/wal_replay.sh"
+                ]
+                try:
+                    subprocess.run(fix_command, check=True, text=True, capture_output=True)
+                except subprocess.CalledProcessError as e:
+                    print(f"Script run failed with error: {e}")
+            case _:
+                pass  # TODO: Hadle json and all other types later
         try:
-            subprocess.run(fix_command, check=True, text=True, capture_output=True)
+            subprocess.run(reproduce_command, check=True, text=True, capture_output=True)
         except subprocess.CalledProcessError as e:
-            print(f"Script run failed with error: {e}")
-    try:
-        subprocess.run(reproduce_command, check=True, text=True, capture_output=True)
-    except subprocess.CalledProcessError as e:
-        print(f"Make fuzz { file_type } failed with error: {e}")
-
-
-    
+            print(f"Make fuzz { file_type } failed with error: {e}")
+    else:
+        print(f"Crashes directories are empty.")    
