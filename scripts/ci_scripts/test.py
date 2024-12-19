@@ -21,6 +21,8 @@ for file_type in file_types:
     except subprocess.CalledProcessError as e:
         print(f"Make fuzz command failed with error: {e}")
 
+    print(f"➡️ Run Tests")
+
     # if file_type in ["csv", "json", "parquet"]:
     if file_type in ["csv", "parquet"]:
         for file_type in ["csv", "parquet"]:
@@ -50,3 +52,6 @@ for file_type in file_types:
         subprocess.run(reproduce_command, check=True, text=True, capture_output=True)
     except subprocess.CalledProcessError as e:
         print(f"Make fuzz { file_type } failed with error: {e}")
+
+
+    
