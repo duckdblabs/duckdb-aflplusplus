@@ -13,8 +13,8 @@ from pathlib import Path
 
 FILE_DIR_TO_SCRAPE = Path('~/git/duckdb/test/').expanduser()
 DUCKDB_DIR = Path('~/git/duckdb/').expanduser()
-CSV_CORPUS_JSON = Path(__file__).parents[1] / 'corpus/csv/csv_parameter.json'
-JSON_CORPUS_JSON = Path(__file__).parents[1] / 'corpus/json/json_parameter.json'
+CSV_CORPUS_JSON = Path(__file__).parents[2] / 'corpus/csv/csv_parameter.json'
+JSON_CORPUS_JSON = Path(__file__).parents[2] / 'corpus/json/json_parameter.json'
 
 
 def main(argv: list):

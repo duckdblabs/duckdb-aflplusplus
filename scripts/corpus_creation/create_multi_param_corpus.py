@@ -19,8 +19,8 @@ from pathlib import Path
 
 
 DUCKDB_DIR = FILE_DIR_TO_SCRAPE = Path('~/git/duckdb/').expanduser()
-CORPUS_ROOT_DIR = Path(__file__).parents[1] / 'corpus'
-SRC_DIR = Path(__file__).parents[1] / 'src'
+CORPUS_ROOT_DIR = Path(__file__).parents[2] / 'corpus'
+SRC_DIR = Path(__file__).parents[2] / 'src'
 
 
 def main(argv: list[str]):
@@ -44,7 +44,6 @@ def main(argv: list[str]):
         print(f"file not found: {corpus_json}")
         exit(1)
     file_content = corpus_json.read_text()
-    # scenario_list = json.loads(file_content)
     scenario_list: list[dict] = json.loads(file_content)
     nr_corpus_files_created = 0
     nr_rejects_file_not_found = 0

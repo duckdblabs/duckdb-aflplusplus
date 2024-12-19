@@ -24,7 +24,7 @@ import sys
 
 # duckdb should be compiled with: BUILD_JSON=1 CRASH_ON_ASSERT=1
 DUCKDB_PATH = Path("~/git/duckdb/build/release/duckdb").expanduser()
-FUZZ_SRC_DIR = Path(__file__).parents[1] / 'src'
+FUZZ_SRC_DIR = Path(__file__).parents[2] / 'src'
 INPUT_DIR = Path("~/Desktop/crashes").expanduser()
 OUTPUT_DIR = Path("~/Desktop/reproductions").expanduser()
 
