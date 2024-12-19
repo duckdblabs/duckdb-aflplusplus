@@ -28,7 +28,7 @@ for file_type in file_types:
     crashes_dir = "fuzz_results/*_file_fuzzer/default/crashes/"
     files = glob.glob(crashes_dir)
     if len(files) > 0:
-        switch file_type:
+        switch file_types:
             case "csv" | "parquet":
                 reproduce_command = [
                     "bash",
