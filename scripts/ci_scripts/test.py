@@ -13,6 +13,7 @@ except subprocess.CalledProcessError as e:
 
 file_types = ["csv", "json", "parquet", "duckdb", "wal"]
 # fuzzing_type = ["file", "pipe", "file-parameter"]
+
 for file_type in file_types:
     fuzz_command = [
         "make",
@@ -28,7 +29,7 @@ for file_type in file_types:
     crashes_dir = "fuzz_results/*_file_fuzzer/default/crashes/"
     files = glob.glob(crashes_dir)
     if len(files) > 0:
-        switch file_types:
+        match file_type:
             case "csv" | "parquet":
                 reproduce_command = [
                     "bash",
