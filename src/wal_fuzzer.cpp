@@ -18,7 +18,7 @@ int main() {
 	std::string base_db_filepath = duckdb_aflplusplus_dir + "/build/base_db";
 	std::string tmp_db_filepath = duckdb_aflplusplus_dir + "/build/tmp_db";
 	std::string wal_filepath = duckdb_aflplusplus_dir + "/build/tmp_db.wal";
-	std::string script_path = duckdb_aflplusplus_dir + "/scripts/fix_wal_file.py";
+	std::string script_path = duckdb_aflplusplus_dir + "/scripts/fuzz_utils/fix_wal_file.py";
 #else
 	static_assert(false, "error: DUCKDB_AFLPLUSPLUS_DIR not defined");
 #endif

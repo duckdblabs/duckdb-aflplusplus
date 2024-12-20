@@ -11,7 +11,7 @@ mkdir -p report
 for fuzz_result in ../fuzz_results/duckdb_file_fuzzer/default/crashes/*;
 do
     cp $fuzz_result ./tmp/file_$COUNTER
-    python3 ./fix_duckdb_file.py ./tmp/file_$COUNTER
+    python3 ../fuzz_utils/fix_duckdb_file.py ./tmp/file_$COUNTER
     duckdb -c "ATTACH './tmp/file_$COUNTER' AS tmp_db (READ_ONLY); use tmp_db; show tables;" > /dev/null
     exit_status=$?
     if [ "$exit_status" -ne "0" ]; then

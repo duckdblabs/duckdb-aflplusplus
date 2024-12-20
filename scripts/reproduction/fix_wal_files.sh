@@ -21,7 +21,7 @@ for wal_file_src in $WAL_FILES_IN_DIR/*;
 do
     wal_file_dst="${WAL_FILES_OUT_DIR}/db_${COUNTER}.wal"
     cp $wal_file_src $wal_file_dst
-    python3 ./fix_wal_file.py $wal_file_dst
+    python3 ../fuzz_utils/fix_wal_file.py $wal_file_dst
     ((COUNTER+=1))
 done
 echo "$COUNTER wal files have fixed and stored in directory: $WAL_FILES_OUT_DIR"

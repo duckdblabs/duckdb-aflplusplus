@@ -2,13 +2,13 @@
 source $(dirname $0)/create_base_db.sh
 
 if [[ -z "${CORPUS_DIR}" ]]; then
-  wal_corpus_dir=$(dirname $(dirname $(realpath $0)))/corpus/walfiles
+  wal_corpus_dir=$(dirname $(dirname $(dirname $(realpath $0))))/corpus/walfiles
 else
   wal_corpus_dir="${CORPUS_DIR}/walfiles"
 fi
 
 if [[ -z "${BUILD_DIR}" ]]; then
-  build_dir=$(dirname $(dirname $(realpath $0)))/build
+  build_dir=$(dirname $(dirname $(dirname $(realpath $0))))/build
 else
   build_dir="${BUILD_DIR}"
 fi
