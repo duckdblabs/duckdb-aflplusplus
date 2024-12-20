@@ -192,7 +192,7 @@ fuzz-json-pipe:
 fuzz-parquet-base:
 	docker exec afl-container mkdir -p $(RESULT_DIR)/parquet_base_fuzzer
 	docker exec afl-container find $(DUCKDB_DIR)/data/parquet-testing -type f -size +100k -delete
-	docker exec afl-container -w / /AFLplusplus/afl-fuzz \
+	docker exec afl-container /AFLplusplus/afl-fuzz \
 		-V 3600 \
 		-i $(DUCKDB_DIR)/data/parquet-testing \
 		-o $(RESULT_DIR)/parquet_base_fuzzer \
@@ -206,7 +206,7 @@ fuzz-duckdb-file:
 	./scripts/corpus_creation/create_duckdb_file_corpus.sh "./scripts/corpus_creation/duckdb_corpus_init" "./corpus/duckdbfiles"
 	docker exec afl-container mkdir -p $(RESULT_DIR)/duckdb_file_fuzzer
 	docker cp ./corpus/duckdbfiles afl-container:$(CORPUS_DIR)
-	docker exec -w / afl-container /AFLplusplus/afl-fuzz \
+	docker exec afl-container /AFLplusplus/afl-fuzz \
 		-V 3600 \
 		-i $(CORPUS_DIR)/duckdbfiles \
 		-o $(RESULT_DIR)/duckdb_file_fuzzer \
@@ -221,7 +221,7 @@ fuzz-wal-file:
 	docker exec afl-container mkdir -p $(RESULT_DIR)/wal_fuzzer
 	docker cp ./corpus/walfiles afl-container:$(CORPUS_DIR)
 	docker cp ./build/base_db afl-container:$(BUILD_DIR)/base_db
-	docker exec -w / afl-container /AFLplusplus/afl-fuzz \
+	docker exec afl-container /AFLplusplus/afl-fuzz \
 		-V 3600 \
 		-i $(CORPUS_DIR)/walfiles \
 		-o $(RESULT_DIR)/wal_fuzzer \
