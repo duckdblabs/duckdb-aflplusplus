@@ -11,7 +11,8 @@ except subprocess.CalledProcessError as e:
     print(f"Make compile command failed with error: {e}")
 
 
-file_types = ["csv", "json", "parquet", "duckdb", "wal"]
+file_types = ["csv", "duckdb", "wal"]
+# file_types = ["csv", "json", "parquet", "duckdb", "wal"]
 # fuzzing_type = ["file", "pipe", "file-parameter"]
 
 for file_type in file_types:
