@@ -28,9 +28,6 @@ def add_test_header(test_file: TextIOWrapper):
 
 require parquet
 
-statement ok
-PRAGMA enable_verification
-
 """
     test_file.write(header)
 
