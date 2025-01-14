@@ -49,6 +49,7 @@ def main(argv: list[str]):
     nr_rejects_file_not_found = 0
     nr_rejects_content_too_long = 0
     nr_rejects_arg_too_long = 0
+    nr_rejects_encoding_failed = 0
 
     # delete and recreate the corpus directory
     shutil.rmtree(str(out_dir), ignore_errors=True)
@@ -69,15 +70,21 @@ def main(argv: list[str]):
         if len(orig_content_bytes) > 5000:
             nr_rejects_content_too_long += 1
             continue
-        argument_bytes = encode_arguments(scenario['arguments'], parameter_types)
-        (out_dir / corpus_file_name).write_bytes(argument_bytes + orig_content_bytes)
-        nr_corpus_files_created += 1
+        try:
+            argument_bytes = encode_arguments(scenario['arguments'], parameter_types)
+            (out_dir / corpus_file_name).write_bytes(argument_bytes + orig_content_bytes)
+            nr_corpus_files_created += 1
+        except ValueError:
+            nr_rejects_encoding_failed += 1
+            continue
+
 
     # some logging:
     print(f"{len(scenario_list)} scenarios considered")
     print(f"{nr_rejects_file_not_found} rejected because 'file not found'")
     print(f"{nr_rejects_content_too_long} rejected because 'file content too long'")
     print(f"{nr_rejects_arg_too_long} rejected because 'arguments too long'")
+    print(f"{nr_rejects_encoding_failed} rejected because 'arguments encoding not possible'")
     print(f"{nr_corpus_files_created} corpus files created")
 
 
