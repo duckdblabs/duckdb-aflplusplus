@@ -27,14 +27,14 @@ def main(argv: list):
     date_str = time.strftime(r"%Y%m%d")
     match file_reader_function:
         case 'read_csv':
-            data_dir = DUCKDB_REPO / f'data/csv/afl/{date_str}'
+            data_dir = DUCKDB_REPO / f'data/csv/afl/{date_str}_csv_fuzz_error'
             sqllogic_test_dir = DUCKDB_REPO / f'test/fuzzer/afl/csv'
             sqllogic_test_file = sqllogic_test_dir / f"fuzz_{date_str}.test"
             test_group = 'csv'
             required_extension = ''
             enable_verification = True
         case 'read_json':
-            data_dir = DUCKDB_REPO / f'data/csv/afl/{date_str}'
+            data_dir = DUCKDB_REPO / f'data/csv/afl/{date_str}_json_fuzz_error'
             sqllogic_test_dir = DUCKDB_REPO / f'test/fuzzer/afl/json'
             sqllogic_test_file = sqllogic_test_dir / f"fuzz_{date_str}.test"
             test_group = 'json'
