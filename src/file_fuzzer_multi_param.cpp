@@ -94,8 +94,7 @@ int main() {
 #ifdef DUCKDB_READ_FUNCTION
 	std::string file_read_function = DUCKDB_READ_FUNCTION;
 	if (file_read_function != "read_csv" && file_read_function != "read_json") {
-		std::cerr << "function '" + file_read_function + "' is not supported for parameter_flex_fuzzer"
-		          << std::endl;
+		std::cerr << "function '" + file_read_function + "' is not supported for parameter_flex_fuzzer" << std::endl;
 		exit(EXIT_FAILURE);
 	}
 	FileReaderFuzzer(file_read_function);
