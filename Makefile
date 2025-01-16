@@ -90,6 +90,9 @@ compile-fuzzers-local:
 	mkdir -p $(ROOT_DIR)/build
 	cd src && DUCKDB_DIR=$(DUCKDB_LOCAL_DIR) DUCKDB_AFLPLUSPLUS_DIR=$(ROOT_DIR) make all
 
+check_duckdb_in_pyenv:
+	@[[ "$(shell pip3 list)" == *"duckdb"* ]] || (echo "error: python package 'duckdb' not found" && exit 1)
+
 fuzz-csv-base:
 	docker exec afl-container mkdir -p $(RESULT_DIR)/csv_base_fuzzer
 	docker exec afl-container find $(DUCKDB_DIR)/data/csv -type f -size +40k -delete
@@ -116,7 +119,7 @@ fuzz-csv-single-param:
 	mkdir -p fuzz_results/
 	docker cp afl-container:$(RESULT_DIR)/csv_single_param_fuzzer fuzz_results
 
-fuzz-csv-multi-param:
+fuzz-csv-multi-param: check_duckdb_in_pyenv
 	$(eval ROOT_DIR := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST)))))
 	$(ROOT_DIR)/scripts/corpus_creation/create_multi_param_corpus_info.py read_csv
 	$(ROOT_DIR)/scripts/corpus_creation/create_multi_param_corpus.py read_csv
@@ -159,7 +162,7 @@ fuzz-json-base:
 	mkdir -p fuzz_results/
 	docker cp afl-container:$(RESULT_DIR)/json_base_fuzzer fuzz_results
 
-fuzz-json-multi-param:
+fuzz-json-multi-param: check_duckdb_in_pyenv
 	$(eval ROOT_DIR := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST)))))
 	$(ROOT_DIR)/scripts/corpus_creation/create_multi_param_corpus_info.py read_json
 	$(ROOT_DIR)/scripts/corpus_creation/create_multi_param_corpus.py read_json
