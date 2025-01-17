@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 '''
-Script to create sqllogic tests based on fuzz results (fuzz-csv-multi-param, fuzz-json-multi-param).
+Script to create sqllogic tests based on fuzz results (fuzz-csv-multi-param, fuzz-json-multi-param, fuzz-parquet-multi-param).
 NOTE: first run script 'decode_multi_param_files.py' to create reproductions from raw fuzzer output
 '''
 
@@ -34,12 +34,19 @@ def main(argv: list):
             required_extension = ''
             enable_verification = True
         case 'read_json':
-            data_dir = DUCKDB_REPO / f'data/csv/afl/{date_str}_json_fuzz_error'
+            data_dir = DUCKDB_REPO / f'data/json/afl/{date_str}_json_fuzz_error'
             sqllogic_test_dir = DUCKDB_REPO / f'test/fuzzer/afl/json'
             sqllogic_test_file = sqllogic_test_dir / f"fuzz_{date_str}.test"
             test_group = 'json'
             required_extension = 'json'
             enable_verification = True
+        case 'read_parquet':
+            data_dir = DUCKDB_REPO / f'data/parquet-testing/afl/{date_str}_parquet_fuzz_error'
+            sqllogic_test_dir = DUCKDB_REPO / f'test/fuzzer/afl/parquet'
+            sqllogic_test_file = sqllogic_test_dir / f"fuzz_{date_str}.test"
+            test_group = 'parquet'
+            required_extension = 'parquet'
+            enable_verification = False
         case _:
             raise ValueError(f"invalid input: {file_reader_function}")
 
@@ -114,5 +121,5 @@ FROM {file_reader_function}('{data_file}'{arguments});
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        sys.exit("ERROR. provide the target function to scrape ('read_csv' or 'read_json') as first argument")
+        sys.exit("ERROR. provide the target function to scrape ('read_csv', 'read_json' or 'read_parquet') as first argument")
     main(sys.argv)

@@ -63,7 +63,7 @@ def main(argv: list[str]):
         if not all(len(arg) < 256 for arg in scenario['arguments'].values()):
             nr_rejects_arg_too_long += 1
             continue
-        data_file = (DUCKDB_DIR / Path(scenario['data_file']))
+        data_file = DUCKDB_DIR / Path(scenario['data_file'])
         if not data_file.is_file():
             nr_rejects_file_not_found += 1
             continue
@@ -80,7 +80,6 @@ def main(argv: list[str]):
         except ValueError:
             nr_rejects_encoding_failed += 1
             continue
-
 
     # some logging:
     print(f"{len(scenario_list)} scenarios considered")
@@ -151,7 +150,7 @@ def read_tuples_from_cpp(cpp_source_file: Path) -> list[tuple[str, str]]:
     tuples: list[tuple] = []
     file_content = cpp_source_file.read_text()
     tuple_string: str
-    for tuple_string in re.findall(r"std::make_tuple\((.*)\)", file_content, flags=re.NOFLAG):
+    for tuple_string in re.findall(r"std::make_tuple\((.*?)\)", file_content, flags=re.NOFLAG):
         parts = tuple_string.partition(',')
         tuples.append((parts[0].strip('\" '), parts[2].strip('\" ')))
     return tuples
