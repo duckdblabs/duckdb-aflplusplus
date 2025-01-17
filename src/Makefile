@@ -9,16 +9,17 @@ CORPUS_DIR ?= $(DUCKDB_AFLPLUSPLUS_DIR)/corpus
 RESULT_DIR ?= $(DUCKDB_AFLPLUSPLUS_DIR)/fuzz_results
 
 # fuzz targets (executables)
-CSV_BASE_FUZZER         ?= $(BUILD_DIR)/csv_base_fuzzer
-CSV_SINGLE_PARAM_FUZZER ?= $(BUILD_DIR)/csv_single_param_fuzzer
-CSV_MULTI_PARAM_FUZZER  ?= $(BUILD_DIR)/csv_multi_param_fuzzer
-CSV_PIPE_FUZZER         ?= $(BUILD_DIR)/csv_pipe_fuzzer
-JSON_BASE_FUZZER        ?= $(BUILD_DIR)/json_base_fuzzer
-JSON_MULTI_PARAM_FUZZER ?= $(BUILD_DIR)/json_multi_param_fuzzer
-JSON_PIPE_FUZZER        ?= $(BUILD_DIR)/json_pipe_fuzzer
-PARQUET_BASE_FUZZER     ?= $(BUILD_DIR)/parquet_base_fuzzer
-DUCKDB_FILE_FUZZER      ?= $(BUILD_DIR)/duckdb_file_fuzzer
-WAL_FUZZER              ?= $(BUILD_DIR)/wal_fuzzer
+CSV_BASE_FUZZER            ?= $(BUILD_DIR)/csv_base_fuzzer
+CSV_SINGLE_PARAM_FUZZER    ?= $(BUILD_DIR)/csv_single_param_fuzzer
+CSV_MULTI_PARAM_FUZZER     ?= $(BUILD_DIR)/csv_multi_param_fuzzer
+CSV_PIPE_FUZZER            ?= $(BUILD_DIR)/csv_pipe_fuzzer
+JSON_BASE_FUZZER           ?= $(BUILD_DIR)/json_base_fuzzer
+JSON_MULTI_PARAM_FUZZER    ?= $(BUILD_DIR)/json_multi_param_fuzzer
+JSON_PIPE_FUZZER           ?= $(BUILD_DIR)/json_pipe_fuzzer
+PARQUET_BASE_FUZZER        ?= $(BUILD_DIR)/parquet_base_fuzzer
+PARQUET_MULTI_PARAM_FUZZER ?= $(BUILD_DIR)/parquet_multi_param_fuzzer
+DUCKDB_FILE_FUZZER         ?= $(BUILD_DIR)/duckdb_file_fuzzer
+WAL_FUZZER                 ?= $(BUILD_DIR)/wal_fuzzer
 
 CC  ?= /AFLplusplus/afl-clang-fast
 CXX ?= /AFLplusplus/afl-clang-fast++
@@ -52,7 +53,8 @@ endif
 
 all: $(CSV_BASE_FUZZER) $(CSV_SINGLE_PARAM_FUZZER) $(CSV_MULTI_PARAM_FUZZER) $(CSV_PIPE_FUZZER) \
 	$(JSON_BASE_FUZZER) $(JSON_MULTI_PARAM_FUZZER) $(JSON_PIPE_FUZZER) \
-	$(PARQUET_BASE_FUZZER) $(DUCKDB_FILE_FUZZER) $(WAL_FUZZER)
+	$(PARQUET_BASE_FUZZER) $(PARQUET_MULTI_PARAM_FUZZER) \
+	$(DUCKDB_FILE_FUZZER) $(WAL_FUZZER)
 
 duckdb-lib: $(DUCKDBLIB)
 
@@ -79,6 +81,9 @@ $(JSON_MULTI_PARAM_FUZZER): $(DUCKDBLIB) file_fuzzer_multi_param.cpp json_parame
 
 $(PARQUET_BASE_FUZZER): $(DUCKDBLIB) file_fuzzer_base.cpp
 	$(CXX) -D DUCKDB_READ_FUNCTION=\"read_parquet\" file_fuzzer_base.cpp $(INC) $(CXXFLAGS) $(DUCKDBLIB) $(DUCKDB_EXT) $(DUCKDB_DEPS) -o $(PARQUET_BASE_FUZZER)
+
+$(PARQUET_MULTI_PARAM_FUZZER): $(DUCKDBLIB) file_fuzzer_multi_param.cpp parquet_parameters.cpp
+	$(CXX) -D DUCKDB_READ_FUNCTION=\"read_parquet\" file_fuzzer_multi_param.cpp parquet_parameters.cpp $(INC) $(CXXFLAGS) $(DUCKDBLIB) $(DUCKDB_EXT) $(DUCKDB_DEPS) -o $(PARQUET_MULTI_PARAM_FUZZER)
 
 
 # pipe fuzzers (csv, json)

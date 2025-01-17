@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 '''
-This script scrapes occurences of function calls (read_csv, read_json)
+This script scrapes occurences of function calls (read_csv, read_json, read_parquet)
 from the test directory, and stores them in a JSON-file
 The created json can be used as input for script 'create_multi_param_corpus.py'
 '''
@@ -15,6 +15,7 @@ FILE_DIR_TO_SCRAPE = Path('~/git/duckdb/test/').expanduser()
 DUCKDB_DIR = Path('~/git/duckdb/').expanduser()
 CSV_CORPUS_JSON = Path(__file__).parents[2] / 'corpus/csv/csv_parameter.json'
 JSON_CORPUS_JSON = Path(__file__).parents[2] / 'corpus/json/json_parameter.json'
+PARQUET_CORPUS_JSON = Path(__file__).parents[2] / 'corpus/parquet/parquet_parameter.json'
 
 
 def main(argv: list):
@@ -26,6 +27,9 @@ def main(argv: list):
         case 'read_json':
             corpus_json_path = JSON_CORPUS_JSON
             functions_to_scrape = ['read_json', 'read_json_auto']
+        case 'read_parquet':
+            corpus_json_path = PARQUET_CORPUS_JSON
+            functions_to_scrape = ['read_parquet']
         case _:
             raise ValueError(f"invalid input: {function_to_scrape}")
 
@@ -189,5 +193,7 @@ def prune_corpus_json(corpus_json_full_path: str) -> None:
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        sys.exit("ERROR. provide the target function to scrape ('read_csv' or 'read_json') as first argument")
+        sys.exit(
+            "ERROR. provide the target function to scrape ('read_csv', 'read_json' or 'read_parquet') as first argument"
+        )
     main(sys.argv)

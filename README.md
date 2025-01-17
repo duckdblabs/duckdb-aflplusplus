@@ -59,7 +59,7 @@ Note that there are make-commands to run most of these steps, they are listed fu
         - `$ cat my_json_file | duckdb -c "SELECT * FROM read_json('/dev/stdin')"`
         - `$ duckdb -c "SELECT * FROM read_parquet('my_parquet_file')"`
     - For `csv_single_param_fuzzer`, the crashes should be reproduced with script: `test_csv_reader_single_param.py`. The reason is that the first byte contains the parameter scenario info, and is not part of the actual csv input.
-    - For `multi_param_fuzzer`, the crashes cases should first be decoded with script `decode_multi_param_files.py`. See step 5 of [Appendix A - encoding arguments to corpus files](#appendix-a---encoding-arguments-to-corpus-files).
+    - For `multi_param_fuzzer`, the crashes cases should first be decoded with script `decode_multi_param_files.py`. See step 5 of [Appendix A - encoding arguments to corpus files](#appendix-a---encoding-arguments-to-corpus-files). After the crashes (or hangs) are decoded, you can also use script `create_sqllogic_for_file_readers.py` to generate the corresponding sqllogic tests, to verify during debuging if a potential bugfix was effictive.
     - For duckdb file inputs (`duckdb_file_fuzzer`), the input files from AFL++ should be post-processed with script `fix_duckdb_file.py`. Afterwards, they can be reproduced by opening the duckdb file with duckdb:
         - `$ duckdb my_duckdb_file`
         - `$ duckdb -c "ATTACH 'my_duckdb_file' AS tmp_db (READ_ONLY); use tmp_db; show tables;"`
@@ -91,6 +91,7 @@ Fuzz duckdb with afl++ by executing the folowing steps consequtively.
     - `make fuzz-json-multi-param`
     - `make fuzz-json-pipe`
     - `make fuzz-parquet-base`
+    - `make fuzz-parquet-multi-param`
     - `make fuzz-duckdb-file`
     - `make fuzz-wal-file`
 
@@ -115,7 +116,7 @@ Steps:
     Checkout the duckdb source code (`duckdb/duckdb`) and compile with the following flags:
     ```bash
     cd /my_path/duckdb
-    make GEN=ninja BUILD_JSON=1 BUILD_JEMALLOC=1 CRASH_ON_ASSERT=1
+    make GEN=ninja BUILD_JSON=1 CRASH_ON_ASSERT=1
     ```
 2. Compile fuzz-executables
 
@@ -174,6 +175,7 @@ Steps:
 0. Run a make command (it will do the other steps, except step 5):
     - `make fuzz-csv-multi-param`
     - `make fuzz-json-multi-param`
+    - `make fuzz-parquet-multi-param`
 
 1. Create a json file that lists the base corpus data together with the arguments.
     - script: `create_multi_param_corpus_info.py`
@@ -223,6 +225,8 @@ The fuzzer might also change the N values, in case the N value is incompatible w
 
 4. The target executable decodes the prepended argument bytes and trims them from the input data. The duckdb function is called with the decoded argument string.
 
-5. To reproduce crashses found this way use `decode_multi_param_files.py` to recreate the argument string / input file combinations that caused crashes. Afterwards, the reproducible scenarios created this way can be executed by scripts like:
+5. To reproduce crashses found this way use `decode_multi_param_files.py`. This recreates the input files in their original format, along with the argument string that caused the crash when reading them (stored in file `_REPRODUCTIONS.json`).
+Optionally, you can use `create_sqllogic_for_file_readers.py` to create sqllogic tests for every crash case.
+Alternatively, the reproducible scenarios in `_REPRODUCTIONS.json` can be executed manually, or by scripts like:
     - `test_csv_reader_with_args.py`
     - `test_json_reader_with_args.py`
