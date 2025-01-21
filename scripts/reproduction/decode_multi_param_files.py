@@ -34,10 +34,13 @@ def main(argv: list[str]):
     match target_function:
         case 'read_csv':
             parameters = read_tuples_from_cpp(FUZZ_SRC_DIR / 'csv_parameters.cpp')
+            extension = '.csv'
         case 'read_json':
             parameters = read_tuples_from_cpp(FUZZ_SRC_DIR / 'json_parameters.cpp')
+            extension = '.json'
         case 'read_parquet':
             parameters = read_tuples_from_cpp(FUZZ_SRC_DIR / 'parquet_parameters.cpp')
+            extension = '.parquet'
         case _:
             raise ValueError(f"invalid input: {target_function}")
 
@@ -48,7 +51,7 @@ def main(argv: list[str]):
             # skip readme file that afl++ adds to the 'crashes' directory
             continue
         argument_str, file_content = decode_file(fuzz_file, parameters)
-        file_name = f"case_{count}"
+        file_name = f"case_{count}{extension}"
         (OUTPUT_DIR / file_name).write_bytes(file_content)
         reproductions.append({'file_name': file_name, 'arguments': argument_str})
 
