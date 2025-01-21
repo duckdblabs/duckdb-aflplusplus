@@ -11,16 +11,17 @@ CORPUS_DIR = $(DUCKDB_AFLPLUSPLUS_DIR)/corpus
 RESULT_DIR = $(DUCKDB_AFLPLUSPLUS_DIR)/fuzz_results
 
 # fuzz targets (executables)
-CSV_BASE_FUZZER         ?= $(BUILD_DIR)/csv_base_fuzzer
-CSV_SINGLE_PARAM_FUZZER ?= $(BUILD_DIR)/csv_single_param_fuzzer
-CSV_MULTI_PARAM_FUZZER  ?= $(BUILD_DIR)/csv_multi_param_fuzzer
-CSV_PIPE_FUZZER         ?= $(BUILD_DIR)/csv_pipe_fuzzer
-JSON_BASE_FUZZER        ?= $(BUILD_DIR)/json_base_fuzzer
-JSON_MULTI_PARAM_FUZZER ?= $(BUILD_DIR)/json_multi_param_fuzzer
-JSON_PIPE_FUZZER        ?= $(BUILD_DIR)/json_pipe_fuzzer
-PARQUET_BASE_FUZZER     ?= $(BUILD_DIR)/parquet_base_fuzzer
-DUCKDB_FILE_FUZZER      ?= $(BUILD_DIR)/duckdb_file_fuzzer
-WAL_FUZZER              ?= $(BUILD_DIR)/wal_fuzzer
+CSV_BASE_FUZZER            ?= $(BUILD_DIR)/csv_base_fuzzer
+CSV_SINGLE_PARAM_FUZZER    ?= $(BUILD_DIR)/csv_single_param_fuzzer
+CSV_MULTI_PARAM_FUZZER     ?= $(BUILD_DIR)/csv_multi_param_fuzzer
+CSV_PIPE_FUZZER            ?= $(BUILD_DIR)/csv_pipe_fuzzer
+JSON_BASE_FUZZER           ?= $(BUILD_DIR)/json_base_fuzzer
+JSON_MULTI_PARAM_FUZZER    ?= $(BUILD_DIR)/json_multi_param_fuzzer
+JSON_PIPE_FUZZER           ?= $(BUILD_DIR)/json_pipe_fuzzer
+PARQUET_BASE_FUZZER        ?= $(BUILD_DIR)/parquet_base_fuzzer
+PARQUET_MULTI_PARAM_FUZZER ?= $(BUILD_DIR)/parquet_multi_param_fuzzer
+DUCKDB_FILE_FUZZER         ?= $(BUILD_DIR)/duckdb_file_fuzzer
+WAL_FUZZER                 ?= $(BUILD_DIR)/wal_fuzzer
 
 # duckdb version
 # DUCKDB_COMMIT_ISH   ?= v1.1.3
@@ -85,6 +86,7 @@ compile-fuzzers-CI:
 		afl-container \
 		make all
 
+# use local duckdb compiled with 'make GEN=ninja BUILD_JSON=1 CRASH_ON_ASSERT=1'
 compile-fuzzers-local:
 	$(eval ROOT_DIR := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST)))))
 	mkdir -p $(ROOT_DIR)/build
@@ -205,6 +207,23 @@ fuzz-parquet-base:
 	mkdir -p fuzz_results/
 	docker cp afl-container:$(RESULT_DIR)/parquet_base_fuzzer fuzz_results
 
+fuzz-parquet-multi-param: check_duckdb_in_pyenv
+	$(eval ROOT_DIR := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST)))))
+	$(ROOT_DIR)/scripts/corpus_creation/create_multi_param_corpus_info.py read_parquet
+	$(ROOT_DIR)/scripts/corpus_creation/create_multi_param_corpus.py read_parquet
+	docker exec afl-container mkdir -p $(RESULT_DIR)/parquet_multi_param_fuzzer
+	docker exec afl-container mkdir -p $(CORPUS_DIR)/parquet/corpus_prepended
+	docker cp $(ROOT_DIR)/corpus/parquet/corpus_prepended afl-container:$(CORPUS_DIR)/parquet
+	docker exec afl-container /AFLplusplus/afl-fuzz \
+		-V 3600 \
+		-i $(CORPUS_DIR)/parquet/corpus_prepended \
+		-o $(RESULT_DIR)/parquet_multi_param_fuzzer \
+		-m none \
+		-d \
+		-- $(PARQUET_MULTI_PARAM_FUZZER)
+	mkdir -p fuzz_results/
+	docker cp afl-container:$(RESULT_DIR)/parquet_multi_param_fuzzer fuzz_results
+
 fuzz-duckdb-file:
 	./scripts/corpus_creation/create_duckdb_file_corpus.sh "./scripts/corpus_creation/duckdb_corpus_init" "./corpus/duckdbfiles"
 	docker exec afl-container mkdir -p $(RESULT_DIR)/duckdb_file_fuzzer
@@ -247,6 +266,7 @@ format:
 
 .PHONY: afl-up compile-fuzzers afl-down \
 		fuzz-csv-base fuzz-csv-single-param fuzz-csv-multi-param fuzz-csv-pipe \
-		fuzz-json-base fuzz-json-pipe fuzz-json-multi-param fuzz-parquet-base \
+		fuzz-json-base fuzz-json-pipe fuzz-json-multi-param \
+		fuzz-parquet-base fuzz-parquet-multi-param \
 		fuzz-duckdb-file fuzz-wal-file \
 		man-page format

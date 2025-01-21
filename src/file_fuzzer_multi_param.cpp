@@ -1,4 +1,4 @@
-// fuzzer to call file readers like read_csv() and read_json() with multiple parameters.
+// fuzzer to call file readers read_csv(), read_json() and read_parquet() with multiple parameters.
 
 #include "duckdb.hpp"
 
@@ -93,9 +93,8 @@ void FileReaderFuzzer(std::string file_read_function) {
 int main() {
 #ifdef DUCKDB_READ_FUNCTION
 	std::string file_read_function = DUCKDB_READ_FUNCTION;
-	if (file_read_function != "read_csv" && file_read_function != "read_json") {
-		std::cerr << "function '" + file_read_function + "' is not supported for parameter_flex_fuzzer"
-		          << std::endl;
+	if (file_read_function != "read_csv" && file_read_function != "read_json" && file_read_function != "read_parquet") {
+		std::cerr << "function '" + file_read_function + "' is not supported for parameter_flex_fuzzer" << std::endl;
 		exit(EXIT_FAILURE);
 	}
 	FileReaderFuzzer(file_read_function);

@@ -1,6 +1,6 @@
-# include <string>
-# include <tuple>
-# include <vector>
+#include <string>
+#include <tuple>
+#include <vector>
 
 extern const std::vector<std::tuple<std::string, std::string>> g_all_parameters = {
     std::make_tuple("auto_detect", "BOOLEAN"),
@@ -28,5 +28,4 @@ extern const std::vector<std::tuple<std::string, std::string>> g_all_parameters 
     std::make_tuple("timestamp_format", "VARCHAR"),
     std::make_tuple("timestampform", "VARCHAR"),
     std::make_tuple("timestampformat", "VARCHAR"),
-    std::make_tuple("union_by_name", "BOOLEAN")
-};
+    std::make_tuple("union_by_name", "BOOLEAN")};

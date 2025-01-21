@@ -3,17 +3,17 @@
 '''
 This script reverses the encoding done by script 'create_multi_param_corpus.py'
 Input:
-  - a directory of csv or json files with prepended argument info
+  - a directory of csv, json or parquet files with prepended argument info
 Output:
-  - a directory with regular csv and json files
-  - a json file with the associated argument string per csv/json file
+  - a directory with regular csv, json or parquet files
+  - a json file with the associated argument string per csv/json/parquet file
 Usage:
   - The script can be used to convert fuzz results into reproducible scenarios.
-  - Reproduce the fuzz result by igesting the original file with read_csv() / read_json with the argument string.
+  - Reproduce the fuzz result by igesting the original file with read_csv() / read_json() / read_parquet() with the argument string.
 Note:
   - The decoding logic should be kept in sync with:
     - file_fuzzer_multi_param.cpp (same decoding logic, but with c++, used during fuzzing)
-    - create_multi_param_corpus.py (encodes and prepends parameter string to a csv/json file)
+    - create_multi_param_corpus.py (encodes and prepends parameter string to a csv/json/parquet file)
 '''
 
 from pathlib import Path
@@ -29,14 +29,20 @@ INPUT_DIR = Path("~/Desktop/crashes").expanduser()
 OUTPUT_DIR = Path("~/Desktop/reproductions").expanduser()
 
 
-
 def main(argv: list[str]):
     target_function = argv[1]
     match target_function:
         case 'read_csv':
             parameters = read_tuples_from_cpp(FUZZ_SRC_DIR / 'csv_parameters.cpp')
+            extension = '.csv'
         case 'read_json':
             parameters = read_tuples_from_cpp(FUZZ_SRC_DIR / 'json_parameters.cpp')
+            extension = '.json'
+        case 'read_parquet':
+            parameters = read_tuples_from_cpp(FUZZ_SRC_DIR / 'parquet_parameters.cpp')
+            extension = '.parquet'
+        case _:
+            raise ValueError(f"invalid input: {target_function}")
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     reproductions = []
@@ -45,7 +51,7 @@ def main(argv: list[str]):
             # skip readme file that afl++ adds to the 'crashes' directory
             continue
         argument_str, file_content = decode_file(fuzz_file, parameters)
-        file_name = f"case_{count}"
+        file_name = f"case_{count}{extension}"
         (OUTPUT_DIR / file_name).write_bytes(file_content)
         reproductions.append({'file_name': file_name, 'arguments': argument_str})
 
@@ -111,7 +117,7 @@ def read_tuples_from_cpp(cpp_source_file: Path) -> list[tuple[str, str]]:
     tuples: list[tuple] = []
     file_content = cpp_source_file.read_text()
     tuple_string: str
-    for tuple_string in re.findall(r"std::make_tuple\((.*)\)", file_content, flags=re.NOFLAG):
+    for tuple_string in re.findall(r"std::make_tuple\((.*?)\)", file_content, flags=re.NOFLAG):
         parts = tuple_string.partition(',')
         tuples.append((parts[0].strip('\" '), parts[2].strip('\" ')))
     return tuples
@@ -119,5 +125,5 @@ def read_tuples_from_cpp(cpp_source_file: Path) -> list[tuple[str, str]]:
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        sys.exit("ERROR. provide the target function ('read_csv' or 'read_json') as first argument")
+        sys.exit("ERROR. provide the target function ('read_csv', 'read_json' or 'read_parquet') as first argument")
     main(sys.argv)

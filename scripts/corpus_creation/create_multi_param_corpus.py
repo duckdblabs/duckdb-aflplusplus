@@ -4,8 +4,8 @@
 This script creates a fuzz corpus by prepending the parameter info to the data files.
 Input:
     - directory 'duckdb/data'
-    - file 'csv_parameter.json' or 'json_parameter.json'; created by script 'create_multi_param_corpus_info.py'
-    - file 'csv_parameters.cpp' or 'json_parameters.cpp'
+    - file 'csv_parameter.json', 'json_parameter.json' or 'parquet_parameter.json'; created by script 'create_multi_param_corpus_info.py'
+    - file 'csv_parameters.cpp', 'json_parameters.cpp' or 'parquet_parameters.cpp'
 Output:
     - a corpus directory to be used with 'multi_param' fuzzers
 '''
@@ -30,14 +30,17 @@ def main(argv: list[str]):
             parameters = read_tuples_from_cpp(SRC_DIR / 'csv_parameters.cpp')
             corpus_dir = CORPUS_ROOT_DIR / 'csv'
             corpus_json = corpus_dir / 'csv_parameter.json'
-            out_dir = corpus_dir / 'corpus_prepended'
         case 'read_json':
             parameters = read_tuples_from_cpp(SRC_DIR / 'json_parameters.cpp')
             corpus_dir = CORPUS_ROOT_DIR / 'json'
             corpus_json = corpus_dir / 'json_parameter.json'
-            out_dir = corpus_dir / 'corpus_prepended'
+        case 'read_parquet':
+            parameters = read_tuples_from_cpp(SRC_DIR / 'parquet_parameters.cpp')
+            corpus_dir = CORPUS_ROOT_DIR / 'parquet'
+            corpus_json = corpus_dir / 'parquet_parameter.json'
         case _:
             raise ValueError(f"not supported: {target_function}")
+    out_dir = corpus_dir / 'corpus_prepended'
     parameter_types = {param[0]: (param_idx, param[1]) for param_idx, param in enumerate(parameters)}
 
     if not corpus_json.exists():
@@ -60,7 +63,7 @@ def main(argv: list[str]):
         if not all(len(arg) < 256 for arg in scenario['arguments'].values()):
             nr_rejects_arg_too_long += 1
             continue
-        data_file = (DUCKDB_DIR / Path(scenario['data_file']))
+        data_file = DUCKDB_DIR / Path(scenario['data_file'])
         if not data_file.is_file():
             nr_rejects_file_not_found += 1
             continue
@@ -77,7 +80,6 @@ def main(argv: list[str]):
         except ValueError:
             nr_rejects_encoding_failed += 1
             continue
-
 
     # some logging:
     print(f"{len(scenario_list)} scenarios considered")
@@ -148,7 +150,7 @@ def read_tuples_from_cpp(cpp_source_file: Path) -> list[tuple[str, str]]:
     tuples: list[tuple] = []
     file_content = cpp_source_file.read_text()
     tuple_string: str
-    for tuple_string in re.findall(r"std::make_tuple\((.*)\)", file_content, flags=re.NOFLAG):
+    for tuple_string in re.findall(r"std::make_tuple\((.*?)\)", file_content, flags=re.NOFLAG):
         parts = tuple_string.partition(',')
         tuples.append((parts[0].strip('\" '), parts[2].strip('\" ')))
     return tuples
@@ -156,5 +158,5 @@ def read_tuples_from_cpp(cpp_source_file: Path) -> list[tuple[str, str]]:
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        sys.exit("ERROR. provide the target function ('read_csv' or 'read_json') as first argument")
+        sys.exit("ERROR. provide the target function ('read_csv', 'read_json' or 'read_parquet') as first argument")
     main(sys.argv)
