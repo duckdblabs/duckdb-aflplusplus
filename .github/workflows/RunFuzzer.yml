@@ -2,6 +2,31 @@ name: Run Afl++ Fuzzer
 on:
   push:
   workflow_dispatch:
+    inputs:
+      duckdbRepo:
+        description: 'duckdb repository'
+        required: true
+        type: string
+        default: 'duckdb/duckb'
+      ref:
+        description: 'ref'
+        required: true
+        type: string
+        default: 'main'
+      fuzzer:
+        description: 'fuzz scenario'
+        required: true
+        type: choice
+        options:
+          - fuzz-csv-multi-param
+          - fuzz-json-multi-param
+          - fuzz-parquet-multi-param
+        default: fuzz-csv-multi-param
+      fuzzTime:
+        description: 'fuzz time (seconds)'
+        required: true
+        type: number
+        default: 3600
 
 jobs:
   install-aflplusplus:
