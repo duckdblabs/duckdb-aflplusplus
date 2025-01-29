@@ -1,0 +1,11 @@
+name: Run Afl++ Fuzzer
+on: workflow_dispatch
+
+jobs:
+  install-aflplusplus:
+    name: Install AFL++
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: print sha
+        run: echo $GITHUB_SHA
