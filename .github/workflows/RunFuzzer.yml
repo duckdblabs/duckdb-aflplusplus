@@ -6,12 +6,12 @@ on:
         description: 'duckdb repository'
         required: true
         type: string
-        default: 'duckdb/duckb'
+        default: 'c-herrewijn/duckdb'
       ref:
         description: 'ref'
         required: true
         type: string
-        default: 'main'
+        default: 'CI_test'
       fuzzer:
         description: 'fuzz scenario'
         required: true
@@ -80,8 +80,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          repository: c-herrewijn/duckdb
-          ref: CI_test
+          repository: ${{ inputs.duckdbRepo }}
+          ref: ${{ inputs.ref }}
           path: duckdb
 
       # https://github.com/AFLplusplus/AFLplusplus/blob/stable/GNUmakefile
