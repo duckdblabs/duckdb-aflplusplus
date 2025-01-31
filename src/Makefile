@@ -23,6 +23,7 @@ WAL_FUZZER                 ?= $(BUILD_DIR)/wal_fuzzer
 
 CC  ?= /AFLplusplus/afl-clang-fast
 CXX ?= /AFLplusplus/afl-clang-fast++
+CMAKE_VARS_BUILD ?= -DCMAKE_C_COMPILER=$(CC) -DCMAKE_CXX_COMPILER=$(CXX)
 
 DUCKDBLIB=$(DUCKDB_DIR)/build/release/src/libduckdb_static.a
 
@@ -51,6 +52,10 @@ ifeq (${BUILD_JEMALLOC}, 1)
 	DUCKDB_EXT:=${DUCKDB_EXT} $(DUCKDB_DIR)/build/release/extension/jemalloc/libjemalloc_extension.a
 endif
 
+ifeq (${USE_CCACHE}, 1)
+	CMAKE_VARS_BUILD:=${CMAKE_VARS_BUILD} -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+endif
+
 all: $(CSV_BASE_FUZZER) $(CSV_SINGLE_PARAM_FUZZER) $(CSV_MULTI_PARAM_FUZZER) $(CSV_PIPE_FUZZER) \
 	$(JSON_BASE_FUZZER) $(JSON_MULTI_PARAM_FUZZER) $(JSON_PIPE_FUZZER) \
 	$(PARQUET_BASE_FUZZER) $(PARQUET_MULTI_PARAM_FUZZER) \
@@ -59,8 +64,7 @@ all: $(CSV_BASE_FUZZER) $(CSV_SINGLE_PARAM_FUZZER) $(CSV_MULTI_PARAM_FUZZER) $(C
 duckdb-lib: $(DUCKDBLIB)
 
 $(DUCKDBLIB):
-	cd $(DUCKDB_DIR) && CC=$(CC) CXX=$(CXX) GEN=ninja BUILD_JSON=1 CRASH_ON_ASSERT=1 make
-
+	cd $(DUCKDB_DIR) && CC=$(CC) CXX=$(CXX) CCACHE_COMPILERCHECK=content GEN=ninja BUILD_JSON=1 CRASH_ON_ASSERT=1 CMAKE_VARS_BUILD='$(CMAKE_VARS_BUILD)' make
 
 # file reader fuzzers (csv, json, parquet)
 
