@@ -77,15 +77,6 @@ compile-fuzzers: copy-src-to-container compile-duckdb
 		afl-container \
 		make all
 
-compile-fuzzers-CI:
-	docker exec -w / afl-container git clone https://github.com/duckdb/duckdb.git > /dev/null
-	docker exec -w $(SRC_DIR) \
-		-e CC=/AFLplusplus/afl-clang-fast \
-		-e CXX=/AFLplusplus/afl-clang-fast++ \
-		-e BUILD_JEMALLOC=1 \
-		afl-container \
-		make all
-
 # use local duckdb compiled with 'make GEN=ninja BUILD_JSON=1 CRASH_ON_ASSERT=1'
 compile-fuzzers-local:
 	$(eval ROOT_DIR := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST)))))
