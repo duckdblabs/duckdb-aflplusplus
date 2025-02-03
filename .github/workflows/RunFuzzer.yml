@@ -143,6 +143,7 @@ jobs:
           pip3 install duckdb
           pip3 list | grep duckdb
 
+      # todo: make generic for all fuzzers
       - name: Compile Fuzz target
         run: |
           cd duckdb_aflplusplus/src
@@ -153,14 +154,17 @@ jobs:
           CXX=${{ github.workspace }}/bin/afl-clang-fast++ \
           BUILD_JEMALLOC=1 \
           USE_CCACHE=1 \
-          /duckdb_aflplusplus/build/${{ inputs.fuzzer }}
+          ${{ github.workspace }}/duckdb_aflplusplus/build/csv_multi_param_fuzzer
 
       # todo: make generic for all fuzzers
       - name: Create corpus - fuzz-csv-multi-param
         if: ${{ inputs.fuzzer == 'fuzz-csv-multi-param' }}
         run: |
-          /duckdb_aflplusplus/scripts/corpus_creation/create_multi_param_corpus_info.py read_csv ${{ github.workspace }}/duckdb/ ${{ github.workspace }}/duckdb/test
-          /duckdb_aflplusplus/scripts/corpus_creation/create_multi_param_corpus.py read_csv ${{ github.workspace }}/duckdb/
+          ls -la /duckdb_aflplusplus/scripts/corpus_creation/
+          chmod +x ./duckdb_aflplusplus/scripts/corpus_creation/create_multi_param_corpus_info.py
+          chmod +x ./duckdb_aflplusplus/scripts/corpus_creation/create_multi_param_corpus.py
+          ./duckdb_aflplusplus/scripts/corpus_creation/create_multi_param_corpus_info.py read_csv ${{ github.workspace }}/duckdb/ ${{ github.workspace }}/duckdb/test
+          ./duckdb_aflplusplus/scripts/corpus_creation/create_multi_param_corpus.py read_csv ${{ github.workspace }}/duckdb/
 
       # todo: make generic for all fuzzers
       - name: Start fuzzing - fuzz-csv-multi-param
@@ -168,13 +172,13 @@ jobs:
           ${{ github.workspace }}/bin/afl-fuzz \
           -V ${{ inputs.fuzzTime }} \
           -i ${{ github.workspace }}/duckdb_aflplusplus/corpus/csv/corpus_prepended \
-          -o ${{ github.workspace }}/duckdb_aflplusplus/fuzz_results/${{ inputs.fuzzer }} \
+          -o ${{ github.workspace }}/duckdb_aflplusplus/fuzz_results/csv_multi_param_fuzzer \
           -m none \
           -d \
-          -- ${{ github.workspace }}/duckdb_aflplusplus/build/${{ inputs.fuzzer }}
+          -- ${{ github.workspace }}/duckdb_aflplusplus/build/csv_multi_param_fuzzer
 
       - name: Store fuzz result as artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.fuzzer }}-${{ github.run_id }}
-          path: ${{ github.workspace }}/duckdb_aflplusplus/fuzz_results/${{ inputs.fuzzer }}
+          path: ${{ github.workspace }}/duckdb_aflplusplus/fuzz_results/csv_multi_param_fuzzer
