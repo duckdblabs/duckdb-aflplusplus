@@ -2,7 +2,7 @@
 
 '''
 This script creates a fuzz corpus by prepending the parameter info to the data files.
-Input:
+Inputs:
     - directory 'duckdb/data'
     - file 'csv_parameter.json', 'json_parameter.json' or 'parquet_parameter.json'; created by script 'create_multi_param_corpus_info.py'
     - file 'csv_parameters.cpp', 'json_parameters.cpp' or 'parquet_parameters.cpp'
@@ -17,14 +17,20 @@ import struct
 import sys
 from pathlib import Path
 
-
-DUCKDB_DIR = FILE_DIR_TO_SCRAPE = Path('~/git/duckdb/').expanduser()
-CORPUS_ROOT_DIR = Path(__file__).parents[2] / 'corpus'
-SRC_DIR = Path(__file__).parents[2] / 'src'
-
-
 def main(argv: list[str]):
+    global DUCKDB_DIR
+    global CORPUS_ROOT_DIR
+    global SRC_DIR
+
+    # default paths
+    DUCKDB_DIR = Path('~/git/duckdb/').expanduser()
+    CORPUS_ROOT_DIR = Path(__file__).parents[2] / 'corpus'
+    SRC_DIR = Path(__file__).parents[2] / 'src'
+
     target_function = argv[1]
+    if len(argv) == 3:
+        DUCKDB_DIR = Path(argv[2]).expanduser()
+
     match target_function:
         case 'read_csv':
             parameters = read_tuples_from_cpp(SRC_DIR / 'csv_parameters.cpp')
@@ -157,6 +163,12 @@ def read_tuples_from_cpp(cpp_source_file: Path) -> list[tuple[str, str]]:
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        sys.exit("ERROR. provide the target function ('read_csv', 'read_json' or 'read_parquet') as first argument")
+    if len(sys.argv) not in [2, 3]:
+        sys.exit(
+            """
+            ERROR; call this script with the following arguments:
+              1 - function to scrape ('read_csv', 'read_json' or 'read_parquet')
+              2 - (optional) path of duckdb repository
+            """
+        )
     main(sys.argv)

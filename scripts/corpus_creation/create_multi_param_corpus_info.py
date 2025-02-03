@@ -11,15 +11,26 @@ import json
 import sys
 from pathlib import Path
 
-FILE_DIR_TO_SCRAPE = Path('~/git/duckdb/test/').expanduser()
-DUCKDB_DIR = Path('~/git/duckdb/').expanduser()
-CSV_CORPUS_JSON = Path(__file__).parents[2] / 'corpus/csv/csv_parameter.json'
-JSON_CORPUS_JSON = Path(__file__).parents[2] / 'corpus/json/json_parameter.json'
-PARQUET_CORPUS_JSON = Path(__file__).parents[2] / 'corpus/parquet/parquet_parameter.json'
-
 
 def main(argv: list):
+    global DUCKDB_DIR
+    global FILE_DIR_TO_SCRAPE
+    global CSV_CORPUS_JSON
+    global JSON_CORPUS_JSON
+    global PARQUET_CORPUS_JSON
+
+    # default paths
+    DUCKDB_DIR = Path('~/git/duckdb/').expanduser()
+    FILE_DIR_TO_SCRAPE = Path('~/git/duckdb/test/').expanduser()
+    CSV_CORPUS_JSON = Path(__file__).parents[2] / 'corpus/csv/csv_parameter.json'
+    JSON_CORPUS_JSON = Path(__file__).parents[2] / 'corpus/json/json_parameter.json'
+    PARQUET_CORPUS_JSON = Path(__file__).parents[2] / 'corpus/parquet/parquet_parameter.json'
+
     function_to_scrape = argv[1]
+    if len(argv) == 4:
+        DUCKDB_DIR = Path(argv[2]).expanduser()
+        FILE_DIR_TO_SCRAPE = Path(argv[3]).expanduser()
+
     match function_to_scrape:
         case 'read_csv':
             corpus_json_path = CSV_CORPUS_JSON
@@ -192,8 +203,13 @@ def prune_corpus_json(corpus_json_full_path: str) -> None:
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
+    if len(sys.argv) not in [2, 4]:
         sys.exit(
-            "ERROR. provide the target function to scrape ('read_csv', 'read_json' or 'read_parquet') as first argument"
+            """
+            ERROR; call this script with the following arguments:
+              1 - function to scrape ('read_csv', 'read_json' or 'read_parquet')
+              2 - (optional) path of duckdb repository
+              3 - (optional) path of directory to scrape
+            """
         )
     main(sys.argv)
