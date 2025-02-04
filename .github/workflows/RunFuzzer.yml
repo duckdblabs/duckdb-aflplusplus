@@ -145,7 +145,8 @@ jobs:
 
       - name: Compile Fuzz target
         run: |
-          cd duckdb_aflplusplus/src
+          mkdir -p ${{ github.workspace }}/duckdb_aflplusplus/build
+          cd ${{ github.workspace }}/duckdb_aflplusplus/src
           make \
           DUCKDB_DIR=${{ github.workspace }}/duckdb \
           DUCKDB_AFLPLUSPLUS_DIR=${{ github.workspace }}/duckdb_aflplusplus \
@@ -168,6 +169,7 @@ jobs:
       # todo: make generic for all fuzzers
       - name: Start fuzzing - fuzz_csv_multi_param
         run: |
+          mkdir -p ${{ github.workspace }}/duckdb_aflplusplus/fuzz_results
           ${{ github.workspace }}/bin/afl-fuzz \
           -V ${{ inputs.fuzzTime }} \
           -i ${{ github.workspace }}/duckdb_aflplusplus/corpus/csv/corpus_prepended \
