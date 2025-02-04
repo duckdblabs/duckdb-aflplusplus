@@ -11,7 +11,7 @@ on:
         description: 'ref'
         required: true
         type: string
-        default: 391b06431ad44f56ba097c5213ae546e44b45bac
+        default: 4ebeb16350eb2f819d682c581490af460dd0c995
       fuzzer:
         description: 'fuzz scenario'
         required: true
