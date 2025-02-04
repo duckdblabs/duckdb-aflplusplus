@@ -185,12 +185,10 @@ jobs:
           -m none \
           -d \
           -- $DUCKDB_AFLPLUSPLUS_DIR/build/${{ inputs.fuzzer }}
-          ls -la $DUCKDB_AFLPLUSPLUS_DIR/fuzz_results/
-          ls -la $DUCKDB_AFLPLUSPLUS_DIR/fuzz_results/${{ inputs.fuzzer }}
-          ls -la $DUCKDB_AFLPLUSPLUS_DIR/fuzz_results/${{ inputs.fuzzer }}/default
+          tar cvzf fuzz_results.tar.gz $DUCKDB_AFLPLUSPLUS_DIR/fuzz_results/${{ inputs.fuzzer }}
 
       - name: Store fuzz result as artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.fuzzer }}-${{ github.run_id }}
-          path: ${{ github.workspace }}/duckdb_aflplusplus/fuzz_results/${{ inputs.fuzzer }}
+          path: ${{ github.workspace }}fuzz_results.tar.gz
