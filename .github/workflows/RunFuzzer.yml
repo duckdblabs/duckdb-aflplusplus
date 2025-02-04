@@ -175,6 +175,8 @@ jobs:
       # /proc/sys/kernel/core_pattern needs to be adjusted, see:
       # https://github.com/AFLplusplus/AFLplusplus/blob/fb52b8edf86e12628df834f4bb144916b18a503d/src/afl-fuzz-init.c#L2476C1-L2489C70
       - name: Start fuzzing - fuzz_csv_multi_param
+        env:
+          AFL_IGNORE_SEED_PROBLEMS: 1
         run: |
           echo core | sudo tee /proc/sys/kernel/core_pattern
           mkdir -p $DUCKDB_AFLPLUSPLUS_DIR/fuzz_results
