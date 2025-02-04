@@ -86,7 +86,7 @@ compile-fuzzers-local:
 check_duckdb_in_pyenv:
 	@[[ "$(shell pip3 list)" == *"duckdb"* ]] || (echo "error: python package 'duckdb' not found" && exit 1)
 
-fuzz-csv-base:
+fuzz_csv_base:
 	docker exec afl-container mkdir -p $(RESULT_DIR)/csv_base_fuzzer
 	docker exec afl-container find $(DUCKDB_DIR)/data/csv -type f -size +40k -delete
 	docker exec afl-container /AFLplusplus/afl-fuzz \
@@ -99,7 +99,7 @@ fuzz-csv-base:
 	mkdir -p fuzz_results/
 	docker cp afl-container:$(RESULT_DIR)/csv_base_fuzzer fuzz_results
 
-fuzz-csv-single-param:
+fuzz_csv_single_param:
 	docker exec afl-container mkdir -p $(RESULT_DIR)/csv_single_param_fuzzer
 	docker exec afl-container find $(DUCKDB_DIR)/data/csv -type f -size +40k -delete
 	docker exec afl-container /AFLplusplus/afl-fuzz \
@@ -112,7 +112,7 @@ fuzz-csv-single-param:
 	mkdir -p fuzz_results/
 	docker cp afl-container:$(RESULT_DIR)/csv_single_param_fuzzer fuzz_results
 
-fuzz-csv-multi-param: check_duckdb_in_pyenv
+fuzz_csv_multi_param: check_duckdb_in_pyenv
 	$(eval ROOT_DIR := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST)))))
 	$(ROOT_DIR)/scripts/corpus_creation/create_multi_param_corpus_info.py read_csv
 	$(ROOT_DIR)/scripts/corpus_creation/create_multi_param_corpus.py read_csv
@@ -129,7 +129,7 @@ fuzz-csv-multi-param: check_duckdb_in_pyenv
 	mkdir -p fuzz_results/
 	docker cp afl-container:$(RESULT_DIR)/csv_multi_param_fuzzer fuzz_results
 
-fuzz-csv-pipe:
+fuzz_csv_pipe:
 	docker exec afl-container mkdir -p $(RESULT_DIR)/csv_pipe_fuzzer
 	docker exec afl-container find $(DUCKDB_DIR)/data/csv -type f -size +40k -delete
 	docker exec afl-container /AFLplusplus/afl-fuzz \
@@ -142,7 +142,7 @@ fuzz-csv-pipe:
 	mkdir -p fuzz_results/
 	docker cp afl-container:$(RESULT_DIR)/csv_pipe_fuzzer fuzz_results
 
-fuzz-json-base:
+fuzz_json_base:
 	docker exec afl-container mkdir -p $(RESULT_DIR)/json_base_fuzzer
 	docker exec afl-container find $(DUCKDB_DIR)/data/json -type f -size +40k -delete
 	docker exec afl-container /AFLplusplus/afl-fuzz \
@@ -155,7 +155,7 @@ fuzz-json-base:
 	mkdir -p fuzz_results/
 	docker cp afl-container:$(RESULT_DIR)/json_base_fuzzer fuzz_results
 
-fuzz-json-multi-param: check_duckdb_in_pyenv
+fuzz_json_multi_param: check_duckdb_in_pyenv
 	$(eval ROOT_DIR := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST)))))
 	$(ROOT_DIR)/scripts/corpus_creation/create_multi_param_corpus_info.py read_json
 	$(ROOT_DIR)/scripts/corpus_creation/create_multi_param_corpus.py read_json
@@ -172,7 +172,7 @@ fuzz-json-multi-param: check_duckdb_in_pyenv
 	mkdir -p fuzz_results/
 	docker cp afl-container:$(RESULT_DIR)/json_multi_param_fuzzer fuzz_results
 
-fuzz-json-pipe:
+fuzz_json_pipe:
 	docker exec afl-container mkdir -p $(RESULT_DIR)/json_pipe_fuzzer
 	docker exec afl-container find $(DUCKDB_DIR)/data/json -type f -size +40k -delete
 	docker exec afl-container /AFLplusplus/afl-fuzz \
@@ -185,7 +185,7 @@ fuzz-json-pipe:
 	mkdir -p fuzz_results/
 	docker cp afl-container:$(RESULT_DIR)/json_pipe_fuzzer fuzz_results
 
-fuzz-parquet-base:
+fuzz_parquet_base:
 	docker exec afl-container mkdir -p $(RESULT_DIR)/parquet_base_fuzzer
 	docker exec afl-container find $(DUCKDB_DIR)/data/parquet-testing -type f -size +100k -delete
 	docker exec afl-container /AFLplusplus/afl-fuzz \
@@ -198,7 +198,7 @@ fuzz-parquet-base:
 	mkdir -p fuzz_results/
 	docker cp afl-container:$(RESULT_DIR)/parquet_base_fuzzer fuzz_results
 
-fuzz-parquet-multi-param: check_duckdb_in_pyenv
+fuzz_parquet_multi_param: check_duckdb_in_pyenv
 	$(eval ROOT_DIR := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST)))))
 	$(ROOT_DIR)/scripts/corpus_creation/create_multi_param_corpus_info.py read_parquet
 	$(ROOT_DIR)/scripts/corpus_creation/create_multi_param_corpus.py read_parquet
@@ -215,7 +215,7 @@ fuzz-parquet-multi-param: check_duckdb_in_pyenv
 	mkdir -p fuzz_results/
 	docker cp afl-container:$(RESULT_DIR)/parquet_multi_param_fuzzer fuzz_results
 
-fuzz-duckdb-file:
+fuzz_duckdb_file:
 	./scripts/corpus_creation/create_duckdb_file_corpus.sh "./scripts/corpus_creation/duckdb_corpus_init" "./corpus/duckdbfiles"
 	docker exec afl-container mkdir -p $(RESULT_DIR)/duckdb_file_fuzzer
 	docker cp ./corpus/duckdbfiles afl-container:$(CORPUS_DIR)
@@ -229,7 +229,7 @@ fuzz-duckdb-file:
 	mkdir -p fuzz_results/
 	docker cp afl-container:$(RESULT_DIR)/duckdb_file_fuzzer fuzz_results
 
-fuzz-wal-file:
+fuzz_wal_file:
 	./scripts/corpus_creation/create_wal_file_corpus.sh
 	docker exec afl-container mkdir -p $(RESULT_DIR)/wal_fuzzer
 	docker cp ./corpus/walfiles afl-container:$(CORPUS_DIR)
@@ -256,8 +256,8 @@ format:
 	find src -name "*.cpp" -o -name "*.hpp" | xargs clang-format -i --sort-includes=0 -style=file
 
 .PHONY: afl-up compile-fuzzers afl-down \
-		fuzz-csv-base fuzz-csv-single-param fuzz-csv-multi-param fuzz-csv-pipe \
-		fuzz-json-base fuzz-json-pipe fuzz-json-multi-param \
-		fuzz-parquet-base fuzz-parquet-multi-param \
-		fuzz-duckdb-file fuzz-wal-file \
+		fuzz_csv_base fuzz_csv_single_param fuzz_csv_multi_param fuzz_csv_pipe \
+		fuzz_json_base fuzz_json_pipe fuzz_json_multi_param \
+		fuzz_parquet_base fuzz_parquet_multi_param \
+		fuzz_duckdb_file fuzz_wal_file \
 		man-page format

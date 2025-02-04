@@ -83,17 +83,17 @@ Fuzz duckdb with afl++ by executing the folowing steps consequtively.
 2. Compile executables that can be fuzz-tested
     - `make compile-fuzzers`
 3. Run one or more fuzz tests (see the `Makefile` for the corpus selection and fuzz options)
-    - `make fuzz-csv-base`
-    - `make fuzz-csv-single-param`
-    - `make fuzz-csv-multi-param`
-    - `make fuzz-csv-pipe`
-    - `make fuzz-json-base`
-    - `make fuzz-json-multi-param`
-    - `make fuzz-json-pipe`
-    - `make fuzz-parquet-base`
-    - `make fuzz-parquet-multi-param`
-    - `make fuzz-duckdb-file`
-    - `make fuzz-wal-file`
+    - `make fuzz_csv_base`
+    - `make fuzz_csv_single_param`
+    - `make fuzz_csv_multi_param`
+    - `make fuzz_csv_pipe`
+    - `make fuzz_json_base`
+    - `make fuzz_json_multi_param`
+    - `make fuzz_json_pipe`
+    - `make fuzz_parquet_base`
+    - `make fuzz_parquet_multi_param`
+    - `make fuzz_duckdb_file`
+    - `make fuzz_wal_file`
 
     Note: these make targets als create or select the required corpus.
 4. Inspect the fuzz result. See above.
@@ -173,9 +173,9 @@ By prepending the corpus files with encoded argument information, the fuzzer wil
 Steps:
 
 0. Run a make command (it will do the other steps, except step 5):
-    - `make fuzz-csv-multi-param`
-    - `make fuzz-json-multi-param`
-    - `make fuzz-parquet-multi-param`
+    - `make fuzz_csv_multi_param`
+    - `make fuzz_json_multi_param`
+    - `make fuzz_parquet_multi_param`
 
 1. Create a json file that lists the base corpus data together with the arguments.
     - script: `create_multi_param_corpus_info.py`

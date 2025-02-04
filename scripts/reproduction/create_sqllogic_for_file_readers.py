@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 '''
-Script to create sqllogic tests based on fuzz results (fuzz-csv-multi-param, fuzz-json-multi-param, fuzz-parquet-multi-param).
+Script to create sqllogic tests based on fuzz results (fuzz_csv_multi_param, fuzz_json_multi_param, fuzz_parquet_multi_param).
 NOTE: first run script 'decode_multi_param_files.py' to create reproductions from raw fuzzer output
 '''
 
