@@ -160,7 +160,7 @@ jobs:
       - name: Create corpus - csv_multi_param_fuzzer
         if: ${{ inputs.fuzzer == 'csv_multi_param_fuzzer' }}
         run: |
-          ls -la /duckdb_aflplusplus/scripts/corpus_creation/
+          ls -la ${{ github.workspace }}/duckdb_aflplusplus/scripts/corpus_creation/
           chmod +x ./duckdb_aflplusplus/scripts/corpus_creation/create_multi_param_corpus_info.py
           chmod +x ./duckdb_aflplusplus/scripts/corpus_creation/create_multi_param_corpus.py
           ./duckdb_aflplusplus/scripts/corpus_creation/create_multi_param_corpus_info.py read_csv ${{ github.workspace }}/duckdb/ ${{ github.workspace }}/duckdb/test
