@@ -92,7 +92,7 @@ jobs:
       # /proc/sys/kernel/core_pattern needs to be adjusted, see:
       # https://github.com/AFLplusplus/AFLplusplus/blob/fb52b8edf86e12628df834f4bb144916b18a503d/src/afl-fuzz-init.c#L2476C1-L2489C70
       - name: Config step
-        working-directory: $DUCKDB_AFLPLUSPLUS_DIR
+        working-directory: ${{ env.DUCKDB_AFLPLUSPLUS_DIR }}
         run: |
           echo core | sudo tee /proc/sys/kernel/core_pattern
           mkdir -p build
@@ -148,7 +148,7 @@ jobs:
           duckdb-lib
 
       - name: duckdb version
-        working-directory: $DUCKDB_DIR
+        working-directory: ${{ env.DUCKDB_DIR }}
         run: |
           ./build/release/duckdb --version
 
@@ -171,7 +171,7 @@ jobs:
 
       # todo: make generic for all fuzzers
       - name: Create corpus - csv_multi_param_fuzzer
-        working-directory: $DUCKDB_AFLPLUSPLUS_DIR
+        working-directory: ${{ env.DUCKDB_AFLPLUSPLUS_DIR }}
         if: ${{ inputs.fuzzer == 'csv_multi_param_fuzzer' }}
         run: |
           chmod +x scripts/corpus_creation/create_multi_param_corpus_info.py
@@ -183,7 +183,7 @@ jobs:
       - name: Start fuzzing - fuzz_csv_multi_param
         env:
           AFL_IGNORE_SEED_PROBLEMS: 1
-          working-directory: $DUCKDB_AFLPLUSPLUS_DIR
+          working-directory: ${{ env.DUCKDB_AFLPLUSPLUS_DIR }}
         run: |
           ${{ github.workspace }}/bin/afl-fuzz \
           -V ${{ inputs.fuzzTime }} \
@@ -201,7 +201,7 @@ jobs:
           path: fuzz_results.tar
 
       - name: Add summary statistics
-        working-directory: $DUCKDB_AFLPLUSPLUS_DIR
+        working-directory: ${{ env.DUCKDB_AFLPLUSPLUS_DIR }}
         run: |
           NUM_CRASHES=$(ls -l fuzz_results/${{ inputs.fuzzer }}/default/crashes | grep id: | wc -l)
           NUM_HANGS=$(ls -l fuzz_results/${{ inputs.fuzzer }}/default/hangs | grep id: | wc -l)
