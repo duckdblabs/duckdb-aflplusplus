@@ -189,13 +189,18 @@ jobs:
           -- $DUCKDB_AFLPLUSPLUS_DIR/build/${{ inputs.fuzzer }}
           cd $DUCKDB_AFLPLUSPLUS_DIR && tar -cvf ${{ github.workspace }}/fuzz_results.tar fuzz_results/${{ inputs.fuzzer }}
 
-      - name: debug
-        run: |
-          which afl-fuzz || echo afl-fuzz not found
-          ls -la
-
       - name: Store fuzz result as artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.fuzzer }}-${{ github.run_id }}
           path: fuzz_results.tar
+
+      - name: Add summary statistics
+        run: |
+          cd $DUCKDB_AFLPLUSPLUS_DIR
+          NUM_CRASHES=$(ls -l fuzz_results/${{ inputs.fuzzer }}/default/crashes | grep id: | wc -l)
+          NUM_HANGS=$(ls -l fuzz_results/${{ inputs.fuzzer }}/default/hangs | grep id: | wc -l)
+          NUM_QUEUE=$(ls -l fuzz_results/${{ inputs.fuzzer }}/default/queue | grep id: | wc -l)
+          "echo \"::notice::crahses found: $NUM_CRASHES\""
+          "echo \"::notice::hangs found: $NUM_HANGS\""
+          "echo \"::notice::queue length: $NUM_QUEUE\""
