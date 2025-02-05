@@ -181,9 +181,9 @@ jobs:
 
       # todo: make generic for all fuzzers
       - name: Start fuzzing - fuzz_csv_multi_param
+        working-directory: ${{ env.DUCKDB_AFLPLUSPLUS_DIR }}
         env:
           AFL_IGNORE_SEED_PROBLEMS: 1
-          working-directory: ${{ env.DUCKDB_AFLPLUSPLUS_DIR }}
         run: |
           ${{ github.workspace }}/bin/afl-fuzz \
           -V ${{ inputs.fuzzTime }} \
