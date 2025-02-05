@@ -187,11 +187,11 @@ jobs:
         run: |
           ${{ github.workspace }}/bin/afl-fuzz \
           -V ${{ inputs.fuzzTime }} \
-          -i corpus/csv/corpus_prepended \
-          -o fuzz_results/${{ inputs.fuzzer }} \
+          -i $DUCKDB_AFLPLUSPLUS_DIR/corpus/csv/corpus_prepended \
+          -o $DUCKDB_AFLPLUSPLUS_DIR/fuzz_results/${{ inputs.fuzzer }} \
           -m none \
           -d \
-          -- build/${{ inputs.fuzzer }}
+          -- $DUCKDB_AFLPLUSPLUS_DIR/build/${{ inputs.fuzzer }}
           tar -cvf ${{ github.workspace }}/fuzz_results.tar fuzz_results/${{ inputs.fuzzer }}
 
       - name: Store fuzz result as artifact
