@@ -126,7 +126,7 @@ jobs:
         with:
           key: ${{ github.job }}
 
-      - name: Compile DuckDB
+      - name: Compile DuckDB with afl++ compiler
         run: |
           cd duckdb_aflplusplus/src
           make \
@@ -187,7 +187,7 @@ jobs:
           -m none \
           -d \
           -- $DUCKDB_AFLPLUSPLUS_DIR/build/${{ inputs.fuzzer }}
-          cd $DUCKDB_AFLPLUSPLUS_DIR && tar -cvf fuzz_results.tar fuzz_results/${{ inputs.fuzzer }}
+          cd $DUCKDB_AFLPLUSPLUS_DIR && tar -cvf ${{ github.workspace }}/fuzz_results.tar fuzz_results/${{ inputs.fuzzer }}
 
       - name: debug
         run: |
