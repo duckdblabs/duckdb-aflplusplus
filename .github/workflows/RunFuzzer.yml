@@ -56,6 +56,30 @@ jobs:
           echo ${{ inputs.fuzzer }}
           echo ${{ inputs.fuzzTime }}
 
+      - name: define input dependent variables
+        run: |
+          case ${{ inputs.fuzzer }} in
+            csv_multi_param_fuzzer)
+              echo "CREATE_CORPUS_INFO_ARGS=\"read_csv $DUCKDB_DIR $DUCKDB_DIR/test\"" >> $GITHUB_ENV
+              echo "CREATE_CORPUS_ARGS=\"read_csv $DUCKDB_DIR\"" >> $GITHUB_ENV
+              echo "FILE_FORMAT=csv" >> $GITHUB_ENV
+              ;;
+            json_multi_param_fuzzer)
+              echo "CREATE_CORPUS_INFO_ARGS=\"read_json $DUCKDB_DIR $DUCKDB_DIR/test\"" >> $GITHUB_ENV
+              echo "CREATE_CORPUS_ARGS=\"read_json $DUCKDB_DIR\"" >> $GITHUB_ENV
+              echo "FILE_FORMAT=json" >> $GITHUB_ENV
+              ;;
+            parquet_multi_param_fuzzer)
+              echo "CREATE_CORPUS_INFO_ARGS=\"read_parquet $DUCKDB_DIR $DUCKDB_DIR/test\"" >> $GITHUB_ENV
+              echo "CREATE_CORPUS_ARGS=\"read_parquet $DUCKDB_DIR\"" >> $GITHUB_ENV
+              echo "FILE_FORMAT=parquet" >> $GITHUB_ENV
+              ;;
+            *)
+              echo unsupported fuzzer
+              exit(1)
+              ;;
+          esac
+
       # https://github.com/AFLplusplus/AFLplusplus/blob/stable/docs/INSTALL.md
       - name: Install AFL++ dependencies
         run: |
@@ -169,25 +193,22 @@ jobs:
           USE_CCACHE=1 \
           $DUCKDB_AFLPLUSPLUS_DIR/build/${{ inputs.fuzzer }}
 
-      # todo: make generic for all fuzzers
-      - name: Create corpus - csv_multi_param_fuzzer
+      - name: Create corpus
         working-directory: ${{ env.DUCKDB_AFLPLUSPLUS_DIR }}
-        if: ${{ inputs.fuzzer == 'csv_multi_param_fuzzer' }}
         run: |
           chmod +x scripts/corpus_creation/create_multi_param_corpus_info.py
           chmod +x scripts/corpus_creation/create_multi_param_corpus.py
-          ./scripts/corpus_creation/create_multi_param_corpus_info.py read_csv $DUCKDB_DIR $DUCKDB_DIR/test
-          ./scripts/corpus_creation/create_multi_param_corpus.py read_csv $DUCKDB_DIR
+          ./scripts/corpus_creation/create_multi_param_corpus_info.py ${{ env.CREATE_CORPUS_INFO_ARGS }}
+          ./scripts/corpus_creation/create_multi_param_corpus.py ${{ env.CREATE_CORPUS_ARGS }}
 
-      # todo: make generic for all fuzzers
-      - name: Start fuzzing - fuzz_csv_multi_param
+      - name: Start fuzzing
         working-directory: ${{ env.DUCKDB_AFLPLUSPLUS_DIR }}
         env:
           AFL_IGNORE_SEED_PROBLEMS: 1
         run: |
           ${{ github.workspace }}/bin/afl-fuzz \
           -V ${{ inputs.fuzzTime }} \
-          -i $DUCKDB_AFLPLUSPLUS_DIR/corpus/csv/corpus_prepended \
+          -i $DUCKDB_AFLPLUSPLUS_DIR/corpus/$FILE_FORMAT/corpus_prepended \
           -o $DUCKDB_AFLPLUSPLUS_DIR/fuzz_results/${{ inputs.fuzzer }} \
           -m none \
           -d \
