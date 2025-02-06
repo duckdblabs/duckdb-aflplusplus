@@ -245,3 +245,21 @@ jobs:
           echo "crahses found: ${{ env.NUM_CRASHES }}""
           echo "hangs found: ${{ env.NUM_HANGS }}""
           echo "queue length: ${{ env.NUM_QUEUE }}""
+
+      - name: download fuzz-results (created by previous step)
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.fuzzer }}-${{ github.run_id }}
+
+      - name: extract fuzz-results
+        run: |
+          echo t1
+          ls -la
+          echo ${{ env.download-path}}
+          echo t2
+          ls -la ${{ env.download-path}} || true
+          echo t3
+          test -f ${{ env.download-path}} || echo no file
+          echo t4
+          tar -xvf ${{ env.download-path}}
+          ls -la
