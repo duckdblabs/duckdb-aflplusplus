@@ -8,10 +8,11 @@ on:
         type: string
         default: duckdb/duckdb
       ref:
-        description: 'ref'
+        description: 'duckdb branch, tag, or full-length SHA'
         required: true
         type: string
-        default: 4ebeb16350eb2f819d682c581490af460dd0c995
+        # oldest usable ref: 4ebeb16350eb2f819d682c581490af460dd0c995
+        default: main
       fuzzer:
         description: 'fuzz scenario'
         required: true
@@ -56,6 +57,30 @@ jobs:
           echo ${{ inputs.fuzzer }}
           echo ${{ inputs.fuzzTime }}
 
+      - name: define input dependent variables
+        run: |
+          case ${{ inputs.fuzzer }} in
+            csv_multi_param_fuzzer)
+              echo "CREATE_CORPUS_INFO_ARGS=read_csv $DUCKDB_DIR $DUCKDB_DIR/test" >> $GITHUB_ENV
+              echo "CREATE_CORPUS_ARGS=read_csv $DUCKDB_DIR" >> $GITHUB_ENV
+              echo "FILE_FORMAT=csv" >> $GITHUB_ENV
+              ;;
+            json_multi_param_fuzzer)
+              echo "CREATE_CORPUS_INFO_ARGS=read_json $DUCKDB_DIR $DUCKDB_DIR/test" >> $GITHUB_ENV
+              echo "CREATE_CORPUS_ARGS=read_json $DUCKDB_DIR" >> $GITHUB_ENV
+              echo "FILE_FORMAT=json" >> $GITHUB_ENV
+              ;;
+            parquet_multi_param_fuzzer)
+              echo "CREATE_CORPUS_INFO_ARGS=read_parquet $DUCKDB_DIR $DUCKDB_DIR/test" >> $GITHUB_ENV
+              echo "CREATE_CORPUS_ARGS=read_parquet $DUCKDB_DIR" >> $GITHUB_ENV
+              echo "FILE_FORMAT=parquet" >> $GITHUB_ENV
+              ;;
+            *)
+              echo unsupported fuzzer
+              exit 1
+              ;;
+          esac
+
       # https://github.com/AFLplusplus/AFLplusplus/blob/stable/docs/INSTALL.md
       - name: Install AFL++ dependencies
         run: |
@@ -89,6 +114,16 @@ jobs:
           ref: ${{ inputs.ref }}
           path: duckdb
 
+      # /proc/sys/kernel/core_pattern needs to be adjusted, see:
+      # https://github.com/AFLplusplus/AFLplusplus/blob/fb52b8edf86e12628df834f4bb144916b18a503d/src/afl-fuzz-init.c#L2476C1-L2489C70
+      - name: Config step
+        working-directory: ${{ env.DUCKDB_AFLPLUSPLUS_DIR }}
+        run: |
+          echo core | sudo tee /proc/sys/kernel/core_pattern
+          mkdir -p build
+          mkdir -p corpus
+          mkdir -p fuzz_results
+
       # https://github.com/AFLplusplus/AFLplusplus/blob/stable/GNUmakefile
       - name: Cache AFL++ binaries
         if: ${{ inputs.cacheAFL }}
@@ -109,8 +144,8 @@ jobs:
 
       - name: build AFL++
         if: steps.cache-aflplusplus.outputs.cache-hit != 'true'
+        working-directory: aflplusplus
         run: |
-          cd aflplusplus
           sudo make PREFIX=${{ github.workspace }} source-only
           sudo make PREFIX=${{ github.workspace }} install
 
@@ -128,8 +163,7 @@ jobs:
 
       - name: Compile DuckDB with afl++ compiler
         run: |
-          cd duckdb_aflplusplus/src
-          make \
+          make -C $DUCKDB_AFLPLUSPLUS_DIR/src \
           DUCKDB_DIR=$DUCKDB_DIR \
           DUCKDB_AFLPLUSPLUS_DIR=$DUCKDB_AFLPLUSPLUS_DIR \
           CC=$CC \
@@ -139,8 +173,9 @@ jobs:
           duckdb-lib
 
       - name: duckdb version
+        working-directory: ${{ env.DUCKDB_DIR }}
         run: |
-          $DUCKDB_DIR/build/release/duckdb --version
+          ./build/release/duckdb --version
 
       # NOTE: duckdb-python is only used for pre and post processing; does not have to be compiled from source
       - name: Install duckdb python API
@@ -150,9 +185,7 @@ jobs:
 
       - name: Compile Fuzz target
         run: |
-          mkdir -p $DUCKDB_AFLPLUSPLUS_DIR/build
-          cd $DUCKDB_AFLPLUSPLUS_DIR/src
-          make \
+          make -C $DUCKDB_AFLPLUSPLUS_DIR/src \
           DUCKDB_DIR=$DUCKDB_DIR \
           DUCKDB_AFLPLUSPLUS_DIR=$DUCKDB_AFLPLUSPLUS_DIR \
           CC=$CC \
@@ -161,41 +194,40 @@ jobs:
           USE_CCACHE=1 \
           $DUCKDB_AFLPLUSPLUS_DIR/build/${{ inputs.fuzzer }}
 
-      # todo: make generic for all fuzzers
-      - name: Create corpus - csv_multi_param_fuzzer
-        if: ${{ inputs.fuzzer == 'csv_multi_param_fuzzer' }}
+      - name: Create corpus
+        working-directory: ${{ env.DUCKDB_AFLPLUSPLUS_DIR }}
         run: |
-          ls -la $DUCKDB_AFLPLUSPLUS_DIR/scripts/corpus_creation/
-          chmod +x ./duckdb_aflplusplus/scripts/corpus_creation/create_multi_param_corpus_info.py
-          chmod +x ./duckdb_aflplusplus/scripts/corpus_creation/create_multi_param_corpus.py
-          $DUCKDB_AFLPLUSPLUS_DIR/scripts/corpus_creation/create_multi_param_corpus_info.py read_csv $DUCKDB_DIR $DUCKDB_DIR/test
-          $DUCKDB_AFLPLUSPLUS_DIR/scripts/corpus_creation/create_multi_param_corpus.py read_csv $DUCKDB_DIR
+          chmod +x scripts/corpus_creation/create_multi_param_corpus_info.py
+          chmod +x scripts/corpus_creation/create_multi_param_corpus.py
+          ./scripts/corpus_creation/create_multi_param_corpus_info.py ${{ env.CREATE_CORPUS_INFO_ARGS }}
+          ./scripts/corpus_creation/create_multi_param_corpus.py ${{ env.CREATE_CORPUS_ARGS }}
 
-      # todo: make generic for all fuzzers
-      # /proc/sys/kernel/core_pattern needs to be adjusted, see:
-      # https://github.com/AFLplusplus/AFLplusplus/blob/fb52b8edf86e12628df834f4bb144916b18a503d/src/afl-fuzz-init.c#L2476C1-L2489C70
-      - name: Start fuzzing - fuzz_csv_multi_param
+      - name: Start fuzzing
+        working-directory: ${{ env.DUCKDB_AFLPLUSPLUS_DIR }}
         env:
           AFL_IGNORE_SEED_PROBLEMS: 1
         run: |
-          echo core | sudo tee /proc/sys/kernel/core_pattern
-          mkdir -p $DUCKDB_AFLPLUSPLUS_DIR/fuzz_results
           ${{ github.workspace }}/bin/afl-fuzz \
           -V ${{ inputs.fuzzTime }} \
-          -i $DUCKDB_AFLPLUSPLUS_DIR/corpus/csv/corpus_prepended \
+          -i $DUCKDB_AFLPLUSPLUS_DIR/corpus/$FILE_FORMAT/corpus_prepended \
           -o $DUCKDB_AFLPLUSPLUS_DIR/fuzz_results/${{ inputs.fuzzer }} \
           -m none \
           -d \
           -- $DUCKDB_AFLPLUSPLUS_DIR/build/${{ inputs.fuzzer }}
-          cd $DUCKDB_AFLPLUSPLUS_DIR && tar -cvf ${{ github.workspace }}/fuzz_results.tar fuzz_results/${{ inputs.fuzzer }}
-
-      - name: debug
-        run: |
-          which afl-fuzz || echo afl-fuzz not found
-          ls -la
+          tar -cvf ${{ github.workspace }}/fuzz_results.tar fuzz_results/${{ inputs.fuzzer }}
 
       - name: Store fuzz result as artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.fuzzer }}-${{ github.run_id }}
           path: fuzz_results.tar
+
+      - name: Add summary statistics
+        working-directory: ${{ env.DUCKDB_AFLPLUSPLUS_DIR }}
+        run: |
+          NUM_CRASHES=$(ls -l fuzz_results/${{ inputs.fuzzer }}/default/crashes | grep id: | wc -l | sed 's/ *//')
+          NUM_HANGS=$(ls -l fuzz_results/${{ inputs.fuzzer }}/default/hangs | grep id: | wc -l | sed 's/ *//')
+          NUM_QUEUE=$(ls -l fuzz_results/${{ inputs.fuzzer }}/default/queue | grep id: | wc -l | sed 's/ *//')
+          echo "::notice::crahses found: $NUM_CRASHES"
+          echo "::notice::hangs found: $NUM_HANGS"
+          echo "::notice::queue length: $NUM_QUEUE"
