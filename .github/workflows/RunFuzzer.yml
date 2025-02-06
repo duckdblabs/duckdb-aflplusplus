@@ -61,18 +61,18 @@ jobs:
         run: |
           case ${{ inputs.fuzzer }} in
             csv_multi_param_fuzzer)
-              echo "CREATE_CORPUS_INFO_ARGS=\"read_csv $DUCKDB_DIR $DUCKDB_DIR/test\"" >> $GITHUB_ENV
-              echo "CREATE_CORPUS_ARGS=\"read_csv $DUCKDB_DIR\"" >> $GITHUB_ENV
+              echo "CREATE_CORPUS_INFO_ARGS=read_csv $DUCKDB_DIR $DUCKDB_DIR/test" >> $GITHUB_ENV
+              echo "CREATE_CORPUS_ARGS=read_csv $DUCKDB_DIR" >> $GITHUB_ENV
               echo "FILE_FORMAT=csv" >> $GITHUB_ENV
               ;;
             json_multi_param_fuzzer)
-              echo "CREATE_CORPUS_INFO_ARGS=\"read_json $DUCKDB_DIR $DUCKDB_DIR/test\"" >> $GITHUB_ENV
-              echo "CREATE_CORPUS_ARGS=\"read_json $DUCKDB_DIR\"" >> $GITHUB_ENV
+              echo "CREATE_CORPUS_INFO_ARGS=read_json $DUCKDB_DIR $DUCKDB_DIR/test" >> $GITHUB_ENV
+              echo "CREATE_CORPUS_ARGS=read_json $DUCKDB_DIR" >> $GITHUB_ENV
               echo "FILE_FORMAT=json" >> $GITHUB_ENV
               ;;
             parquet_multi_param_fuzzer)
-              echo "CREATE_CORPUS_INFO_ARGS=\"read_parquet $DUCKDB_DIR $DUCKDB_DIR/test\"" >> $GITHUB_ENV
-              echo "CREATE_CORPUS_ARGS=\"read_parquet $DUCKDB_DIR\"" >> $GITHUB_ENV
+              echo "CREATE_CORPUS_INFO_ARGS=read_parquet $DUCKDB_DIR $DUCKDB_DIR/test" >> $GITHUB_ENV
+              echo "CREATE_CORPUS_ARGS=read_parquet $DUCKDB_DIR" >> $GITHUB_ENV
               echo "FILE_FORMAT=parquet" >> $GITHUB_ENV
               ;;
             *)
