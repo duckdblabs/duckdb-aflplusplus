@@ -8,10 +8,11 @@ on:
         type: string
         default: duckdb/duckdb
       ref:
-        description: 'ref'
+        description: 'duckdb branch, tag, or full-length SHA'
         required: true
         type: string
-        default: 4ebeb16350eb2f819d682c581490af460dd0c995
+        # oldest usable ref: 4ebeb16350eb2f819d682c581490af460dd0c995
+        default: main
       fuzzer:
         description: 'fuzz scenario'
         required: true
