@@ -231,3 +231,17 @@ jobs:
           echo "::notice::crahses found: $NUM_CRASHES"
           echo "::notice::hangs found: $NUM_HANGS"
           echo "::notice::queue length: $NUM_QUEUE"
+          echo "NUM_CRASHES=$NUM_CRASHES" >> "$GITHUB_OUTPUT"
+          echo "NUM_HANGS=$NUM_HANGS" >> "$GITHUB_OUTPUT"
+          echo "NUM_QUEUE=$NUM_QUEUE" >> "$GITHUB_OUTPUT"
+
+  process-fuzz-results:
+    runs-on: ubuntu-24.04
+    needs: aflplusplus-fuzz-run
+
+    steps:
+      - name: print fuzz statistics
+        run: |
+          echo "crahses found: ${{ env.NUM_CRASHES }}""
+          echo "hangs found: ${{ env.NUM_HANGS }}""
+          echo "queue length: ${{ env.NUM_QUEUE }}""
