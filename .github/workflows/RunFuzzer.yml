@@ -76,7 +76,7 @@ jobs:
               ;;
             *)
               echo unsupported fuzzer
-              exit(1)
+              exit 1
               ;;
           esac
 
