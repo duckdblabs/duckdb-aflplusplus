@@ -51,7 +51,6 @@ jobs:
       DUCKDB_DIR: ${{ github.workspace }}/duckdb
     outputs:
       file_format: ${{ steps.define_vars.outputs.file_format }}
-      file_format2: ${{ steps.define_vars.outputs.file_format2 }}
 
     steps:
       - name: print fuzz scenario
@@ -69,29 +68,23 @@ jobs:
             csv_multi_param_fuzzer)
               echo "CREATE_CORPUS_INFO_ARGS=read_csv $DUCKDB_DIR $DUCKDB_DIR/test" >> $GITHUB_ENV
               echo "CREATE_CORPUS_ARGS=read_csv $DUCKDB_DIR" >> $GITHUB_ENV
-              echo "FILE_FORMAT=csv" >> $GITHUB_ENV
+              echo "file_format=csv" >> "$GITHUB_OUTPUT"
               ;;
             json_multi_param_fuzzer)
               echo "CREATE_CORPUS_INFO_ARGS=read_json $DUCKDB_DIR $DUCKDB_DIR/test" >> $GITHUB_ENV
               echo "CREATE_CORPUS_ARGS=read_json $DUCKDB_DIR" >> $GITHUB_ENV
-              echo "FILE_FORMAT=json" >> $GITHUB_ENV
+              echo "file_format=json" >> "$GITHUB_OUTPUT"
               ;;
             parquet_multi_param_fuzzer)
               echo "CREATE_CORPUS_INFO_ARGS=read_parquet $DUCKDB_DIR $DUCKDB_DIR/test" >> $GITHUB_ENV
               echo "CREATE_CORPUS_ARGS=read_parquet $DUCKDB_DIR" >> $GITHUB_ENV
-              echo "FILE_FORMAT=parquet" >> $GITHUB_ENV
+              echo "file_format=parquet" >> "$GITHUB_OUTPUT"
               ;;
             *)
               echo unsupported fuzzer
               exit 1
               ;;
           esac
-          echo dummy1
-          echo $FILE_FORMAT
-          echo dummy2
-
-          echo "file_format=$FILE_FORMAT" >> "$GITHUB_OUTPUT"
-          echo "file_format2=csv" >> "$GITHUB_OUTPUT"
 
       # https://github.com/AFLplusplus/AFLplusplus/blob/stable/docs/INSTALL.md
       - name: Install AFL++ dependencies
@@ -220,7 +213,7 @@ jobs:
         run: |
           ${{ github.workspace }}/bin/afl-fuzz \
           -V ${{ inputs.fuzzTime }} \
-          -i $DUCKDB_AFLPLUSPLUS_DIR/corpus/$FILE_FORMAT/corpus_prepended \
+          -i $DUCKDB_AFLPLUSPLUS_DIR/corpus/${{ steps.define_vars.outputs.file_format }}/corpus_prepended \
           -o $DUCKDB_AFLPLUSPLUS_DIR/fuzz_results/${{ inputs.fuzzer }} \
           -m none \
           -d \
@@ -251,7 +244,6 @@ jobs:
     needs: aflplusplus-fuzz-run
     env:
       FILE_FORMAT: ${{ needs.aflplusplus-fuzz-run.outputs.file_format }}
-      FILE_FORMAT2: ${{ needs.aflplusplus-fuzz-run.outputs.file_format2 }}
 
     steps:
       - name: print fuzz statistics
@@ -259,6 +251,7 @@ jobs:
           echo crahses found: ${{ env.NUM_CRASHES }}
           echo hangs found: ${{ env.NUM_HANGS }}
           echo queue length: ${{ env.NUM_QUEUE }}
+          echo file format: $FILE_FORMAT
 
       - name: Checkout duckdb_aflplusplus
         uses: actions/checkout@v4
@@ -275,20 +268,17 @@ jobs:
           tar -xf fuzz_results.tar
 
       - name: decode fuzz results
-        working-directory: ${{ env.DUCKDB_AFLPLUSPLUS_DIR }}
         run: |
           ls
           echo dummy1
           echo FILE_FORMAT is "${{ needs.aflplusplus-fuzz-run.outputs.file_format }}"
-          echo FILE_FORMAT2 is "${{ needs.aflplusplus-fuzz-run.outputs.file_format2 }}"
-          echo FILE_FORMAT2 is "${{ env.file_format2 }}"
-          echo FILE_FORMAT2 is "$FILE_FORMAT2"
+          echo FILE_FORMAT is "$FILE_FORMAT"
           echo dummy2
-          ./scripts/reproduction/decode_multi_param_files.py \
-            read_$FILE_FORMAT2 \
+          $DUCKDB_AFLPLUSPLUS_DIR/scripts/reproduction/decode_multi_param_files.py \
+            read_$FILE_FORMAT \
             ${{ github.workspace }}/fuzz_results/${{ inputs.fuzzer }}/default/crashes \
             ${{ github.workspace }}/reproductions
-          tar -cvf ${{ github.workspace }}/reproductions.tar ${{ github.workspace }}/reproductions
+          tar -cvf reproductions.tar reproductions
 
       - name: Store reproductions as artifact
         uses: actions/upload-artifact@v4
