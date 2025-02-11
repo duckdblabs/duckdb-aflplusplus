@@ -273,9 +273,6 @@ jobs:
       - name: extract fuzz-results
         run: |
           tar -xf fuzz_results.tar
-          echo FILE_FORMAT2 is "${{ needs.aflplusplus-fuzz-run.outputs.file_format2 }}"
-          echo FILE_FORMAT2 is "${{ env.file_format2 }}"
-          echo FILE_FORMAT2 is "$FILE_FORMAT2"
 
       - name: decode fuzz results
         working-directory: ${{ env.DUCKDB_AFLPLUSPLUS_DIR }}
@@ -286,20 +283,6 @@ jobs:
           echo FILE_FORMAT2 is "${{ needs.aflplusplus-fuzz-run.outputs.file_format2 }}"
           echo FILE_FORMAT2 is "${{ env.file_format2 }}"
           echo FILE_FORMAT2 is "$FILE_FORMAT2"
-        working-directory: ${{ env.DUCKDB_AFLPLUSPLUS_DIR }}
-        run: |
-          ls
-          echo dummy1
-          echo FILE_FORMAT is "${{ needs.aflplusplus-fuzz-run.outputs.file_format }}"
-          echo FILE_FORMAT2 is "${{ needs.aflplusplus-fuzz-run.outputs.file_format2 }}"
-          echo FILE_FORMAT2 is "${{ env.file_format2 }}"
-            read_$FILE_FORMAT2 \
-        run: |
-          ls
-          echo dummy1
-          echo FILE_FORMAT is "${{ needs.aflplusplus-fuzz-run.outputs.file_format }}"
-          echo FILE_FORMAT2 is "${{ needs.aflplusplus-fuzz-run.outputs.file_format2 }}"
-          echo FILE_FORMAT2 is "${{ env.file_format2 }}"
           echo dummy2
           ./scripts/reproduction/decode_multi_param_files.py \
             read_$FILE_FORMAT2 \
