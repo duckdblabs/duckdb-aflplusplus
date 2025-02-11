@@ -43,7 +43,7 @@ env:
 
 jobs:
   aflplusplus-fuzz-run:
-    name: AFL++ fuzz run
+    name: Run AFL++ fuzzer
     runs-on: ubuntu-24.04
     env:
       CC: ${{ github.workspace }}/bin/afl-clang-fast
@@ -221,7 +221,7 @@ jobs:
           -m none \
           -d \
           -- $DUCKDB_AFLPLUSPLUS_DIR/build/${{ inputs.fuzzer }}
-          tar -cvf ${{ github.workspace }}/fuzz_results.tar fuzz_results/${{ inputs.fuzzer }}
+          tar -cf ${{ github.workspace }}/fuzz_results.tar fuzz_results/${{ inputs.fuzzer }}
 
       - name: Store fuzz result as artifact
         uses: actions/upload-artifact@v4
@@ -244,6 +244,7 @@ jobs:
           echo "queue_length=$QUEUE_LENGTH" >> "$GITHUB_OUTPUT"
 
   process-fuzz-results:
+    name: Post-process fuzz results
     runs-on: ubuntu-24.04
     needs: aflplusplus-fuzz-run
     env:
@@ -259,6 +260,24 @@ jobs:
           echo hangs found: $NUM_HANGS
           echo queue length: $QUEUE_LENGTH
           echo file format: $FILE_FORMAT
+
+      - name: define input dependent variables
+        run: |
+          case $FILE_FORMAT in
+            csv)
+              echo "SQLLOGIC_DATA_DIR=data/csv/afl/${{ github.run_id }}_csv_fuzz_error" >> $GITHUB_ENV
+              ;;
+            json)
+              echo "SQLLOGIC_DATA_DIR=data/json/afl/${{ github.run_id }}_json_fuzz_error" >> $GITHUB_ENV
+              ;;
+            parquet)
+              echo "SQLLOGIC_DATA_DIR=data/parquet-testing/afl/${{ github.run_id }}_parquet_fuzz_error" >> $GITHUB_ENV
+              ;;
+            *)
+              echo unsupported file format
+              exit 1
+              ;;
+          esac
 
       - name: Checkout duckdb_aflplusplus
         uses: actions/checkout@v4
@@ -287,3 +306,23 @@ jobs:
         with:
           name: ${{ github.run_id }}-${{ inputs.fuzzer }}-reproductions
           path: reproductions.tar
+
+      - name: create sqllogic tests
+        env:
+          REPRODUCTION_DIR: ${{ github.workspace }}/reproductions
+          SQLLOGIC_TEST_NAME: test/fuzzer/afl/${{ github.run_id }}-${{ inputs.fuzzer }}-crashes.test
+          SQLLOGIC_FILE_PATH: ${{ github.workspace }}/${{ github.run_id }}-${{ inputs.fuzzer }}-crashes.test
+          SQLLOGIC_DATA_DIR: ${{ env.SQLLOGIC_DATA_DIR }}
+        run: |
+          $DUCKDB_AFLPLUSPLUS_DIR/scripts/reproduction/create_sqllogic_for_file_readers.py \
+            read_$FILE_FORMAT \
+            $REPRODUCTION_DIR \
+            $SQLLOGIC_TEST_NAME \
+            $SQLLOGIC_FILE_PATH \
+            $SQLLOGIC_DATA_DIR
+
+      - name: Store sqllogic test as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.run_id }}-${{ inputs.fuzzer }}-crashes.test
+          path: ${{ github.run_id }}-${{ inputs.fuzzer }}-crashes.test
