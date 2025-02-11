@@ -245,6 +245,11 @@ jobs:
           echo hangs found: ${{ env.NUM_HANGS }}
           echo queue length: ${{ env.NUM_QUEUE }}
 
+      - name: Checkout duckdb_aflplusplus
+        uses: actions/checkout@v4
+        with:
+          path: duckdb_aflplusplus
+
       - name: download fuzz-results (created by previous step)
         uses: actions/download-artifact@v4
         with:
@@ -252,8 +257,7 @@ jobs:
 
       - name: extract fuzz-results
         run: |
-          ls -la
-          tar -xvf fuzz_results.tar
+          tar -xf fuzz_results.tar
 
       - name: decode fuzz results
         working-directory: ${{ env.DUCKDB_AFLPLUSPLUS_DIR }}
