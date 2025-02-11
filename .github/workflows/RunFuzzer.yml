@@ -258,7 +258,7 @@ jobs:
       - name: decode fuzz results
         working-directory: ${{ env.DUCKDB_AFLPLUSPLUS_DIR }}
         run: |
-          ./scripts/reproductions/decode_multi_param_files.py \
+          ./scripts/reproduction/decode_multi_param_files.py \
             read_$FILE_FORMAT \
             ${{ github.workspace }}/fuzz_results/${{ inputs.fuzzer }}/default/crashes \
             ${{ github.workspace }}/reproductions
