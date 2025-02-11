@@ -38,6 +38,9 @@ on:
         type: boolean
         default: true
 
+env:
+  DUCKDB_AFLPLUSPLUS_DIR: ${{ github.workspace }}/duckdb_aflplusplus
+
 jobs:
   aflplusplus-fuzz-run:
     name: AFL++ fuzz run
@@ -46,7 +49,6 @@ jobs:
       CC: ${{ github.workspace }}/bin/afl-clang-fast
       CXX: ${{ github.workspace }}/bin/afl-clang-fast++
       DUCKDB_DIR: ${{ github.workspace }}/duckdb
-      DUCKDB_AFLPLUSPLUS_DIR: ${{ github.workspace }}/duckdb_aflplusplus
 
     steps:
       - name: print fuzz scenario
@@ -262,6 +264,7 @@ jobs:
       - name: decode fuzz results
         working-directory: ${{ env.DUCKDB_AFLPLUSPLUS_DIR }}
         run: |
+          ls
           ./scripts/reproduction/decode_multi_param_files.py \
             read_$FILE_FORMAT \
             ${{ github.workspace }}/fuzz_results/${{ inputs.fuzzer }}/default/crashes \
