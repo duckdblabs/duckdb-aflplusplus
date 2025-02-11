@@ -147,8 +147,8 @@ if __name__ == "__main__":
             ERROR; call this script with the following arguments:
               1 - target function ('read_csv', 'read_json' or 'read_parquet')
               2 - (optional) path to reproductions directory (created by decode_multi_param_files.py)
-              4 - (optional) sqllogic test name
-              3 - (optional) full path to sqllogic test file to be created
+              3 - (optional) sqllogic test name
+              4 - (optional) full path to sqllogic test file to be created
               5 - (optional) sqllogic data dir
               6 - (optional) path to duckdb directory
             """
