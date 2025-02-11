@@ -12,7 +12,7 @@ on:
         required: true
         type: string
         # oldest usable ref: 4ebeb16350eb2f819d682c581490af460dd0c995
-        default: main
+        default: v1.2.0
       fuzzer:
         description: 'fuzz scenario'
         required: true
@@ -219,7 +219,7 @@ jobs:
       - name: Store fuzz result as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ inputs.fuzzer }}-${{ github.run_id }}
+          name: ${{ github.run_id }}-${{ inputs.fuzzer }}
           path: fuzz_results.tar
 
       - name: Add summary statistics
@@ -249,17 +249,24 @@ jobs:
       - name: download fuzz-results (created by previous step)
         uses: actions/download-artifact@v4
         with:
-          name: ${{ inputs.fuzzer }}-${{ github.run_id }}
+          name: ${{ github.run_id }}-${{ inputs.fuzzer }}
 
       - name: extract fuzz-results
         run: |
-          echo t1
           ls -la
-          echo ${{ env.download-path}}
-          echo t2
-          ls -la ${{ env.download-path}} || true
-          echo t3
-          test -f ${{ env.download-path}} || echo no file
-          echo t4
-          tar -xvf ${{ env.download-path}}
-          ls -la
+          tar -xvf fuzz_results.tar
+
+      - name: decode fuzz results
+        run: |
+          chmod +x scripts/reproductions/decode_multi_param_files.py
+          ./scripts/reproductions/decode_multi_param_files.py \
+            read_$FILE_FORMAT \
+            ${{ github.workspace }}/fuzz_results/${{ inputs.fuzzer }}/default/crashes \
+            ${{ github.workspace }}/reproductions
+          tar -cvf ${{ github.workspace }}/reproductions.tar ${{ github.workspace }}/reproductions
+
+      - name: Store reproductions as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.run_id }}-${{ inputs.fuzzer }}-reproductions
+          path: reproductions.tar
