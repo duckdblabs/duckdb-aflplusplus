@@ -51,6 +51,7 @@ jobs:
       DUCKDB_DIR: ${{ github.workspace }}/duckdb
     outputs:
       file_format: ${{ steps.define_vars.outputs.file_format }}
+      file_format2: ${{ steps.define_vars.outputs.file_format2 }}
 
     steps:
       - name: print fuzz scenario
@@ -85,7 +86,12 @@ jobs:
               exit 1
               ;;
           esac
+          echo dummy1
+          echo $FILE_FORMAT
+          echo dummy2
+
           echo "file_format=$FILE_FORMAT" >> "$GITHUB_OUTPUT"
+          echo "file_format2=csv" >> "$GITHUB_OUTPUT"
 
       # https://github.com/AFLplusplus/AFLplusplus/blob/stable/docs/INSTALL.md
       - name: Install AFL++ dependencies
@@ -245,6 +251,7 @@ jobs:
     needs: aflplusplus-fuzz-run
     env:
       FILE_FORMAT: ${{ needs.aflplusplus-fuzz-run.outputs.file_format }}
+      FILE_FORMAT2: ${{ needs.aflplusplus-fuzz-run.outputs.file_format2 }}
 
     steps:
       - name: print fuzz statistics
@@ -266,6 +273,9 @@ jobs:
       - name: extract fuzz-results
         run: |
           tar -xf fuzz_results.tar
+          echo FILE_FORMAT2 is "${{ needs.aflplusplus-fuzz-run.outputs.file_format2 }}"
+          echo FILE_FORMAT2 is "${{ env.file_format2 }}"
+          echo FILE_FORMAT2 is "$FILE_FORMAT2"
 
       - name: decode fuzz results
         working-directory: ${{ env.DUCKDB_AFLPLUSPLUS_DIR }}
@@ -273,9 +283,26 @@ jobs:
           ls
           echo dummy1
           echo FILE_FORMAT is "${{ needs.aflplusplus-fuzz-run.outputs.file_format }}"
+          echo FILE_FORMAT2 is "${{ needs.aflplusplus-fuzz-run.outputs.file_format2 }}"
+          echo FILE_FORMAT2 is "${{ env.file_format2 }}"
+          echo FILE_FORMAT2 is "$FILE_FORMAT2"
+        working-directory: ${{ env.DUCKDB_AFLPLUSPLUS_DIR }}
+        run: |
+          ls
+          echo dummy1
+          echo FILE_FORMAT is "${{ needs.aflplusplus-fuzz-run.outputs.file_format }}"
+          echo FILE_FORMAT2 is "${{ needs.aflplusplus-fuzz-run.outputs.file_format2 }}"
+          echo FILE_FORMAT2 is "${{ env.file_format2 }}"
+            read_$FILE_FORMAT2 \
+        run: |
+          ls
+          echo dummy1
+          echo FILE_FORMAT is "${{ needs.aflplusplus-fuzz-run.outputs.file_format }}"
+          echo FILE_FORMAT2 is "${{ needs.aflplusplus-fuzz-run.outputs.file_format2 }}"
+          echo FILE_FORMAT2 is "${{ env.file_format2 }}"
           echo dummy2
           ./scripts/reproduction/decode_multi_param_files.py \
-            read_$FILE_FORMAT \
+            read_$FILE_FORMAT2 \
             ${{ github.workspace }}/fuzz_results/${{ inputs.fuzzer }}/default/crashes \
             ${{ github.workspace }}/reproductions
           tar -cvf ${{ github.workspace }}/reproductions.tar ${{ github.workspace }}/reproductions
