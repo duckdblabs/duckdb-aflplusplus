@@ -123,6 +123,7 @@ jobs:
           mkdir -p build
           mkdir -p corpus
           mkdir -p fuzz_results
+          chmod -R +x $DUCKDB_AFLPLUSPLUS_DIR/scripts
 
       # https://github.com/AFLplusplus/AFLplusplus/blob/stable/GNUmakefile
       - name: Cache AFL++ binaries
@@ -197,8 +198,6 @@ jobs:
       - name: Create corpus
         working-directory: ${{ env.DUCKDB_AFLPLUSPLUS_DIR }}
         run: |
-          chmod +x scripts/corpus_creation/create_multi_param_corpus_info.py
-          chmod +x scripts/corpus_creation/create_multi_param_corpus.py
           ./scripts/corpus_creation/create_multi_param_corpus_info.py ${{ env.CREATE_CORPUS_INFO_ARGS }}
           ./scripts/corpus_creation/create_multi_param_corpus.py ${{ env.CREATE_CORPUS_ARGS }}
 
@@ -257,8 +256,8 @@ jobs:
           tar -xvf fuzz_results.tar
 
       - name: decode fuzz results
+        working-directory: ${{ env.DUCKDB_AFLPLUSPLUS_DIR }}
         run: |
-          chmod +x scripts/reproductions/decode_multi_param_files.py
           ./scripts/reproductions/decode_multi_param_files.py \
             read_$FILE_FORMAT \
             ${{ github.workspace }}/fuzz_results/${{ inputs.fuzzer }}/default/crashes \
