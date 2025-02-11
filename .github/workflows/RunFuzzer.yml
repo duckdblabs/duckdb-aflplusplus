@@ -51,6 +51,9 @@ jobs:
       DUCKDB_DIR: ${{ github.workspace }}/duckdb
     outputs:
       file_format: ${{ steps.define_vars.outputs.file_format }}
+      num_crashes: ${{ steps.define_statistics.outputs.num_crashes }}
+      num_hangs: ${{ steps.define_statistics.outputs.num_hangs }}
+      queue_length: ${{ steps.define_statistics.outputs.queue_length }}
 
     steps:
       - name: print fuzz scenario
@@ -223,34 +226,38 @@ jobs:
       - name: Store fuzz result as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ github.run_id }}-${{ inputs.fuzzer }}
+          name: ${{ github.run_id }}-${{ inputs.fuzzer }}-fuzz_results
           path: fuzz_results.tar
 
       - name: Add summary statistics
+        id: define_statistics
         working-directory: ${{ env.DUCKDB_AFLPLUSPLUS_DIR }}
         run: |
           NUM_CRASHES=$(ls -l fuzz_results/${{ inputs.fuzzer }}/default/crashes | grep id: | wc -l | sed 's/ *//')
           NUM_HANGS=$(ls -l fuzz_results/${{ inputs.fuzzer }}/default/hangs | grep id: | wc -l | sed 's/ *//')
-          NUM_QUEUE=$(ls -l fuzz_results/${{ inputs.fuzzer }}/default/queue | grep id: | wc -l | sed 's/ *//')
+          QUEUE_LENGTH=$(ls -l fuzz_results/${{ inputs.fuzzer }}/default/queue | grep id: | wc -l | sed 's/ *//')
           echo "::notice::crahses found: $NUM_CRASHES"
           echo "::notice::hangs found: $NUM_HANGS"
-          echo "::notice::queue length: $NUM_QUEUE"
-          echo "NUM_CRASHES=$NUM_CRASHES" >> "$GITHUB_OUTPUT"
-          echo "NUM_HANGS=$NUM_HANGS" >> "$GITHUB_OUTPUT"
-          echo "NUM_QUEUE=$NUM_QUEUE" >> "$GITHUB_OUTPUT"
+          echo "::notice::queue length: $QUEUE_LENGTH"
+          echo "num_crashes=$NUM_CRASHES" >> "$GITHUB_OUTPUT"
+          echo "num_hangs=$NUM_HANGS" >> "$GITHUB_OUTPUT"
+          echo "queue_length=$QUEUE_LENGTH" >> "$GITHUB_OUTPUT"
 
   process-fuzz-results:
     runs-on: ubuntu-24.04
     needs: aflplusplus-fuzz-run
     env:
+      NUM_CRASHES: ${{ needs.aflplusplus-fuzz-run.outputs.num_crashes }}
+      NUM_HANGS: ${{ needs.aflplusplus-fuzz-run.outputs.num_hangs }}
+      QUEUE_LENGTH: ${{ needs.aflplusplus-fuzz-run.outputs.queue_length }}
       FILE_FORMAT: ${{ needs.aflplusplus-fuzz-run.outputs.file_format }}
 
     steps:
       - name: print fuzz statistics
         run: |
-          echo crahses found: ${{ env.NUM_CRASHES }}
-          echo hangs found: ${{ env.NUM_HANGS }}
-          echo queue length: ${{ env.NUM_QUEUE }}
+          echo crahses found: $NUM_CRASHES
+          echo hangs found: $NUM_HANGS
+          echo queue length: $QUEUE_LENGTH
           echo file format: $FILE_FORMAT
 
       - name: Checkout duckdb_aflplusplus
@@ -261,19 +268,14 @@ jobs:
       - name: download fuzz-results (created by previous step)
         uses: actions/download-artifact@v4
         with:
-          name: ${{ github.run_id }}-${{ inputs.fuzzer }}
+          name: ${{ github.run_id }}-${{ inputs.fuzzer }}-fuzz_results
 
       - name: extract fuzz-results
         run: |
           tar -xf fuzz_results.tar
 
-      - name: decode fuzz results
+      - name: decode crashes
         run: |
-          ls
-          echo dummy1
-          echo FILE_FORMAT is "${{ needs.aflplusplus-fuzz-run.outputs.file_format }}"
-          echo FILE_FORMAT is "$FILE_FORMAT"
-          echo dummy2
           $DUCKDB_AFLPLUSPLUS_DIR/scripts/reproduction/decode_multi_param_files.py \
             read_$FILE_FORMAT \
             ${{ github.workspace }}/fuzz_results/${{ inputs.fuzzer }}/default/crashes \
