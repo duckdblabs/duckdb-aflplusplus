@@ -247,6 +247,8 @@ jobs:
     name: Post-process fuzz results
     runs-on: ubuntu-24.04
     needs: aflplusplus-fuzz-run
+    if: needs.aflplusplus-fuzz-run.outputs.num_crashes != '0'
+
     env:
       NUM_CRASHES: ${{ needs.aflplusplus-fuzz-run.outputs.num_crashes }}
       NUM_HANGS: ${{ needs.aflplusplus-fuzz-run.outputs.num_hangs }}
