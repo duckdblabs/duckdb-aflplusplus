@@ -12,7 +12,7 @@ on:
         required: true
         type: string
         # oldest usable ref: 4ebeb16350eb2f819d682c581490af460dd0c995
-        default: main
+        default: v1.2.0
       fuzzer:
         description: 'fuzz scenario'
         required: true
@@ -38,15 +38,22 @@ on:
         type: boolean
         default: true
 
+env:
+  DUCKDB_AFLPLUSPLUS_DIR: ${{ github.workspace }}/duckdb_aflplusplus
+
 jobs:
   aflplusplus-fuzz-run:
-    name: AFL++ fuzz run
+    name: Run AFL++ fuzzer
     runs-on: ubuntu-24.04
     env:
       CC: ${{ github.workspace }}/bin/afl-clang-fast
       CXX: ${{ github.workspace }}/bin/afl-clang-fast++
       DUCKDB_DIR: ${{ github.workspace }}/duckdb
-      DUCKDB_AFLPLUSPLUS_DIR: ${{ github.workspace }}/duckdb_aflplusplus
+    outputs:
+      file_format: ${{ steps.define_vars.outputs.file_format }}
+      num_crashes: ${{ steps.define_statistics.outputs.num_crashes }}
+      num_hangs: ${{ steps.define_statistics.outputs.num_hangs }}
+      queue_length: ${{ steps.define_statistics.outputs.queue_length }}
 
     steps:
       - name: print fuzz scenario
@@ -58,22 +65,23 @@ jobs:
           echo ${{ inputs.fuzzTime }}
 
       - name: define input dependent variables
+        id: define_vars
         run: |
           case ${{ inputs.fuzzer }} in
             csv_multi_param_fuzzer)
               echo "CREATE_CORPUS_INFO_ARGS=read_csv $DUCKDB_DIR $DUCKDB_DIR/test" >> $GITHUB_ENV
               echo "CREATE_CORPUS_ARGS=read_csv $DUCKDB_DIR" >> $GITHUB_ENV
-              echo "FILE_FORMAT=csv" >> $GITHUB_ENV
+              echo "file_format=csv" >> "$GITHUB_OUTPUT"
               ;;
             json_multi_param_fuzzer)
               echo "CREATE_CORPUS_INFO_ARGS=read_json $DUCKDB_DIR $DUCKDB_DIR/test" >> $GITHUB_ENV
               echo "CREATE_CORPUS_ARGS=read_json $DUCKDB_DIR" >> $GITHUB_ENV
-              echo "FILE_FORMAT=json" >> $GITHUB_ENV
+              echo "file_format=json" >> "$GITHUB_OUTPUT"
               ;;
             parquet_multi_param_fuzzer)
               echo "CREATE_CORPUS_INFO_ARGS=read_parquet $DUCKDB_DIR $DUCKDB_DIR/test" >> $GITHUB_ENV
               echo "CREATE_CORPUS_ARGS=read_parquet $DUCKDB_DIR" >> $GITHUB_ENV
-              echo "FILE_FORMAT=parquet" >> $GITHUB_ENV
+              echo "file_format=parquet" >> "$GITHUB_OUTPUT"
               ;;
             *)
               echo unsupported fuzzer
@@ -123,6 +131,7 @@ jobs:
           mkdir -p build
           mkdir -p corpus
           mkdir -p fuzz_results
+          chmod -R +x $DUCKDB_AFLPLUSPLUS_DIR/scripts
 
       # https://github.com/AFLplusplus/AFLplusplus/blob/stable/GNUmakefile
       - name: Cache AFL++ binaries
@@ -197,8 +206,6 @@ jobs:
       - name: Create corpus
         working-directory: ${{ env.DUCKDB_AFLPLUSPLUS_DIR }}
         run: |
-          chmod +x scripts/corpus_creation/create_multi_param_corpus_info.py
-          chmod +x scripts/corpus_creation/create_multi_param_corpus.py
           ./scripts/corpus_creation/create_multi_param_corpus_info.py ${{ env.CREATE_CORPUS_INFO_ARGS }}
           ./scripts/corpus_creation/create_multi_param_corpus.py ${{ env.CREATE_CORPUS_ARGS }}
 
@@ -209,25 +216,115 @@ jobs:
         run: |
           ${{ github.workspace }}/bin/afl-fuzz \
           -V ${{ inputs.fuzzTime }} \
-          -i $DUCKDB_AFLPLUSPLUS_DIR/corpus/$FILE_FORMAT/corpus_prepended \
+          -i $DUCKDB_AFLPLUSPLUS_DIR/corpus/${{ steps.define_vars.outputs.file_format }}/corpus_prepended \
           -o $DUCKDB_AFLPLUSPLUS_DIR/fuzz_results/${{ inputs.fuzzer }} \
           -m none \
           -d \
           -- $DUCKDB_AFLPLUSPLUS_DIR/build/${{ inputs.fuzzer }}
-          tar -cvf ${{ github.workspace }}/fuzz_results.tar fuzz_results/${{ inputs.fuzzer }}
+          tar -cf ${{ github.workspace }}/fuzz_results.tar fuzz_results/${{ inputs.fuzzer }}
 
       - name: Store fuzz result as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ inputs.fuzzer }}-${{ github.run_id }}
+          name: ${{ github.run_id }}-${{ inputs.fuzzer }}-fuzz_results
           path: fuzz_results.tar
 
       - name: Add summary statistics
+        id: define_statistics
         working-directory: ${{ env.DUCKDB_AFLPLUSPLUS_DIR }}
         run: |
           NUM_CRASHES=$(ls -l fuzz_results/${{ inputs.fuzzer }}/default/crashes | grep id: | wc -l | sed 's/ *//')
           NUM_HANGS=$(ls -l fuzz_results/${{ inputs.fuzzer }}/default/hangs | grep id: | wc -l | sed 's/ *//')
-          NUM_QUEUE=$(ls -l fuzz_results/${{ inputs.fuzzer }}/default/queue | grep id: | wc -l | sed 's/ *//')
+          QUEUE_LENGTH=$(ls -l fuzz_results/${{ inputs.fuzzer }}/default/queue | grep id: | wc -l | sed 's/ *//')
           echo "::notice::crahses found: $NUM_CRASHES"
           echo "::notice::hangs found: $NUM_HANGS"
-          echo "::notice::queue length: $NUM_QUEUE"
+          echo "::notice::queue length: $QUEUE_LENGTH"
+          echo "num_crashes=$NUM_CRASHES" >> "$GITHUB_OUTPUT"
+          echo "num_hangs=$NUM_HANGS" >> "$GITHUB_OUTPUT"
+          echo "queue_length=$QUEUE_LENGTH" >> "$GITHUB_OUTPUT"
+
+  process-fuzz-results:
+    name: Post-process fuzz results
+    runs-on: ubuntu-24.04
+    needs: aflplusplus-fuzz-run
+    if: needs.aflplusplus-fuzz-run.outputs.num_crashes != '0'
+
+    env:
+      NUM_CRASHES: ${{ needs.aflplusplus-fuzz-run.outputs.num_crashes }}
+      NUM_HANGS: ${{ needs.aflplusplus-fuzz-run.outputs.num_hangs }}
+      QUEUE_LENGTH: ${{ needs.aflplusplus-fuzz-run.outputs.queue_length }}
+      FILE_FORMAT: ${{ needs.aflplusplus-fuzz-run.outputs.file_format }}
+
+    steps:
+      - name: print fuzz statistics
+        run: |
+          echo crahses found: $NUM_CRASHES
+          echo hangs found: $NUM_HANGS
+          echo queue length: $QUEUE_LENGTH
+          echo file format: $FILE_FORMAT
+
+      - name: define input dependent variables
+        run: |
+          case $FILE_FORMAT in
+            csv)
+              echo "SQLLOGIC_DATA_DIR=data/csv/afl/${{ github.run_id }}_csv_fuzz_error" >> $GITHUB_ENV
+              ;;
+            json)
+              echo "SQLLOGIC_DATA_DIR=data/json/afl/${{ github.run_id }}_json_fuzz_error" >> $GITHUB_ENV
+              ;;
+            parquet)
+              echo "SQLLOGIC_DATA_DIR=data/parquet-testing/afl/${{ github.run_id }}_parquet_fuzz_error" >> $GITHUB_ENV
+              ;;
+            *)
+              echo unsupported file format
+              exit 1
+              ;;
+          esac
+
+      - name: Checkout duckdb_aflplusplus
+        uses: actions/checkout@v4
+        with:
+          path: duckdb_aflplusplus
+
+      - name: download fuzz-results (created by previous step)
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ github.run_id }}-${{ inputs.fuzzer }}-fuzz_results
+
+      - name: extract fuzz-results
+        run: |
+          tar -xf fuzz_results.tar
+
+      - name: decode crashes
+        run: |
+          $DUCKDB_AFLPLUSPLUS_DIR/scripts/reproduction/decode_multi_param_files.py \
+            read_$FILE_FORMAT \
+            ${{ github.workspace }}/fuzz_results/${{ inputs.fuzzer }}/default/crashes \
+            ${{ github.workspace }}/reproductions
+          tar -cvf reproductions.tar reproductions
+
+      - name: Store reproductions as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.run_id }}-${{ inputs.fuzzer }}-reproductions
+          path: reproductions.tar
+
+      - name: create sqllogic tests
+        env:
+          REPRODUCTION_DIR: ${{ github.workspace }}/reproductions
+          SQLLOGIC_TEST_NAME: test/fuzzer/afl/${{ github.run_id }}-${{ inputs.fuzzer }}-crashes.test
+          SQLLOGIC_FILE_PATH: ${{ github.workspace }}/${{ github.run_id }}-${{ inputs.fuzzer }}-crashes.test
+          SQLLOGIC_DATA_DIR: ${{ env.SQLLOGIC_DATA_DIR }}
+        run: |
+          $DUCKDB_AFLPLUSPLUS_DIR/scripts/reproduction/create_sqllogic_for_file_readers.py \
+            read_$FILE_FORMAT \
+            $REPRODUCTION_DIR \
+            $SQLLOGIC_TEST_NAME \
+            $SQLLOGIC_FILE_PATH \
+            $SQLLOGIC_DATA_DIR
+
+      - name: Store sqllogic test as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.run_id }}-${{ inputs.fuzzer }}-crashes.test
+          path: ${{ github.run_id }}-${{ inputs.fuzzer }}-crashes.test

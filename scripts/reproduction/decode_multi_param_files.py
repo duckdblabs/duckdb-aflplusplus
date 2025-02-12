@@ -5,8 +5,8 @@ This script reverses the encoding done by script 'create_multi_param_corpus.py'
 Input:
   - a directory of csv, json or parquet files with prepended argument info
 Output:
-  - a directory with regular csv, json or parquet files
-  - a json file with the associated argument string per csv/json/parquet file
+  - a 'reproductions' directory with regular csv, json or parquet files
+  - file _REPRODUCTIONS.json with the associated argument string per csv/json/parquet file
 Usage:
   - The script can be used to convert fuzz results into reproducible scenarios.
   - Reproduce the fuzz result by igesting the original file with read_csv() / read_json() / read_parquet() with the argument string.
@@ -22,15 +22,18 @@ import re
 import struct
 import sys
 
-# duckdb should be compiled with: BUILD_JSON=1 CRASH_ON_ASSERT=1
-DUCKDB_PATH = Path("~/git/duckdb/build/release/duckdb").expanduser()
-FUZZ_SRC_DIR = Path(__file__).parents[2] / 'src'
-INPUT_DIR = Path("~/Desktop/crashes").expanduser()
-OUTPUT_DIR = Path("~/Desktop/reproductions").expanduser()
-
 
 def main(argv: list[str]):
+    # default paths
+    FUZZ_SRC_DIR = Path(__file__).parents[2] / 'src'
+    INPUT_DIR = Path("~/Desktop/crashes").expanduser()
+    OUTPUT_DIR = Path("~/Desktop/reproductions").expanduser()
+
     target_function = argv[1]
+    if len(argv) == 4:
+        INPUT_DIR = Path(argv[2]).expanduser()
+        OUTPUT_DIR = Path(argv[3]).expanduser()
+
     match target_function:
         case 'read_csv':
             parameters = read_tuples_from_cpp(FUZZ_SRC_DIR / 'csv_parameters.cpp')
@@ -124,6 +127,13 @@ def read_tuples_from_cpp(cpp_source_file: Path) -> list[tuple[str, str]]:
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        sys.exit("ERROR. provide the target function ('read_csv', 'read_json' or 'read_parquet') as first argument")
+    if len(sys.argv) not in [2, 4]:
+        sys.exit(
+            """
+            ERROR; call this script with the following arguments:
+              1 - target function ('read_csv', 'read_json' or 'read_parquet')
+              2 - (optional) input directory with encoded inputs, e.g. the 'crashes' or 'hangs' dir created by the fuzzer
+              3 - (optional) output directory where the decoded inputs will be created
+            """
+        )
     main(sys.argv)

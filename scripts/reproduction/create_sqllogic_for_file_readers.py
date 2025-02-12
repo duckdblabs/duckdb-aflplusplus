@@ -1,8 +1,20 @@
 #!/usr/bin/env python3
 
 '''
-Script to create sqllogic tests based on fuzz results (fuzz_csv_multi_param, fuzz_json_multi_param, fuzz_parquet_multi_param).
-NOTE: first run script 'decode_multi_param_files.py' to create reproductions from raw fuzzer output
+Script to create sqllogic tests in a duckdb repository, based on fuzz results
+NOTE: first run script 'decode_multi_param_files.py' to create reproductions from raw fuzzer output!
+compatible with fuzz scenarios:
+  - fuzz_csv_multi_param
+  - fuzz_json_multi_param
+  - fuzz_parquet_multi_param
+Input is equal to Output of 'decode_multi_param_files.py':
+  - a directory of csv, json or parquet files (REPRODUCTION_DIR)
+  - this directory should also contain file _REPRODUCTIONS.json that contains the argument string per data file
+  - see code for other optional inputs
+Output:
+  - an sqllogic test file is created with a test per problematic input file
+  - optional: if the the sqllogic test file is created in the duckdb repository, the csv/json/parquet data files
+    used by these tests are also copied to the the duckdb repo
 '''
 
 import json
@@ -12,79 +24,88 @@ import shutil
 import sys
 import time
 
-# input:
-# set your local duckdb repo!
-DUCKDB_REPO = Path("~/git/duckdb").expanduser()
-# note: run script 'decode_multi_param_files.py' to create reproductions from raw fuzzer output
-REPRODUCTIONS = Path("~/Desktop/reproductions").expanduser()
 
-# output:
-# sqllogic tests and data files are created in the duckdb repo
-
-
-def main(argv: list):
-    file_reader_function = argv[1]
-    date_str = time.strftime(r"%Y%m%d")
+def main(argv: list[str]):
+    file_reader_function = argv[1]  # read_csv / read_json / read_parquet
     match file_reader_function:
         case 'read_csv':
-            data_dir = DUCKDB_REPO / f'data/csv/afl/{date_str}_csv_fuzz_error'
-            sqllogic_test_dir = DUCKDB_REPO / f'test/fuzzer/afl/csv'
-            sqllogic_test_file = sqllogic_test_dir / f"fuzz_{date_str}.test"
-            test_group = 'csv'
-            required_extension = ''
+            file_type = 'csv'
+            required_duckdb_extension = ''
             enable_verification = True
         case 'read_json':
-            data_dir = DUCKDB_REPO / f'data/json/afl/{date_str}_json_fuzz_error'
-            sqllogic_test_dir = DUCKDB_REPO / f'test/fuzzer/afl/json'
-            sqllogic_test_file = sqllogic_test_dir / f"fuzz_{date_str}.test"
-            test_group = 'json'
-            required_extension = 'json'
+            file_type = 'json'
+            required_duckdb_extension = 'json'
             enable_verification = True
         case 'read_parquet':
-            data_dir = DUCKDB_REPO / f'data/parquet-testing/afl/{date_str}_parquet_fuzz_error'
-            sqllogic_test_dir = DUCKDB_REPO / f'test/fuzzer/afl/parquet'
-            sqllogic_test_file = sqllogic_test_dir / f"fuzz_{date_str}.test"
-            test_group = 'parquet'
-            required_extension = 'parquet'
+            file_type = 'parquet'
+            required_duckdb_extension = 'parquet'
             enable_verification = False
         case _:
             raise ValueError(f"invalid input: {file_reader_function}")
 
-    # verify reproductions exists
-    reproductions_json_file = REPRODUCTIONS / '_REPRODUCTIONS.json'
+    # default inputs (for local reproduction)
+    date_str = time.strftime(r"%Y%m%d")
+    duckdb_data_dirs = {
+        "csv": f"data/csv/afl/{date_str}_csv_fuzz_error",
+        "json": f"data/json/afl/{date_str}_json_fuzz_error",
+        "parquet": f"data/parquet-testing/afl/{date_str}_parquet_fuzz_error",
+    }
+    REPRODUCTION_DIR = Path("~/Desktop/reproductions").expanduser()
+    DUCKDB_DIR = Path("~/git/duckdb").expanduser()
+    SQLLOGIC_TEST_NAME = f"test/fuzzer/afl/{file_type}/fuzz_{date_str}.test"
+    SQLLOGIC_FILE_PATH = DUCKDB_DIR / SQLLOGIC_TEST_NAME
+    SQLLOGIC_DATA_DIR = duckdb_data_dirs[file_type]
+
+    # custom inputs
+    if len(argv) > 2:
+        REPRODUCTION_DIR = Path(argv[2]).expanduser()
+    if len(argv) > 3:
+        SQLLOGIC_TEST_NAME = argv[3]
+    if len(argv) > 4:
+        SQLLOGIC_FILE_PATH = Path(argv[4]).expanduser()
+    if len(argv) > 5:
+        SQLLOGIC_DATA_DIR = argv[5]
+    if len(argv) > 6:
+        DUCKDB_DIR = Path(argv[6]).expanduser()
+
+    # verify file _REPRODUCTIONS.json exists
+    reproductions_json_file = REPRODUCTION_DIR / '_REPRODUCTIONS.json'
     if not reproductions_json_file.is_file():
         raise ValueError(f"expected file not found: {reproductions_json_file}")
     with open(reproductions_json_file, 'r') as repr_file_fd:
         reproduction_data: list = json.load(repr_file_fd)
 
-    # copy datafiles to duckdb repo
-    data_dir.mkdir(parents=True, exist_ok=True)
+    # verify REPRODUCTION_DIR contains the expected data files
     for repro_item in reproduction_data:
-        file_name = repro_item['file_name']
-        # copy file to duckdb data dir
-        src_file = REPRODUCTIONS / file_name
-        dst_file = data_dir / repro_item['file_name']
-        if not src_file.is_file():
-            raise ValueError(f"file not found: {src_file}")
-        else:
-            shutil.copy(src_file, dst_file)
-    print(f"copied {len(reproduction_data)} test data files to {data_dir}")
+        if not (REPRODUCTION_DIR / repro_item['file_name']).is_file():
+            raise ValueError(f"file not found: {REPRODUCTION_DIR / file_name}")
 
     # create sqllogic tests
-    sqllogic_test_dir.mkdir(parents=True, exist_ok=True)
-    rel_test_file_path = sqllogic_test_file.relative_to(DUCKDB_REPO)
-    with sqllogic_test_file.open('w') as test_file:
-        add_test_header(test_file, rel_test_file_path, test_group, required_extension, enable_verification)
-        add_count_test(test_file, data_dir.relative_to(DUCKDB_REPO), len(reproduction_data))
+    SQLLOGIC_FILE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with SQLLOGIC_FILE_PATH.open('w') as test_file:
+        add_test_header(test_file, SQLLOGIC_TEST_NAME, file_type, required_duckdb_extension, enable_verification)
+        add_count_test(test_file, SQLLOGIC_DATA_DIR, len(reproduction_data))
         for repro_item in reproduction_data:
             add_test(
                 test_file,
                 file_reader_function,
-                data_dir.relative_to(DUCKDB_REPO) / repro_item['file_name'],
+                SQLLOGIC_DATA_DIR + '/' + repro_item['file_name'],
                 ", " + repro_item['arguments'],
             )
-    print(f"created '{sqllogic_test_file}'; run it with:")
-    print(f"{DUCKDB_REPO}/build/release/test/unittest {sqllogic_test_file.relative_to(DUCKDB_REPO)}")
+    print(f"created '{SQLLOGIC_FILE_PATH}'")
+
+    # if the sqllogic test file is created in the duckdb repo, also copy the data files to this repo
+    # so the test can be run afterwards
+    if SQLLOGIC_FILE_PATH == (DUCKDB_DIR / SQLLOGIC_TEST_NAME):
+        (DUCKDB_DIR / SQLLOGIC_DATA_DIR).mkdir(parents=True, exist_ok=True)
+        for repro_item in reproduction_data:
+            file_name = repro_item['file_name']
+            src_file = REPRODUCTION_DIR / file_name
+            dst_file = DUCKDB_DIR / SQLLOGIC_DATA_DIR / file_name
+            shutil.copy(src_file, dst_file)
+        print(f"copied {len(reproduction_data)} test data files to {DUCKDB_DIR / SQLLOGIC_DATA_DIR}")
+        print(f"run test with:")
+        print(f"{DUCKDB_DIR}/build/release/test/unittest {SQLLOGIC_TEST_NAME}")
 
 
 def add_test_header(test_file: TextIOWrapper, name: str, group: str, require: str, enable_verification: bool):
@@ -120,6 +141,16 @@ FROM {file_reader_function}('{data_file}'{arguments});
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        sys.exit("ERROR. provide the target function to scrape ('read_csv', 'read_json' or 'read_parquet') as first argument")
+    if len(sys.argv) not in range(2, 8):
+        sys.exit(
+            """
+            ERROR; call this script with the following arguments:
+              1 - target function ('read_csv', 'read_json' or 'read_parquet')
+              2 - (optional) path to reproductions directory (created by decode_multi_param_files.py)
+              3 - (optional) sqllogic test name
+              4 - (optional) full path to sqllogic test file to be created
+              5 - (optional) sqllogic data dir
+              6 - (optional) path to duckdb directory
+            """
+        )
     main(sys.argv)
