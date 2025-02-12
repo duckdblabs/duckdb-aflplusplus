@@ -247,7 +247,7 @@ jobs:
     name: Post-process fuzz results
     runs-on: ubuntu-24.04
     needs: aflplusplus-fuzz-run
-    if: needs.aflplusplus-fuzz-run.outputs.num_crashes != '0'
+    if: needs.aflplusplus-fuzz-run.outputs.num_crashes != '0' || needs.aflplusplus-fuzz-run.outputs.num_hangs != '0'
 
     env:
       NUM_CRASHES: ${{ needs.aflplusplus-fuzz-run.outputs.num_crashes }}
@@ -276,7 +276,7 @@ jobs:
               echo "SQLLOGIC_DATA_DIR=data/parquet-testing/afl/${{ github.run_id }}_parquet_fuzz_error" >> $GITHUB_ENV
               ;;
             *)
-              echo unsupported file format
+              echo "unsupported file format"
               exit 1
               ;;
           esac
@@ -286,7 +286,7 @@ jobs:
         with:
           path: duckdb_aflplusplus
 
-      - name: download fuzz-results (created by previous step)
+      - name: download fuzz-results (created by previous job)
         uses: actions/download-artifact@v4
         with:
           name: ${{ github.run_id }}-${{ inputs.fuzzer }}-fuzz_results
@@ -295,12 +295,16 @@ jobs:
         run: |
           tar -xf fuzz_results.tar
 
-      - name: decode crashes
+      - name: decode crashes and hangs
         run: |
           $DUCKDB_AFLPLUSPLUS_DIR/scripts/reproduction/decode_multi_param_files.py \
             read_$FILE_FORMAT \
             ${{ github.workspace }}/fuzz_results/${{ inputs.fuzzer }}/default/crashes \
-            ${{ github.workspace }}/reproductions
+            ${{ github.workspace }}/reproductions/crashes
+          $DUCKDB_AFLPLUSPLUS_DIR/scripts/reproduction/decode_multi_param_files.py \
+            read_$FILE_FORMAT \
+            ${{ github.workspace }}/fuzz_results/${{ inputs.fuzzer }}/default/hangs \
+            ${{ github.workspace }}/reproductions/hangs
           tar -cvf reproductions.tar reproductions
 
       - name: Store reproductions as artifact
@@ -309,22 +313,38 @@ jobs:
           name: ${{ github.run_id }}-${{ inputs.fuzzer }}-reproductions
           path: reproductions.tar
 
-      - name: create sqllogic tests
+      - name: create sqllogic tests for crashes
+        if: needs.aflplusplus-fuzz-run.outputs.num_crashes != '0'
         env:
-          REPRODUCTION_DIR: ${{ github.workspace }}/reproductions
-          SQLLOGIC_TEST_NAME: test/fuzzer/afl/${{ github.run_id }}-${{ inputs.fuzzer }}-crashes.test
-          SQLLOGIC_FILE_PATH: ${{ github.workspace }}/${{ github.run_id }}-${{ inputs.fuzzer }}-crashes.test
+          REPRODUCTION_DIR: ${{ github.workspace }}/reproductions/crashes
+          SQLLOGIC_TEST_NAME: test/fuzzer/afl/${{ github.run_id }}-${{ inputs.fuzzer }}.test
+          SQLLOGIC_FILE_PATH: ${{ github.workspace }}/${{ github.run_id }}-${{ inputs.fuzzer }}.test
           SQLLOGIC_DATA_DIR: ${{ env.SQLLOGIC_DATA_DIR }}
         run: |
           $DUCKDB_AFLPLUSPLUS_DIR/scripts/reproduction/create_sqllogic_for_file_readers.py \
-            read_$FILE_FORMAT \
-            $REPRODUCTION_DIR \
-            $SQLLOGIC_TEST_NAME \
-            $SQLLOGIC_FILE_PATH \
-            $SQLLOGIC_DATA_DIR
+            read_$FILE_FORMAT $REPRODUCTION_DIR $SQLLOGIC_TEST_NAME $SQLLOGIC_FILE_PATH $SQLLOGIC_DATA_DIR
 
-      - name: Store sqllogic test as artifact
+      - name: create sqllogic tests for hangs
+        if: needs.aflplusplus-fuzz-run.outputs.num_hangs != '0'
+        env:
+          REPRODUCTION_DIR: ${{ github.workspace }}/reproductions/hangs
+          SQLLOGIC_TEST_NAME: test/fuzzer/afl/${{ github.run_id }}-${{ inputs.fuzzer }}-hangs.test
+          SQLLOGIC_FILE_PATH: ${{ github.workspace }}/${{ github.run_id }}-${{ inputs.fuzzer }}-hangs.test
+          SQLLOGIC_DATA_DIR: ${{ env.SQLLOGIC_DATA_DIR }}_hangs
+        run: |
+          $DUCKDB_AFLPLUSPLUS_DIR/scripts/reproduction/create_sqllogic_for_file_readers.py \
+            read_$FILE_FORMAT $REPRODUCTION_DIR $SQLLOGIC_TEST_NAME $SQLLOGIC_FILE_PATH $SQLLOGIC_DATA_DIR
+
+      - name: Store sqllogic test for crashes as artifact
+        if: needs.aflplusplus-fuzz-run.outputs.num_crashes != '0'
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ github.run_id }}-${{ inputs.fuzzer }}-crashes.test
-          path: ${{ github.run_id }}-${{ inputs.fuzzer }}-crashes.test
+          name: ${{ github.run_id }}-${{ inputs.fuzzer }}.test
+          path: ${{ github.run_id }}-${{ inputs.fuzzer }}.test
+
+      - name: Store sqllogic test for hangs as artifact
+        if: needs.aflplusplus-fuzz-run.outputs.num_hangs != '0'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.run_id }}-${{ inputs.fuzzer }}-hangs.test
+          path: ${{ github.run_id }}-${{ inputs.fuzzer }}-hangs.test
