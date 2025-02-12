@@ -3,18 +3,18 @@ on:
   workflow_dispatch:
     inputs:
       duckdbRepo:
-        description: 'duckdb repository'
+        description: "duckdb repository"
         required: true
         type: string
         default: duckdb/duckdb
       ref:
-        description: 'duckdb branch, tag, or full-length SHA'
+        description: "duckdb branch, tag, or full-length SHA"
         required: true
         type: string
         # oldest usable ref: 4ebeb16350eb2f819d682c581490af460dd0c995
         default: v1.2.0
       fuzzer:
-        description: 'fuzz scenario'
+        description: "fuzz scenario"
         required: true
         type: choice
         options:
@@ -23,17 +23,17 @@ on:
           - parquet_multi_param_fuzzer
         default: csv_multi_param_fuzzer
       fuzzTime:
-        description: 'fuzz time (seconds)'
+        description: "fuzz time (seconds)"
         required: true
         type: number
         default: 3600
       cacheAFL:
-        description: 'cache AFL++ binaries'
+        description: "cache AFL++ binaries"
         required: true
         type: boolean
         default: true
       cacheDuckDB:
-        description: 'use ccache for DuckDB'
+        description: "use ccache for DuckDB"
         required: true
         type: boolean
         default: true
