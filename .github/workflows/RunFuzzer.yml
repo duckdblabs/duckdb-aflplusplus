@@ -400,6 +400,8 @@ jobs:
           sparse-checkout: |
             scripts
 
-      - name: register issue
+      - name: Register issues
+        working-directory: ${{ env.DUCKDB_AFLPLUSPLUS_DIR }}
         run: |
+          chmod -R +x $DUCKDB_AFLPLUSPLUS_DIR/scripts
           ./scripts/register_issues/register_issues.py
