@@ -403,5 +403,8 @@ jobs:
       - name: Register issues
         working-directory: ${{ env.DUCKDB_AFLPLUSPLUS_DIR }}
         run: |
+          pwd
+          ls -l
+          pip3 list
           chmod -R +x $DUCKDB_AFLPLUSPLUS_DIR/scripts
           ./scripts/register_issues/register_issues.py

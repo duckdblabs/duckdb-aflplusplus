@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import github_helper
 
 def main():
