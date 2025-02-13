@@ -315,6 +315,7 @@ jobs:
       - name: Checkout duckdb_aflplusplus
         uses: actions/checkout@v4
         with:
+          repository: duckdblabs/duckdb-aflplusplus
           path: duckdb_aflplusplus
           # src directory is used by some python scripts (e.g. decode_multi_param_files.py)
           sparse-checkout: |
@@ -383,3 +384,22 @@ jobs:
         with:
           name: ${{ github.run_id }}-${{ inputs.fuzzer }}-hangs.test
           path: ${{ github.run_id }}-${{ inputs.fuzzer }}-hangs.test
+
+  register_issues:
+    name: Register issues to github
+    runs-on: ubuntu-24.04
+    env:
+      FUZZEROFDUCKSKEY: ${{ secrets.FUZZEROFDUCKSKEY }}
+
+    steps:
+      - name: Checkout duckdb_aflplusplus
+        uses: actions/checkout@v4
+        with:
+          repository: duckdblabs/duckdb-aflplusplus
+          path: duckdb_aflplusplus
+          sparse-checkout: |
+            scripts
+
+      - name: register issue
+        run: |
+          ./scripts/register_issues/register_issues.py
