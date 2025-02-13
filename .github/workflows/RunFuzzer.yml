@@ -397,6 +397,8 @@ jobs:
         with:
           repository: duckdblabs/duckdb-aflplusplus
           path: duckdb_aflplusplus
+          # debug: checkout dev branch!
+          ref: register_issues
           sparse-checkout: |
             scripts
 
