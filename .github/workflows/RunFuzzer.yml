@@ -445,6 +445,10 @@ jobs:
 
       - name: Commit reproduction files
         run: |
+          echo ~
+          echo test1
+          mkdir -p ~/.ssh
+          ls -la ~
           echo $FUZZEROFDUCKSSSHKEY > ~/.ssh/id_rsa
           cd duckdb-fuzzer
           touch dummy.txt
