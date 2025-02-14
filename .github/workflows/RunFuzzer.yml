@@ -406,6 +406,18 @@ jobs:
           sparse-checkout: |
             scripts
 
+      - name: download reproductions and sqllogic tests (created by previous job)
+        uses: actions/download-artifact@v4
+        with:
+          # debug: hardcoded run-id from duckdb-aflplusplus to test artifact download
+          run-id: 13288614425
+
+      - name: extract reproductions
+        run: |
+          ls -l
+          tar -xvf reproductions.tar || echo "not found1"
+          ls -l
+
       - name: Register issues
         working-directory: ${{ env.DUCKDB_AFLPLUSPLUS_DIR }}
         run: |
