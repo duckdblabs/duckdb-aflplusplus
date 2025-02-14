@@ -82,10 +82,13 @@ on:
     secrets:
       FUZZEROFDUCKSKEY:
         required: true
+      FUZZEROFDUCKSSSHKEY:
+        required: true
 
 env:
   DUCKDB_AFLPLUSPLUS_DIR: ${{ github.workspace }}/duckdb_aflplusplus
   FUZZEROFDUCKSKEY: ${{ secrets.FUZZEROFDUCKSKEY }}
+  FUZZEROFDUCKSSSHKEY: ${{ secrets.FUZZEROFDUCKSSSHKEY }}
 
 jobs:
   aflplusplus-fuzz-run:
@@ -442,18 +445,14 @@ jobs:
 
       - name: Commit reproduction files
         run: |
+          echo $FUZZEROFDUCKSSSHKEY > ~/.ssh/id_rsa
           cd duckdb-fuzzer
-          git status
           touch dummy.txt
           git add dummy.txt
-          git status
           git config user.name "fuzzerofducks"
           git config user.email "fuzzerofducks@duckdblabs.com"
-          git config user.name | cat
-          git config user.email | cat
           git commit -m "add placeholder file"
           git push --dry-run
-          git status
 
       - name: Register issues
         run: |
