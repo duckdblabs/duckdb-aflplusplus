@@ -414,12 +414,14 @@ jobs:
           github-token: ${{ secrets.FUZZEROFDUCKSKEY }}
           # debug: repository should correspond with run-id
           repository: duckdblabs/duckdb-aflplusplus
+          merge-multiple: true
 
       - name: extract reproductions
         run: |
           ls -l
           tar -xvf reproductions.tar || echo "not found1"
           ls -l
+          tree .
 
       - name: Register issues
         run: |
