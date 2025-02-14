@@ -412,6 +412,8 @@ jobs:
           # debug: hardcoded run-id from duckdb-aflplusplus to test artifact download
           run-id: 13288614425
           github-token: ${{ secrets.FUZZEROFDUCKSKEY }}
+          # debug: repository should correspond with run-id
+          repository: duckdblabs/duckdb-aflplusplus
 
       - name: extract reproductions
         run: |
