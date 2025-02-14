@@ -37,6 +37,13 @@ on:
         required: true
         type: boolean
         default: true
+      createIssues:
+        description: "create issues (only from duckdb-fuzzer-ci)"
+        required: true
+        type: choice
+        options:
+          - 'no'
+        default: 'no'
 
   workflow_call:
     inputs:
@@ -67,6 +74,11 @@ on:
         required: false
         type: boolean
         default: true
+      createIssues:
+        description: "create issues"
+        required: false
+        type: string
+        default: 'yes'
     secrets:
       FUZZEROFDUCKSKEY:
         required: true
@@ -98,6 +110,7 @@ jobs:
           echo ${{ inputs.ref }}
           echo ${{ inputs.fuzzer }}
           echo ${{ inputs.fuzzTime }}
+          echo ${{ inputs.createIssues }}
 
       - name: define input dependent variables
         id: define_vars
@@ -390,10 +403,10 @@ jobs:
           name: ${{ github.run_id }}-${{ inputs.fuzzer }}-hangs.test
           path: ${{ github.run_id }}-${{ inputs.fuzzer }}-hangs.test
 
-  register_issues:
+  create_issues:
     name: Register issues to github
     runs-on: ubuntu-24.04
-    if: ${{ env.FUZZEROFDUCKSKEY != '' }}
+    if: ${{ inputs.createIssues == 'yes' }}
     env:
       # debug: hardcoded fuzz run-id
       FUZZ_RUN_ID: 13288614425
@@ -412,8 +425,7 @@ jobs:
       - name: download reproductions and sqllogic tests (created by previous job)
         uses: actions/download-artifact@v4
         with:
-          # debug: hardcoded run-id from duckdb-aflplusplus to test artifact download
-          run-id: 13288614425
+          run-id: ${{ env.FUZZ_RUN_ID }}
           github-token: ${{ secrets.FUZZEROFDUCKSKEY }}
           # debug: repository should correspond with run-id
           repository: duckdblabs/duckdb-aflplusplus
@@ -421,7 +433,7 @@ jobs:
 
       - name: extract reproductions
         run: |
-          tar -xvf reproductions.tar || echo "no reproductions available"
+          tar -xvf reproductions.tar
 
       - name: Register issues
         run: |
