@@ -392,7 +392,7 @@ jobs:
   register_issues:
     name: Register issues to github
     runs-on: ubuntu-24.04
-    if: ${{ secrets.FUZZEROFDUCKSKEY != ''}}
+    if: ${{ secrets.FUZZEROFDUCKSKEY != '' }}
     env:
       FUZZEROFDUCKSKEY: ${{ secrets.FUZZEROFDUCKSKEY }}
       # debug: hardcoded fuzz run-id
