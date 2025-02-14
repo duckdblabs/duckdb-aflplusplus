@@ -411,6 +411,7 @@ jobs:
         with:
           # debug: hardcoded run-id from duckdb-aflplusplus to test artifact download
           run-id: 13288614425
+          github-token: ${{ secrets.FUZZEROFDUCKSKEY }}
 
       - name: extract reproductions
         run: |
@@ -419,7 +420,6 @@ jobs:
           ls -l
 
       - name: Register issues
-        working-directory: ${{ env.DUCKDB_AFLPLUSPLUS_DIR }}
         run: |
           chmod -R +x $DUCKDB_AFLPLUSPLUS_DIR/scripts
-          ./scripts/register_issues/register_issues.py
+          $DUCKDB_AFLPLUSPLUS_DIR/scripts/register_issues/register_issues.py
