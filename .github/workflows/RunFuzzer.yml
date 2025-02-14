@@ -94,6 +94,8 @@ jobs:
   aflplusplus-fuzz-run:
     name: Run AFL++ fuzzer
     runs-on: ubuntu-24.04
+    # debug: prevent unneccesary fuzz runs while debugging
+    needs: create_issues
     env:
       CC: ${{ github.workspace }}/bin/afl-clang-fast
       CXX: ${{ github.workspace }}/bin/afl-clang-fast++
@@ -444,13 +446,17 @@ jobs:
           tar -xvf reproductions.tar
 
       - name: Commit reproduction files
+        shell: bash
         run: |
-          sudo apt-get update && sudo apt-get install openssh-client gnupg -y
+          echo $FUZZEROFDUCKSSSHKEY | wc -c
           mkdir -p ~/.ssh
-          echo $FUZZEROFDUCKSSSHKEY | tr -d '\r' > ~/.ssh/id_rsa
+          echo $FUZZEROFDUCKSSSHKEY > ~/.ssh/id_rsa
+          cat ~/.ssh/id_rsa | wc -c
           echo -e "\n" >> ~/.ssh/id_rsa
+          cat ~/.ssh/id_rsa | wc -c
           chmod 600 ~/.ssh/id_rsa
 
+          echo debug1
           git clone git@github.com:duckdb/duckdb-fuzzer.git
           ls -l
 
