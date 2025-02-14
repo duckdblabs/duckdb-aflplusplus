@@ -424,11 +424,11 @@ jobs:
           sparse-checkout: |
             scripts
 
-      - name: Checkout duckdb-fuzzer
-        uses: actions/checkout@v4
-        with:
-          repository: duckdb/duckdb-fuzzer
-          path: duckdb-fuzzer
+      # - name: Checkout duckdb-fuzzer
+      #   uses: actions/checkout@v4
+      #   with:
+      #     repository: duckdb/duckdb-fuzzer
+      #     path: duckdb-fuzzer
 
       - name: download reproductions and sqllogic tests (created by previous job)
         uses: actions/download-artifact@v4
@@ -445,11 +445,12 @@ jobs:
 
       - name: Commit reproduction files
         run: |
-          echo ~
-          echo test1
           mkdir -p ~/.ssh
-          ls -la ~
           echo $FUZZEROFDUCKSSSHKEY > ~/.ssh/id_rsa
+
+          git clone git@github.com:duckdb/duckdb-fuzzer.git
+          ls -l
+
           cd duckdb-fuzzer
           touch dummy.txt
           git add dummy.txt
