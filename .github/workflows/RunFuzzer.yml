@@ -447,6 +447,8 @@ jobs:
           touch dummy.txt
           git add dummy.txt
           git status
+          git config user.name "fuzzerofducks"
+          git config user.email "fuzzerofducks@duckdblabs.com"
           git config user.name | cat
           git config user.email | cat
           git commit -m "add placeholder file"
