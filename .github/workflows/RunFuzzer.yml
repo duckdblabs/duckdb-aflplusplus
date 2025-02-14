@@ -42,8 +42,8 @@ on:
         required: true
         type: choice
         options:
-          - 'no'
-        default: 'no'
+          - 'NotPossible'
+        default: 'NotPossible'
 
   workflow_call:
     inputs:
@@ -78,11 +78,10 @@ on:
         description: "create issues"
         required: false
         type: string
-        default: 'yes'
+        default: 'YesIndeed'
     secrets:
       FUZZEROFDUCKSKEY:
         required: true
-
 
 env:
   DUCKDB_AFLPLUSPLUS_DIR: ${{ github.workspace }}/duckdb_aflplusplus
@@ -406,7 +405,7 @@ jobs:
   create_issues:
     name: Register issues to github
     runs-on: ubuntu-24.04
-    if: ${{ inputs.createIssues == 'yes' }}
+    if: ${{ inputs.createIssues == 'YesIndeed' }}
     env:
       # debug: hardcoded fuzz run-id
       FUZZ_RUN_ID: 13288614425
