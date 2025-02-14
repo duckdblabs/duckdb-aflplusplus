@@ -392,8 +392,11 @@ jobs:
   register_issues:
     name: Register issues to github
     runs-on: ubuntu-24.04
+    if: ${{ secrets.FUZZEROFDUCKSKEY != ''}}
     env:
       FUZZEROFDUCKSKEY: ${{ secrets.FUZZEROFDUCKSKEY }}
+      # debug: hardcoded fuzz run-id
+      FUZZ_RUN_ID: 13288614425
 
     steps:
       - name: Checkout duckdb_aflplusplus
@@ -418,10 +421,7 @@ jobs:
 
       - name: extract reproductions
         run: |
-          ls -l
-          tar -xvf reproductions.tar || echo "not found1"
-          ls -l
-          tree .
+          tar -xvf reproductions.tar || echo "no reproductions available"
 
       - name: Register issues
         run: |
