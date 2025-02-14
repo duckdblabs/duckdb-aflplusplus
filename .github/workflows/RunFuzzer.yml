@@ -421,6 +421,12 @@ jobs:
           sparse-checkout: |
             scripts
 
+      - name: Checkout duckdb-fuzzer
+        uses: actions/checkout@v4
+        with:
+          repository: duckdb/duckdb-fuzzer
+          path: duckdb-fuzzer
+
       - name: download reproductions and sqllogic tests (created by previous job)
         uses: actions/download-artifact@v4
         with:
@@ -433,6 +439,19 @@ jobs:
       - name: extract reproductions
         run: |
           tar -xvf reproductions.tar
+
+      - name: Commit reproduction files
+        run: |
+          cd duckdb-fuzzer
+          git status
+          touch dummy.txt
+          git add dummy.txt
+          git status
+          git config user.name | cat
+          git config user.email | cat
+          git commit -m "add placeholder file"
+          git push --dry-run
+          git status
 
       - name: Register issues
         run: |
