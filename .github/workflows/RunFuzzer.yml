@@ -74,6 +74,7 @@ on:
 
 env:
   DUCKDB_AFLPLUSPLUS_DIR: ${{ github.workspace }}/duckdb_aflplusplus
+  FUZZEROFDUCKSKEY: ${{ secrets.FUZZEROFDUCKSKEY }}
 
 jobs:
   aflplusplus-fuzz-run:
@@ -392,9 +393,8 @@ jobs:
   register_issues:
     name: Register issues to github
     runs-on: ubuntu-24.04
-    if: ${{ secrets.FUZZEROFDUCKSKEY != '' }}
+    if: ${{ env.FUZZEROFDUCKSKEY != '' }}
     env:
-      FUZZEROFDUCKSKEY: ${{ secrets.FUZZEROFDUCKSKEY }}
       # debug: hardcoded fuzz run-id
       FUZZ_RUN_ID: 13288614425
 
