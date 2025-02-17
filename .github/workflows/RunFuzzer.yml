@@ -462,14 +462,13 @@ jobs:
           git -P log -n 1 --pretty=format:%H
           mkdir -p "fuzz_result_duckdb_file_readers/run_${{ env.FUZZ_RUN_ID }}/${{ inputs.ref }}"
           tree .
-          mv -f ../reproductions ./fuzz_result_duckdb_file_readers/run_${{ env.FUZZ_RUN_ID }}/${{ inputs.ref }}/${{ inputs.fuzzer }} | echo "not found 1"
-          mv ../${{ env.FUZZ_RUN_ID }}-${{ inputs.fuzzer }}.test . | echo "not found 2"
-          mv ../${{ env.FUZZ_RUN_ID }}-${{ inputs.fuzzer }}-hangs.test . | echo "not found 3"
+          cp -rf ../reproductions ./fuzz_result_duckdb_file_readers/run_${{ env.FUZZ_RUN_ID }}/${{ inputs.ref }}/${{ inputs.fuzzer }} | echo "not found 1"
+          cp ../${{ env.FUZZ_RUN_ID }}-${{ inputs.fuzzer }}.test . | echo "not found 2"
+          cp ../${{ env.FUZZ_RUN_ID }}-${{ inputs.fuzzer }}-hangs.test . | echo "not found 3"
           tree .
           git add .
           git commit -m "add fuzz reproductions for run ${{ env.FUZZ_RUN_ID }}; ${{ inputs.fuzzer }}; duckdb ref: ${{ inputs.ref }};"
-          git -P log -n 1 --pretty=format:%H
-          git -P show HEAD
+          echo $(git -P log -n 1 --pretty=format:%H)
           git push --dry-run
 
       - name: Register issues
