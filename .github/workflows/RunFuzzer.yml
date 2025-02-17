@@ -452,8 +452,6 @@ jobs:
           mkdir -p ~/.ssh
           echo $FUZZEROFDUCKSSSHKEY > ~/.ssh/id_rsa
           cat ~/.ssh/id_rsa | wc -c
-          echo -e "\n" >> ~/.ssh/id_rsa
-          cat ~/.ssh/id_rsa | wc -c
           chmod 600 ~/.ssh/id_rsa
 
           echo debug1
