@@ -462,9 +462,9 @@ jobs:
           git -P log -n 1 --pretty=format:%H
           mkdir -p "fuzz_result_duckdb_file_readers/run_${{ env.FUZZ_RUN_ID }}/${{ inputs.ref }}"
           tree .
-          cp -rf ../reproductions ./fuzz_result_duckdb_file_readers/run_${{ env.FUZZ_RUN_ID }}/${{ inputs.ref }}/${{ inputs.fuzzer }} | echo "not found 1"
-          cp ../${{ env.FUZZ_RUN_ID }}-${{ inputs.fuzzer }}.test . | echo "not found 2"
-          cp ../${{ env.FUZZ_RUN_ID }}-${{ inputs.fuzzer }}-hangs.test . | echo "not found 3"
+          cp -rf ../reproductions ./fuzz_result_duckdb_file_readers/run_${{ env.FUZZ_RUN_ID }}/${{ inputs.ref }}/${{ inputs.fuzzer }}
+          cp ../${{ env.FUZZ_RUN_ID }}-${{ inputs.fuzzer }}.test . || echo "no .test file for chrashes; skipping... "
+          cp ../${{ env.FUZZ_RUN_ID }}-${{ inputs.fuzzer }}-hangs.test . || echo "no .test file for hangs; skipping... "
           tree .
           git add .
           git commit -m "add fuzz reproductions for run ${{ env.FUZZ_RUN_ID }}; ${{ inputs.fuzzer }}; duckdb ref: ${{ inputs.ref }};"
