@@ -426,11 +426,12 @@ jobs:
           sparse-checkout: |
             scripts
 
-      # - name: Checkout duckdb-fuzzer
-      #   uses: actions/checkout@v4
-      #   with:
-      #     repository: duckdb/duckdb-fuzzer
-      #     path: duckdb-fuzzer
+      - name: Checkout duckdb-fuzzer
+        uses: actions/checkout@v4
+        with:
+          repository: duckdb/duckdb-fuzzer
+          path: duckdb-fuzzer
+          token: ${{ secrets.FUZZEROFDUCKSKEY }}
 
       - name: download reproductions and sqllogic tests (created by previous job)
         uses: actions/download-artifact@v4
@@ -448,18 +449,18 @@ jobs:
       - name: Commit reproduction files
         shell: bash
         run: |
-          mkdir -p ~/.ssh
-          curl --silent https://api.github.com/meta | jq --raw-output '"github.com "+.ssh_keys[]' >> ~/.ssh/known_hosts
-          cat ~/.ssh/known_hosts | wc -c
+          # mkdir -p ~/.ssh
+          # curl --silent https://api.github.com/meta | jq --raw-output '"github.com "+.ssh_keys[]' > ~/.ssh/known_hosts
+          # cat ~/.ssh/known_hosts | wc -c
 
-          echo $FUZZEROFDUCKSSSHKEY | wc -c
-          echo $FUZZEROFDUCKSSSHKEY > ~/.ssh/id_rsa
-          cat ~/.ssh/id_rsa | wc -c
-          chmod 600 ~/.ssh/id_rsa
+          # echo $FUZZEROFDUCKSSSHKEY | wc -c
+          # echo $FUZZEROFDUCKSSSHKEY > ~/.ssh/id_rsa
+          # cat ~/.ssh/id_rsa | wc -c
+          # chmod 600 ~/.ssh/id_rsa
 
-          echo debug1
-          git clone -v git@github.com:duckdb/duckdb-fuzzer.git
-          ls -l
+          # echo debug1
+          # git clone -v git@github.com:duckdb/duckdb-fuzzer.git
+          # ls -l
 
           cd duckdb-fuzzer
           touch dummy.txt
