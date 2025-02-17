@@ -271,6 +271,15 @@ jobs:
           -m none \
           -d \
           -- $DUCKDB_AFLPLUSPLUS_DIR/build/${{ inputs.fuzzer }}
+
+          # only keep max 15 crashes and hangs
+          cd ${{ github.workspace }}/fuzz_results/${{ inputs.fuzzer }}/default/crashes
+          rm -f README.txt
+          ls -t | head -n -15 | xargs --no-run-if-empty rm
+          cd ${{ github.workspace }}/fuzz_results/${{ inputs.fuzzer }}/default/hangs
+          rm -f README.txt
+          ls -t | head -n -15 | xargs --no-run-if-empty rm
+
           tar -cf ${{ github.workspace }}/fuzz_results.tar fuzz_results/${{ inputs.fuzzer }}
 
       - name: Store fuzz result as artifact
