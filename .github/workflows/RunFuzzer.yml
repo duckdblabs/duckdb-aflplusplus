@@ -429,7 +429,7 @@ jobs:
       - name: Checkout duckdb-fuzzer
         uses: actions/checkout@v4
         with:
-          repository: duckdb/duckdb-fuzzer
+          repository: duckdb/duckdb-httpfs
           path: duckdb-fuzzer
           token: ${{ secrets.FUZZEROFDUCKSKEY }}
 
