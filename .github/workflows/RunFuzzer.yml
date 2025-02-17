@@ -455,13 +455,22 @@ jobs:
       - name: Commit reproduction files
         shell: bash
         run: |
+          tree .
           cd duckdb-fuzzer
-          rm dummy.txt
-          git add .
           git config user.name "fuzzerofducks"
           git config user.email "fuzzerofducks@duckdblabs.com"
-          git commit -m "remove placeholder file"
-          git push
+          git pull
+          git -P log -n 1 --pretty=format:%H
+          mkdir -p "fuzz_result_duckdb_file_readers/run_${{ env.FUZZ_RUN_ID }}"
+          mv -f ../reproductions ./fuzz_result_duckdb_file_readers/run_${{ env.FUZZ_RUN_ID }}/${{ inputs.fuzzer }}
+          mv ${{ github.run_id }}-${{ inputs.fuzzer }}.test . | true
+          mv ${{ github.run_id }}-${{ inputs.fuzzer }}-hangs.test . | true
+          tree .
+          git add .
+          git commit -m "add fuzz reproductions for run ${{ env.FUZZ_RUN_ID }}; ${{ inputs.fuzzer }}; duckdb ref: ${{ inputs.ref }};"
+          git -P log -n 1 --pretty=format:%H
+          git -P show HEAD
+          git push --dry-run
 
       - name: Register issues
         run: |
