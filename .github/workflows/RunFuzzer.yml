@@ -82,13 +82,10 @@ on:
     secrets:
       FUZZEROFDUCKSKEY:
         required: true
-      FUZZEROFDUCKSSSHKEY:
-        required: true
 
 env:
   DUCKDB_AFLPLUSPLUS_DIR: ${{ github.workspace }}/duckdb_aflplusplus
   FUZZEROFDUCKSKEY: ${{ secrets.FUZZEROFDUCKSKEY }}
-  FUZZEROFDUCKSSSHKEY: ${{ secrets.FUZZEROFDUCKSSSHKEY }}
 
 jobs:
   aflplusplus-fuzz-run:
@@ -449,25 +446,12 @@ jobs:
       - name: Commit reproduction files
         shell: bash
         run: |
-          # mkdir -p ~/.ssh
-          # curl --silent https://api.github.com/meta | jq --raw-output '"github.com "+.ssh_keys[]' > ~/.ssh/known_hosts
-          # cat ~/.ssh/known_hosts | wc -c
-
-          # echo $FUZZEROFDUCKSSSHKEY | wc -c
-          # echo $FUZZEROFDUCKSSSHKEY > ~/.ssh/id_rsa
-          # cat ~/.ssh/id_rsa | wc -c
-          # chmod 600 ~/.ssh/id_rsa
-
-          # echo debug1
-          # git clone -v git@github.com:duckdb/duckdb-fuzzer.git
-          # ls -l
-
           cd duckdb-fuzzer
-          touch dummy.txt
-          git add dummy.txt
+          rm dummy.txt
+          git add .
           git config user.name "fuzzerofducks"
           git config user.email "fuzzerofducks@duckdblabs.com"
-          git commit -m "add placeholder file"
+          git commit -m "remove placeholder file"
           git push
 
       - name: Register issues
