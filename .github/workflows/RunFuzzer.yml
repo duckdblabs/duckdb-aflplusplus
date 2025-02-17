@@ -468,7 +468,7 @@ jobs:
           git config user.name "fuzzerofducks"
           git config user.email "fuzzerofducks@duckdblabs.com"
           git commit -m "add placeholder file"
-          git push --dry-run
+          git push
 
       - name: Register issues
         run: |
