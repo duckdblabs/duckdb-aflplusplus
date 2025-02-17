@@ -448,14 +448,17 @@ jobs:
       - name: Commit reproduction files
         shell: bash
         run: |
-          echo $FUZZEROFDUCKSSSHKEY | wc -c
           mkdir -p ~/.ssh
+          curl --silent https://api.github.com/meta | jq --raw-output '"github.com "+.ssh_keys[]' >> ~/.ssh/known_hosts
+          cat ~/.ssh/known_hosts | wc -c
+
+          echo $FUZZEROFDUCKSSSHKEY | wc -c
           echo $FUZZEROFDUCKSSSHKEY > ~/.ssh/id_rsa
           cat ~/.ssh/id_rsa | wc -c
           chmod 600 ~/.ssh/id_rsa
 
           echo debug1
-          git clone git@github.com:duckdb/duckdb-fuzzer.git
+          git clone -v git@github.com:duckdb/duckdb-fuzzer.git
           ls -l
 
           cd duckdb-fuzzer
