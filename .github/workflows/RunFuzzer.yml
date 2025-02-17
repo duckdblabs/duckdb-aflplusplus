@@ -461,10 +461,10 @@ jobs:
           git config user.email "fuzzerofducks@duckdblabs.com"
           git pull
           git -P log -n 1 --pretty=format:%H
-          mkdir -p "fuzz_result_duckdb_file_readers/run_${{ env.FUZZ_RUN_ID }}"
-          mv -f ../reproductions ./fuzz_result_duckdb_file_readers/run_${{ env.FUZZ_RUN_ID }}/${{ inputs.fuzzer }}
-          mv ${{ github.run_id }}-${{ inputs.fuzzer }}.test . | true
-          mv ${{ github.run_id }}-${{ inputs.fuzzer }}-hangs.test . | true
+          mkdir -p "fuzz_result_duckdb_file_readers/run_${{ env.FUZZ_RUN_ID }}/${{ inputs.ref }}"
+          mv -f ../reproductions ./fuzz_result_duckdb_file_readers/run_${{ env.FUZZ_RUN_ID }}/${{ inputs.ref }}/${{ inputs.fuzzer }}
+          mv ../${{ github.run_id }}-${{ inputs.fuzzer }}.test . | true
+          mv ../${{ github.run_id }}-${{ inputs.fuzzer }}-hangs.test . | true
           tree .
           git add .
           git commit -m "add fuzz reproductions for run ${{ env.FUZZ_RUN_ID }}; ${{ inputs.fuzzer }}; duckdb ref: ${{ inputs.ref }};"
