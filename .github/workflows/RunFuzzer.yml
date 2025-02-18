@@ -86,13 +86,12 @@ on:
 env:
   DUCKDB_AFLPLUSPLUS_DIR: ${{ github.workspace }}/duckdb_aflplusplus
   FUZZEROFDUCKSKEY: ${{ secrets.FUZZEROFDUCKSKEY }}
+  DUCKDB_REF: ${{ inputs.ref }}
 
 jobs:
   aflplusplus-fuzz-run:
     name: Run AFL++ fuzzer
     runs-on: ubuntu-24.04
-    # debug: prevent unneccesary fuzz runs while debugging
-    needs: create_issues
     env:
       CC: ${{ github.workspace }}/bin/afl-clang-fast
       CXX: ${{ github.workspace }}/bin/afl-clang-fast++
@@ -102,6 +101,8 @@ jobs:
       num_crashes: ${{ steps.define_statistics.outputs.num_crashes }}
       num_hangs: ${{ steps.define_statistics.outputs.num_hangs }}
       queue_length: ${{ steps.define_statistics.outputs.queue_length }}
+      duckdb_version: ${{ steps.get_duckdb_version.outputs.duckdb_version }}
+      duckdb_sha: ${{ steps.get_duckdb_version.outputs.duckdb_sha }}
 
     steps:
       - name: print fuzz scenario
@@ -232,9 +233,12 @@ jobs:
           duckdb-lib
 
       - name: duckdb version
+        id: get_duckdb_version
         working-directory: ${{ env.DUCKDB_DIR }}
         run: |
           ./build/release/duckdb --version
+          echo "duckdb_version=$(./build/release/duckdb --version)" >> "$GITHUB_OUTPUT"
+          echo "duckdb_sha=$(git -P log -n 1 --pretty=format:%H)" >> "$GITHUB_OUTPUT"
 
       # NOTE: duckdb-python is only used for pre and post processing; does not have to be compiled from source
       - name: Install duckdb python API
@@ -260,7 +264,6 @@ jobs:
           ./scripts/corpus_creation/create_multi_param_corpus.py ${{ env.CREATE_CORPUS_ARGS }}
 
       - name: Start fuzzing
-        working-directory: ${{ env.DUCKDB_AFLPLUSPLUS_DIR }}
         env:
           AFL_IGNORE_SEED_PROBLEMS: 1
         run: |
@@ -272,14 +275,16 @@ jobs:
           -d \
           -- $DUCKDB_AFLPLUSPLUS_DIR/build/${{ inputs.fuzzer }}
 
-          # only keep max 15 crashes and hangs
-          cd ${{ github.workspace }}/fuzz_results/${{ inputs.fuzzer }}/default/crashes
+      # only keep max 15 crashes and hangs
+      - name: Prune fuzz results
+        run: |
+          cd $DUCKDB_AFLPLUSPLUS_DIR/fuzz_results/${{ inputs.fuzzer }}/default/crashes
           rm -f README.txt
           ls -t | head -n -15 | xargs --no-run-if-empty rm
-          cd ${{ github.workspace }}/fuzz_results/${{ inputs.fuzzer }}/default/hangs
+          cd $DUCKDB_AFLPLUSPLUS_DIR/fuzz_results/${{ inputs.fuzzer }}/default/hangs
           rm -f README.txt
           ls -t | head -n -15 | xargs --no-run-if-empty rm
-
+          cd $DUCKDB_AFLPLUSPLUS_DIR
           tar -cf ${{ github.workspace }}/fuzz_results.tar fuzz_results/${{ inputs.fuzzer }}
 
       - name: Store fuzz result as artifact
@@ -416,11 +421,10 @@ jobs:
   create_issues:
     name: Register issues to github
     runs-on: ubuntu-24.04
+    needs: process-fuzz-results
     if: ${{ inputs.createIssues == 'YesIndeed' }}
     env:
-      # debug: hardcoded fuzz run-id
-      FUZZ_RUN_ID: 13288614425
-
+      FUZZ_RUN_ID: ${{ github.run_id }}
     steps:
       - name: Checkout duckdb_aflplusplus
         uses: actions/checkout@v4
@@ -445,33 +449,48 @@ jobs:
           run-id: ${{ env.FUZZ_RUN_ID }}
           github-token: ${{ secrets.FUZZEROFDUCKSKEY }}
           # debug: repository should correspond with run-id
-          repository: duckdblabs/duckdb-aflplusplus
+          # repository: duckdblabs/duckdb-aflplusplus
+          repository:  ${{ github.repository }}
           merge-multiple: true
 
       - name: extract reproductions
         run: |
           tar -xvf reproductions.tar
+          DUCKDB_REF_CLEAN=$(echo $DUCKDB_REF | sed 's/\./-/g')
+          REPRODUCTION_DIR="fuzz_result_duckdb_file_readers/run_${{ env.FUZZ_RUN_ID }}/$DUCKDB_REF_CLEAN/${{ inputs.fuzzer }}"
+          echo "REPRODUCTION_DIR=$REPRODUCTION_DIR" >> $GITHUB_ENV
+          # debug
+          echo $DUCKDB_REF_CLEAN
+          echo $REPRODUCTION_DIR
 
       - name: Commit reproduction files
         shell: bash
+        working-directory: duckdb-fuzzer
         run: |
-          cd duckdb-fuzzer
           git config user.name "fuzzerofducks"
           git config user.email "fuzzerofducks@duckdblabs.com"
           git pull
-          git -P log -n 1 --pretty=format:%H
-          mkdir -p "fuzz_result_duckdb_file_readers/run_${{ env.FUZZ_RUN_ID }}/${{ inputs.ref }}"
-          tree .
-          cp -rf ../reproductions ./fuzz_result_duckdb_file_readers/run_${{ env.FUZZ_RUN_ID }}/${{ inputs.ref }}/${{ inputs.fuzzer }}
-          cp ../${{ env.FUZZ_RUN_ID }}-${{ inputs.fuzzer }}.test . || echo "no .test file for chrashes; skipping... "
-          cp ../${{ env.FUZZ_RUN_ID }}-${{ inputs.fuzzer }}-hangs.test . || echo "no .test file for hangs; skipping... "
-          tree .
+          mkdir -p ${{ env.REPRODUCTION_DIR }}
+          cp -rf ../reproductions ${{ env.REPRODUCTION_DIR }}
+          cp ../${{ env.FUZZ_RUN_ID }}-${{ inputs.fuzzer }}.test ${{ env.REPRODUCTION_DIR }} || echo "no .test file for chrashes; skipping... "
+          cp ../${{ env.FUZZ_RUN_ID }}-${{ inputs.fuzzer }}-hangs.test ${{ env.REPRODUCTION_DIR }} || echo "no .test file for hangs; skipping... "
           git add .
           git commit -m "add fuzz reproductions for run ${{ env.FUZZ_RUN_ID }}; ${{ inputs.fuzzer }}; duckdb ref: ${{ inputs.ref }};"
-          echo $(git -P log -n 1 --pretty=format:%H)
-          git push --dry-run
+          git push || (git config pull.rebase true && git pull && git push)
+          echo "created commit: $(git -P log -n 1 --pretty=format:%H)"
 
       - name: Register issues
+        env:
+          DUCKDB_REF: ${{ inputs.ref }}
+          DUCKDB_SHA: ${{ needs.aflplusplus-fuzz-run.outputs.duckdb_sha }}
+          DUCKDB_VERSION: ${{ needs.aflplusplus-fuzz-run.outputs.duckdb_version }}
+          FILE_FORMAT: ${{ needs.aflplusplus-fuzz-run.outputs.file_format }}
+          FUZZ_REPO: ${{ github.repository }}
+          FUZZ_SCENARIO: ${{ inputs.fuzzer }}
+          FUZZ_WORKFLOW: ${{ github.run_id }}
+          NUM_CRASHES: ${{ needs.aflplusplus-fuzz-run.outputs.num_crashes }}
+          NUM_HANGS: ${{ needs.aflplusplus-fuzz-run.outputs.num_hangs }}
+          REPRODUCTION_DIR: ${{ env.REPRODUCTION_DIR }}
         run: |
           chmod -R +x $DUCKDB_AFLPLUSPLUS_DIR/scripts
           $DUCKDB_AFLPLUSPLUS_DIR/scripts/register_issues/register_issues.py
