@@ -427,7 +427,7 @@ jobs:
   create_issues:
     name: Register issues to github
     runs-on: ubuntu-24.04
-    needs: process-fuzz-results
+    needs: [aflplusplus-fuzz-run, process-fuzz-results]
     if: ${{ inputs.createIssues == 'YesIndeed' }}
     env:
       FUZZ_RUN_ID: ${{ github.run_id }}
