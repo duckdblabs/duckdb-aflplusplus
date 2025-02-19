@@ -46,12 +46,12 @@ def set_reproduction_text(crashes_or_hangs, reproduction_template):
     reproduction_root_dir = os.environ['REPRODUCTION_DIR']
     match crashes_or_hangs:
         case 'crashes':
-            sqllogic_filename = f"{os.environ['FUZZ_RUN_ID']}-{os.environ['FUZZ_SCENARIO']}.test"
+            sqllogic_filename = f"{os.environ['FUZZ_SCENARIO']}-{os.environ['DUCKDB_SHA']}.test"
             sqllogic_url = f"{reproduction_repo}/{reproduction_root_dir}/{sqllogic_filename}"
             reproduction_files_url = f"{reproduction_repo}/{reproduction_root_dir}/crashes"
             replace_str = "[CRASHES]"
         case 'hangs':
-            sqllogic_filename = f"{os.environ['FUZZ_RUN_ID']}-{os.environ['FUZZ_SCENARIO']}-hangs.test"
+            sqllogic_filename = f"{os.environ['FUZZ_SCENARIO']}-{os.environ['DUCKDB_SHA']}-hangs.test"
             sqllogic_url = f"{reproduction_repo}/{reproduction_root_dir}/{sqllogic_filename}"
             reproduction_files_url = f"{reproduction_repo}/{reproduction_root_dir}/hangs"
             replace_str = "[HANGS]"
