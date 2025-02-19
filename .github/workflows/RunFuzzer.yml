@@ -364,17 +364,23 @@ jobs:
         run: |
           tar -xf fuzz_results.tar
 
-      - name: decode crashes and hangs
+      - name: decode crashes
+        if: needs.aflplusplus-fuzz-run.outputs.num_crashes != '0'
         run: |
           $DUCKDB_AFLPLUSPLUS_DIR/scripts/reproduction/decode_multi_param_files.py \
             read_$FILE_FORMAT \
             ${{ github.workspace }}/fuzz_results/${{ inputs.fuzzer }}/default/crashes \
             ${{ github.workspace }}/reproductions/crashes
+
+      - name: decode hangs
+        if: needs.aflplusplus-fuzz-run.outputs.num_hangs != '0'
+        run: |
           $DUCKDB_AFLPLUSPLUS_DIR/scripts/reproduction/decode_multi_param_files.py \
             read_$FILE_FORMAT \
             ${{ github.workspace }}/fuzz_results/${{ inputs.fuzzer }}/default/hangs \
             ${{ github.workspace }}/reproductions/hangs
-          tar -cvf reproductions.tar reproductions
+
+      - run: tar -cvf reproductions.tar reproductions
 
       - name: Store reproductions as artifact
         uses: actions/upload-artifact@v4
