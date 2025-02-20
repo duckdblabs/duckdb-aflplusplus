@@ -7,7 +7,7 @@ title = f"AFL++ run {os.environ['FUZZ_RUN_ID']}: crashes or hangs found for read
 
 num_crashes = int(os.environ['NUM_CRASHES'])
 num_hangs = int(os.environ['NUM_HANGS'])
-reproduction_full_path = "https://github.com/duckdb/duckdb-fuzzer/tree/main/" + {os.environ['REPRODUCTION_DIR']}
+reproduction_full_path = f"https://github.com/duckdb/duckdb-fuzzer/tree/main/{os.environ['REPRODUCTION_DIR']}"
 sqllogic_file_crashes = f"{reproduction_full_path}/{os.environ['FUZZ_SCENARIO']}-{os.environ['DUCKDB_SHA']}.test"
 sqllogic_file_hangs = f"{reproduction_full_path}/{os.environ['FUZZ_SCENARIO']}-{os.environ['DUCKDB_SHA']}-hangs.test"
 
