@@ -45,6 +45,8 @@ def make_github_issue(title, body):
     r = session.post(url, json.dumps(issue))
     if r.status_code == 201:
         print('Successfully created Issue "%s"' % title)
+        issue_json = r.json()
+        print(f"::notice::created issue: {issue_json.get('html_url')} - {issue_json.get('title')}")
     else:
         print('Could not create Issue "%s"' % title)
         print('Response:', r.content.decode('utf8'))
