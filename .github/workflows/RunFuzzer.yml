@@ -452,7 +452,7 @@ jobs:
       - name: download reproductions and sqllogic tests (created by previous job)
         uses: actions/download-artifact@v4
         with:
-          pattern: ${{ inputs.fuzzer }}-${{ needs.aflplusplus-fuzz-run.outputs.duckdb_sha }}-*
+          pattern: ${{ inputs.fuzzer }}-${{ needs.aflplusplus-fuzz-run.outputs.duckdb_sha }}*
           run-id: ${{ env.FUZZ_RUN_ID }}
           github-token: ${{ secrets.FUZZEROFDUCKSKEY }}
           repository:  ${{ github.repository }}
@@ -460,9 +460,12 @@ jobs:
 
       - name: extract reproductions
         run: |
+          ls -la
           tar -xvf reproductions.tar
+          # debug
+          tree
           DUCKDB_REF_CLEAN=$(echo $DUCKDB_REF | sed 's/\./-/g')
-          REPRODUCTION_DIR="fuzz_result_duckdb_file_readers/run_${{ env.FUZZ_RUN_ID }}/$DUCKDB_REF_CLEAN/${{ inputs.fuzzer }}"
+          REPRODUCTION_DIR="fuzz_result_duckdb_file_readers/run_${{ env.FUZZ_RUN_ID }}/$DUCKDB_REF_CLEAN-${{ needs.aflplusplus-fuzz-run.outputs.duckdb_sha }}/${{ inputs.fuzzer }}"
           echo "REPRODUCTION_DIR=$REPRODUCTION_DIR" >> $GITHUB_ENV
           # debug
           echo $DUCKDB_REF_CLEAN
