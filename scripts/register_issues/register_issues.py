@@ -22,6 +22,7 @@ duckdb:
 - SHA: `{os.environ['DUCKDB_SHA']}`
 - version: `{os.environ['DUCKDB_VERSION']}`
 - ref: `{os.environ['DUCKDB_REF']}`
+
 fuzzer:
 - scenrio: `{os.environ['FUZZ_SCENARIO']}`
 - CI: `{os.environ['FUZZ_REPO']}` -> `{os.environ['FUZZ_WORKFLOW']}` -> [run {os.environ['FUZZ_RUN_ID']}](https://github.com/{os.environ['FUZZ_REPO']}/actions/runs/{os.environ['FUZZ_RUN_ID']})
