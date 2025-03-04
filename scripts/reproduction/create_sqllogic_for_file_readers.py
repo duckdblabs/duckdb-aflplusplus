@@ -50,7 +50,7 @@ def main(argv: list[str]):
         "json": f"data/json/afl/{date_str}_json_fuzz_error",
         "parquet": f"data/parquet-testing/afl/{date_str}_parquet_fuzz_error",
     }
-    REPRODUCTION_DIR = Path("~/Desktop/reproductions").expanduser()
+    REPRODUCTION_DIR = Path("~/Desktop/reproductions/crashes").expanduser()
     DUCKDB_DIR = Path("~/git/duckdb").expanduser()
     SQLLOGIC_TEST_NAME = f"test/fuzzer/afl/{file_type}/fuzz_{date_str}.test"
     SQLLOGIC_FILE_PATH = DUCKDB_DIR / SQLLOGIC_TEST_NAME

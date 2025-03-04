@@ -5,3 +5,4 @@
 /corpus
 /fuzz_results*
 **/tmp/
+__pycache__
