@@ -47,4 +47,4 @@ git checkout
 """
 
 body = issue_desc + fuzzer_desc + reproduction
-github_helper.make_github_issue(title, body)
+github_helper.make_github_issue(title, body, ['AFL'])

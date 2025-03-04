@@ -35,13 +35,13 @@ def create_session():
     return session
 
 
-def make_github_issue(title, body):
+def make_github_issue(title, body, labels=[]):
     if len(title) > 240:
         #  avoid title is too long error (maximum is 256 characters)
         title = title[:240] + '...'
     session = create_session()
     url = issue_url()
-    issue = {'title': title, 'body': body}
+    issue = {'title': title, 'body': body, 'labels': labels}
     r = session.post(url, json.dumps(issue))
     if r.status_code == 201:
         print('Successfully created Issue "%s"' % title)
