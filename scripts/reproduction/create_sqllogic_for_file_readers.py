@@ -30,7 +30,7 @@ def main(argv: list[str]):
     match file_reader_function:
         case 'read_csv':
             file_type = 'csv'
-            required_duckdb_extension = ''
+            required_duckdb_extension = 'json'
             enable_verification = True
         case 'read_json':
             file_type = 'json'
