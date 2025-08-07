@@ -18,6 +18,7 @@ JSON_MULTI_PARAM_FUZZER    ?= $(BUILD_DIR)/json_multi_param_fuzzer
 JSON_PIPE_FUZZER           ?= $(BUILD_DIR)/json_pipe_fuzzer
 PARQUET_BASE_FUZZER        ?= $(BUILD_DIR)/parquet_base_fuzzer
 PARQUET_MULTI_PARAM_FUZZER ?= $(BUILD_DIR)/parquet_multi_param_fuzzer
+APPENDER_FUZZER            ?= $(BUILD_DIR)/appender_fuzzer
 DUCKDB_FILE_FUZZER         ?= $(BUILD_DIR)/duckdb_file_fuzzer
 WAL_FUZZER                 ?= $(BUILD_DIR)/wal_fuzzer
 
@@ -60,7 +61,7 @@ endif
 all: $(CSV_BASE_FUZZER) $(CSV_SINGLE_PARAM_FUZZER) $(CSV_MULTI_PARAM_FUZZER) $(CSV_PIPE_FUZZER) \
 	$(JSON_BASE_FUZZER) $(JSON_MULTI_PARAM_FUZZER) $(JSON_PIPE_FUZZER) \
 	$(PARQUET_BASE_FUZZER) $(PARQUET_MULTI_PARAM_FUZZER) \
-	$(DUCKDB_FILE_FUZZER) $(WAL_FUZZER)
+	$(APPENDER_FUZZER) $(DUCKDB_FILE_FUZZER) $(WAL_FUZZER)
 
 duckdb-lib: $(DUCKDBLIB)
 
@@ -98,6 +99,11 @@ $(CSV_PIPE_FUZZER): $(DUCKDBLIB) pipe_fuzzer.cpp
 
 $(JSON_PIPE_FUZZER): $(DUCKDBLIB) pipe_fuzzer.cpp
 	$(CXX) -D DUCKDB_READ_FUNCTION=\"read_json\" pipe_fuzzer.cpp $(INC) $(CXXFLAGS) $(DUCKDBLIB) $(DUCKDB_EXT) $(DUCKDB_DEPS) -o $(JSON_PIPE_FUZZER)
+
+
+# appender fuzzer
+$(APPENDER_FUZZER): $(DUCKDBLIB) appender_fuzzer.cpp
+	$(CXX) appender_fuzzer.cpp $(INC) $(CXXFLAGS) $(DUCKDBLIB) $(DUCKDB_EXT) $(DUCKDB_DEPS) -o $(APPENDER_FUZZER)
 
 
 # fuzz attaching DuckDB's native storage format

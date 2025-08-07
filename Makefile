@@ -20,6 +20,7 @@ JSON_MULTI_PARAM_FUZZER    ?= $(BUILD_DIR)/json_multi_param_fuzzer
 JSON_PIPE_FUZZER           ?= $(BUILD_DIR)/json_pipe_fuzzer
 PARQUET_BASE_FUZZER        ?= $(BUILD_DIR)/parquet_base_fuzzer
 PARQUET_MULTI_PARAM_FUZZER ?= $(BUILD_DIR)/parquet_multi_param_fuzzer
+APPENDER_FUZZER            ?= $(BUILD_DIR)/appender_fuzzer
 DUCKDB_FILE_FUZZER         ?= $(BUILD_DIR)/duckdb_file_fuzzer
 WAL_FUZZER                 ?= $(BUILD_DIR)/wal_fuzzer
 
