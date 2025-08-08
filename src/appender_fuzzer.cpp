@@ -12,7 +12,6 @@ void AppenderFuzzer() {
 	uint8_t buf[4096];
 
 	// read scenario bytes
-	// TODO: e.g. use NULL instead of empty string
 	uint8_t scenario_buf[NR_SCENARIO_BYTES];
 	read(0, (void *)scenario_buf, NR_SCENARIO_BYTES);
 
@@ -24,6 +23,7 @@ void AppenderFuzzer() {
 	bool reading_first_val = true;
 
 	// append records (read from stdin)
+	con.Query("PRAGMA force_compression='fsst'");
 	con.Query("CREATE OR REPLACE TABLE tbl (col1 VARCHAR, col2 VARCHAR)");
 	duckdb::Appender appender(con, "tbl");
 	while (n_read != 0) {
