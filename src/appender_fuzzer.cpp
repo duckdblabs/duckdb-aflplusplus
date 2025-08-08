@@ -83,5 +83,8 @@ void AppenderFuzzer() {
 }
 
 int main() {
-	AppenderFuzzer();
+	try {
+		AppenderFuzzer();
+	} catch (duckdb::InvalidInputException) {
+	}
 }
