@@ -1,8 +1,10 @@
 #include "duckdb.hpp"
+
+#include <cassert>
 #include <iostream>
 #include <unistd.h>
 
-const int NR_SCENARIO_BYTES = 0;
+const int NR_SCENARIO_BYTES = 3;
 const int BUFF_SIZE = 4096;
 
 void AppenderFuzzer() {
@@ -10,17 +12,21 @@ void AppenderFuzzer() {
 	duckdb::Connection con(db);
 
 	uint8_t buf[4096];
-
-	// read scenario bytes
 	uint8_t scenario_buf[NR_SCENARIO_BYTES];
-	read(0, (void *)scenario_buf, NR_SCENARIO_BYTES);
+
+	enum read_state_option {
+    	SCENARIO_BYTES,
+    	FIRST_VAL,
+    	SECOND_VAL
+	};
 
 	int n_read = 1;
 	int idx_buf;
+	int idx_scenario_byte = 0;
 	int idx_start_char;
 	std::string val1;
 	std::string val2;
-	bool reading_first_val = true;
+	read_state_option read_stat = SCENARIO_BYTES;
 
 	// append records (read from stdin)
 	con.Query("PRAGMA force_compression='fsst'");
@@ -36,32 +42,45 @@ void AppenderFuzzer() {
 
 		// split rows by newline, split values by comma (if any)
 		idx_buf = 0;
-		idx_start_char = 0;
+
 		while (idx_buf < n_read) {
-			if (buf[idx_buf] == ',' && reading_first_val) {
+			if (read_stat == SCENARIO_BYTES) {
+				assert(idx_scenario_byte < NR_SCENARIO_BYTES);
+				scenario_buf[idx_scenario_byte] = buf[idx_buf];
+				idx_scenario_byte++;
+				if (idx_scenario_byte == NR_SCENARIO_BYTES) {
+					read_stat = FIRST_VAL;
+					idx_start_char = idx_buf + 1;
+				}
+			}
+			if (buf[idx_buf] == ',' && (read_stat == FIRST_VAL)) {
 				val1 = val1 + std::string(reinterpret_cast<const char*>(buf + idx_start_char), idx_buf - idx_start_char);
 				idx_start_char = idx_buf + 1;
-				reading_first_val = false;
+				read_stat = SECOND_VAL;
 			}
-			if (buf[idx_buf] == '\n') {
-				if (reading_first_val) {
+			if ((buf[idx_buf] == '\n') && (read_stat != SCENARIO_BYTES)) {
+				if (read_stat == FIRST_VAL) {
 					val1 = val1 + std::string(reinterpret_cast<const char*>(buf + idx_start_char), idx_buf - idx_start_char);
-				} else {
+				}
+				else if (read_stat == SECOND_VAL) {
 					val2 = val2 + std::string(reinterpret_cast<const char*>(buf + idx_start_char), idx_buf - idx_start_char);
 				}
 				// add row
+				// TODO: apply scenario bytes to append a preprocessed row
+
 				appender.AppendRow(val1.c_str(), val2.c_str());
 				// reset
 				val1 = "";
 				val2 = "";
-				reading_first_val = true;
+				read_stat = SCENARIO_BYTES;
+				idx_scenario_byte = 0;
 				idx_start_char = idx_buf + 1;
 			}
 			// end of read-buffer, preserve what we have so far
 			if (idx_buf == n_read - 1) {
-				if (reading_first_val == true) {
+				if (read_stat == FIRST_VAL) {
 					val1 = val1 + std::string(reinterpret_cast<const char*>(buf + idx_start_char), idx_buf + 1 - idx_start_char);
-				} else {
+				} else if (read_stat == SECOND_VAL){
 					val2 = val2 + std::string(reinterpret_cast<const char*>(buf + idx_start_char), idx_buf + 1 - idx_start_char);
 				}
 			}
