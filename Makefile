@@ -216,6 +216,21 @@ fuzz_parquet_multi_param: check_duckdb_in_pyenv
 	mkdir -p fuzz_results/
 	docker cp afl-container:$(RESULT_DIR)/parquet_multi_param_fuzzer fuzz_results
 
+fuzz_appender:
+	mkdir -p corpus/appender
+	cp -rf scripts/corpus_creation/appender_corpus_init/*.csv corpus/appender
+	docker exec afl-container mkdir -p $(RESULT_DIR)/appender_fuzzer
+	docker cp ./corpus/appender afl-container:$(CORPUS_DIR)
+	docker exec afl-container /AFLplusplus/afl-fuzz \
+		-V 3600 \
+		-i $(CORPUS_DIR)/appender \
+		-o $(RESULT_DIR)/appender_fuzzer \
+		-m none \
+		-d \
+		-- $(APPENDER_FUZZER)
+	mkdir -p fuzz_results/
+	docker cp afl-container:$(RESULT_DIR)/appender_fuzzer fuzz_results
+
 fuzz_duckdb_file:
 	./scripts/corpus_creation/create_duckdb_file_corpus.sh "./scripts/corpus_creation/duckdb_corpus_init" "./corpus/duckdbfiles"
 	docker exec afl-container mkdir -p $(RESULT_DIR)/duckdb_file_fuzzer

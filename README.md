@@ -5,6 +5,7 @@ Implemented fuzz tests:
 - fuzz test the csv reader: function `read_csv()`
 - fuzz test the json reader: function `read_json()`
 - fuzz test the parquet reader: function `read_parquet()`
+- fuzz test data ingestion via the 'appender'
 - fuzz test attaching duckdb storage files
 - fuzz test processing write-ahead log file (wal)
 
@@ -92,6 +93,7 @@ Fuzz duckdb with afl++ by executing the folowing steps consequtively.
     - `make fuzz_json_pipe`
     - `make fuzz_parquet_base`
     - `make fuzz_parquet_multi_param`
+    - `make fuzz_appender`
     - `make fuzz_duckdb_file`
     - `make fuzz_wal_file`
 
