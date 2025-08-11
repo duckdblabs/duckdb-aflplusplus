@@ -7,10 +7,17 @@
 const int NR_SCENARIO_BYTES = 3;
 const int BUFF_SIZE = 4096;
 
+
+void AppendScenarioRow(duckdb::Appender &appender, uint8_t scenario_buf[NR_SCENARIO_BYTES], std::string &val1,
+					   std::string &val2) {
+	// TODO: apply scenario bytes to append a preprocessed row
+	appender.AppendRow(val1.c_str(), val2.c_str());
+}
+
 void AppenderFuzzer() {
 	assert(BUFF_SIZE > NR_SCENARIO_BYTES);
 
-	duckdb::DuckDB db(nullptr);
+	duckdb::DuckDB db("tempdb.duckdb");
 	duckdb::Connection con(db);
 	uint8_t buf[BUFF_SIZE];
 	uint8_t scenario_buf[NR_SCENARIO_BYTES];
@@ -92,6 +99,7 @@ void AppenderFuzzer() {
 	}
 	// flush
 	appender.Close();
+	con.Query("checkpoint");
 
 	// debug
 	// duckdb::unique_ptr<duckdb::QueryResult> result;
@@ -100,11 +108,6 @@ void AppenderFuzzer() {
 	// std::cout << con.Query("SELECT count(*) FROM tbl")->ToString() << std::endl;
 }
 
-void AppendScenarioRow(duckdb::Appender &appender, uint8_t scenario_buf[NR_SCENARIO_BYTES], std::string &val1,
-                       std::string &val2) {
-	// TODO: apply scenario bytes to append a preprocessed row
-	appender.AppendRow(val1.c_str(), val2.c_str());
-}
 
 int main() {
 	try {
