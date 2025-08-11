@@ -5,7 +5,7 @@
 #include <unistd.h>
 
 const int NR_SCENARIO_BYTES = 3;
-const int BUFF_SIZE = 10;
+const int BUFF_SIZE = 4096;
 
 void AppenderFuzzer() {
 	assert(BUFF_SIZE > NR_SCENARIO_BYTES);
@@ -94,10 +94,10 @@ void AppenderFuzzer() {
 	appender.Close();
 
 	// debug
-	duckdb::unique_ptr<duckdb::QueryResult> result;
-	result = con.Query("FROM tbl");
-	std::cout << result->ToString() << std::endl;
-	std::cout << con.Query("SELECT count(*) FROM tbl")->ToString() << std::endl;
+	// duckdb::unique_ptr<duckdb::QueryResult> result;
+	// result = con.Query("FROM tbl");
+	// std::cout << result->ToString() << std::endl;
+	// std::cout << con.Query("SELECT count(*) FROM tbl")->ToString() << std::endl;
 }
 
 void AppendScenarioRow(duckdb::Appender &appender, uint8_t scenario_buf[NR_SCENARIO_BYTES], std::string &val1,
