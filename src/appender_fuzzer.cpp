@@ -101,13 +101,16 @@ void AppendScenarioRow(duckdb::Appender &appender, uint8_t scenario_buf[NR_SCENA
 }
 
 void AppenderFuzzer() {
-	assert(BUFF_SIZE > NR_SCENARIO_BYTES);
-
-	duckdb::DuckDB db("tempdb.duckdb");
+	// create duckdb db
+	duckdb::DBConfig config;
+	config.SetOptionByName("default_block_size", duckdb::Value(16384));
+	duckdb::DuckDB db("tempdb.duckdb", &config);
 	duckdb::Connection con(db);
+
+	// append data (read from stdin)
+	assert(BUFF_SIZE > NR_SCENARIO_BYTES);
 	uint8_t buf[BUFF_SIZE];
 	uint8_t scenario_buf[NR_SCENARIO_BYTES];
-
 	enum read_state_option {
     	SCENARIO_BYTES,
     	FIRST_VAL,
@@ -122,7 +125,6 @@ void AppenderFuzzer() {
 	std::string val2;
 	read_state_option read_state = SCENARIO_BYTES;
 
-	// append records (read from stdin)
 	con.Query("PRAGMA force_compression='fsst'");
 	con.Query("CREATE OR REPLACE TABLE tbl (col1 VARCHAR, col2 VARCHAR)");
 	duckdb::Appender appender(con, "tbl");
@@ -198,6 +200,7 @@ void AppenderFuzzer() {
 int main() {
 	try {
 		AppenderFuzzer();
-	} catch (duckdb::InvalidInputException) {
+	} catch (duckdb::InvalidInputException &e) {
+		// std::cout << e.what() << std::endl;
 	}
 }
