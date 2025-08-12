@@ -182,8 +182,8 @@ void AppenderFuzzer() {
 		}
 	}
 	// add final row
-	if (val1 != "") {
-		appender.AppendRow(val1.c_str(), val2.c_str());
+	if (read_state != SCENARIO_BYTES) {
+		AppendScenarioRow(appender, scenario_buf, val1, val2);
 	}
 	// flush
 	appender.Close();
