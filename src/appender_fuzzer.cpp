@@ -34,13 +34,13 @@ void RepeatString(std::string &str, size_t n) {
 }
 
 void GetBoolSettings(uint8_t &scenario_byte, bool (&bool_settings)[8]) {
-    for (int i = 0; i < 8; i++) {
-        bool_settings[7 - i] = (scenario_byte >> i) & 0b00000001;
-    }
+	for (int i = 0; i < 8; i++) {
+		bool_settings[7 - i] = (scenario_byte >> i) & 0b00000001;
+	}
 }
 
 void AppendScenarioRow(duckdb::Appender &appender, uint8_t scenario_buf[NR_SCENARIO_BYTES], std::string &val1,
-					   std::string &val2) {
+                       std::string &val2) {
 	// use first scenario byte to get bool-settings
 	bool bool_settings[8];
 	GetBoolSettings(scenario_buf[0], bool_settings);
@@ -86,8 +86,7 @@ void AppendScenarioRow(duckdb::Appender &appender, uint8_t scenario_buf[NR_SCENA
 		for (u_int16_t i = 0; i < nr_row_inserts; i++) {
 			appender.AppendRow(append_val_1, append_val_2);
 		}
-	}
-	else {
+	} else {
 		for (u_int16_t i = 0; i < n_value; i++) {
 			appender.AppendRow(duckdb::string_t(append_str1), duckdb::string_t(append_str2));
 		}
