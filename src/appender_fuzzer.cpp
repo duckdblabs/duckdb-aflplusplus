@@ -189,6 +189,9 @@ void AppenderFuzzer() {
 	appender.Close();
 	con.Query("checkpoint");
 
+	// materialize table (this will trigger decompression if compression methods like fsst were applied)
+	duckdb::unique_ptr<duckdb::MaterializedQueryResult> q_result = con.Query("from tbl");
+
 	// debug
 	// duckdb::unique_ptr<duckdb::QueryResult> result;
 	// result = con.Query("FROM tbl");
