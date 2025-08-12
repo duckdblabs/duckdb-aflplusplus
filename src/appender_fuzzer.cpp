@@ -45,9 +45,9 @@ void AppendScenarioRow(duckdb::Appender &appender, uint8_t scenario_buf[NR_SCENA
 	bool bool_settings[8];
 	GetBoolSettings(scenario_buf[0], bool_settings);
 
-	// use second and third scenario byte to get n value [0 - 5000]
+	// use second and third scenario byte to get n value [0 - 400]
 	assert(NR_SCENARIO_BYTES == 3);
-	uint16_t n_value = ((static_cast<uint16_t>(scenario_buf[1]) << 8) | static_cast<uint16_t>(scenario_buf[2])) % 5000;
+	uint16_t n_value = ((static_cast<uint16_t>(scenario_buf[1]) << 8) | static_cast<uint16_t>(scenario_buf[2])) % 400;
 
 	// apply bool-settings
 	// 0 - replace val1 by ""
