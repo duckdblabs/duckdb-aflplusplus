@@ -7,32 +7,30 @@
 const int NR_SCENARIO_BYTES = 3;
 const int BUFF_SIZE = 4096;
 
-
 std::string CreatePrintableString(const std::string &str) {
-    std::string printable_str;
-    printable_str.reserve(str.size());
-    for (unsigned char ch : str) {
-        if (std::isprint(ch)) {
-            printable_str.push_back(ch);
-        } else {
-            // convert non-printable chars into ASCII range 32..126 (95 characters)
-            unsigned char printable = (ch % 95) + 32;
-            printable_str.push_back(printable);
-        }
-    }
-    return printable_str;
+	std::string printable_str;
+	printable_str.reserve(str.size());
+	for (unsigned char ch : str) {
+		if (std::isprint(ch)) {
+			printable_str.push_back(ch);
+		} else {
+			// convert non-printable chars into ASCII range 32..126 (95 characters)
+			unsigned char printable = (ch % 95) + 32;
+			printable_str.push_back(printable);
+		}
+	}
+	return printable_str;
 }
 
-void RepeatString(std::string& str, size_t n) {
-    assert(n > 0);
-    const size_t original_size = str.size();
-    assert(original_size > 0);
+void RepeatString(std::string &str, size_t n) {
+	assert(n > 0);
+	const size_t original_size = str.size();
+	assert(original_size > 0);
 
-    str.resize(original_size * n);
-    for (size_t i = 1; i < n; ++i) {
-        std::copy(str.begin(), str.begin() + original_size,
-                  str.begin() + i * original_size);
-    }
+	str.resize(original_size * n);
+	for (size_t i = 1; i < n; ++i) {
+		std::copy(str.begin(), str.begin() + original_size, str.begin() + i * original_size);
+	}
 }
 
 void GetBoolSettings(uint8_t &scenario_byte, bool (&bool_settings)[8]) {
