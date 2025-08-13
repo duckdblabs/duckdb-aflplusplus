@@ -3,6 +3,7 @@
 #include <cassert>
 #include <iostream>
 #include <unistd.h>
+#include <cstdio>
 
 const int NR_SCENARIO_BYTES = 3;
 const int BUFF_SIZE = 4096;
@@ -189,16 +190,15 @@ void AppenderFuzzer() {
 	appender.Close();
 	con.Query("checkpoint");
 
-	// materialize table (this will trigger decompression if compression methods like fsst were applied)
-	duckdb::unique_ptr<duckdb::MaterializedQueryResult> q_result = con.Query("from tbl");
+	// force decompression
+	duckdb::unique_ptr<duckdb::QueryResult> result;
+	result = con.Query("FROM tbl");
+	result->ToString();
 
 	// debug
-	// duckdb::unique_ptr<duckdb::QueryResult> result;
-	// result = con.Query("FROM tbl");
 	// std::cout << result->ToString() << std::endl;
 	// std::cout << con.Query("SELECT count(*) FROM tbl")->ToString() << std::endl;
 }
-
 
 int main() {
 	try {
@@ -206,4 +206,7 @@ int main() {
 	} catch (duckdb::InvalidInputException &e) {
 		// std::cout << e.what() << std::endl;
 	}
+	// cleanup
+	std::remove("tempdb.duckdb");
+	std::remove("tempdb.duckdb.wal");
 }
