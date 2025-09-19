@@ -120,7 +120,6 @@ jobs:
     if: ${{ inputs.createIssues == 'YesIndeed' }}
     uses: ./.github/workflows/CreateIssues.yml
     with:
-      createIssues: ${{ inputs.createIssues }}
       fuzzer: ${{ inputs.fuzzer }}
       duckdb_sha:  ${{ needs.aflplusplus-fuzz-run.outputs.duckdb_sha }}
       ref: ${{ inputs.ref }}
