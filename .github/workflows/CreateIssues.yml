@@ -1,0 +1,102 @@
+name: Create Issues
+on:
+  workflow_call:
+    inputs:
+      createIssues:
+        description: "create issues"
+        required: false
+        type: string
+        default: 'YesIndeed'
+      fuzzer:
+        description: "fuzz scenario"
+        required: true
+        type: string
+      duckdb_sha:
+        type: string
+      ref:
+        description: "duckdb branch, tag, or full-length SHA"
+        required: true
+        type: string
+      duckdb_version:
+        type: string
+      file_format:
+        type: string
+      num_crashes:
+        type: number
+      num_hangs:
+        type: number
+    secrets:
+      FUZZEROFDUCKSKEY:
+        required: true
+
+jobs:
+  create_issues:
+    name: Register issues to github
+    runs-on: ubuntu-24.04
+    needs: [aflplusplus-fuzz-run, process-fuzz-results]
+    if: ${{ inputs.createIssues == 'YesIndeed' }}
+    env:
+      FUZZ_RUN_ID: ${{ github.run_id }}
+    steps:
+      - name: Checkout duckdb_aflplusplus
+        uses: actions/checkout@v4
+        with:
+          repository: duckdblabs/duckdb-aflplusplus
+          path: duckdb_aflplusplus
+          sparse-checkout: |
+            scripts
+
+      - name: Checkout duckdb-fuzzer
+        uses: actions/checkout@v4
+        with:
+          repository: duckdb/duckdb-fuzzer
+          path: duckdb-fuzzer
+          token: ${{ secrets.FUZZEROFDUCKSKEY }}
+
+      - name: download reproductions and sqllogic tests (created by previous job)
+        uses: actions/download-artifact@v4
+        with:
+          pattern: ${{ inputs.fuzzer }}-${{ inputs.duckdb_sha }}*
+          run-id: ${{ env.FUZZ_RUN_ID }}
+          github-token: ${{ secrets.FUZZEROFDUCKSKEY }}
+          repository:  ${{ github.repository }}
+          merge-multiple: true
+
+      - name: extract reproductions
+        run: |
+          tar -xvf reproductions.tar
+          DUCKDB_REF_CLEAN=$(echo $DUCKDB_REF | sed 's/\./-/g')
+          REPRODUCTION_DIR="fuzz_result_duckdb_file_readers/run_${{ env.FUZZ_RUN_ID }}/$DUCKDB_REF_CLEAN-${{ inputs.duckdb_sha }}/${{ inputs.fuzzer }}"
+          echo "REPRODUCTION_DIR=$REPRODUCTION_DIR" >> $GITHUB_ENV
+
+      - name: Commit reproduction files
+        shell: bash
+        working-directory: duckdb-fuzzer
+        run: |
+          git config user.name "fuzzerofducks"
+          git config user.email "fuzzerofducks@duckdblabs.com"
+          git pull
+          mkdir -p ${{ env.REPRODUCTION_DIR }}
+          cp -rf ../reproductions/* ${{ env.REPRODUCTION_DIR }}
+          cp ../${{ inputs.fuzzer }}-${{ inputs.duckdb_sha }}.test ${{ env.REPRODUCTION_DIR }} || echo "no .test file for crashes; skipping... "
+          cp ../${{ inputs.fuzzer }}-${{ inputs.duckdb_sha }}-hangs.test ${{ env.REPRODUCTION_DIR }} || echo "no .test file for hangs; skipping... "
+          git add .
+          git commit -m "add fuzz reproductions for run ${{ env.FUZZ_RUN_ID }}; ${{ inputs.fuzzer }}; duckdb ref: ${{ inputs.ref }};"
+          git push || (git config pull.rebase true && git pull && git push)
+          echo "created commit: $(git -P log -n 1 --pretty=format:%H)"
+
+      - name: Register issues
+        env:
+          DUCKDB_REF: ${{ inputs.ref }}
+          DUCKDB_SHA: ${{ inputs.duckdb_sha }}
+          DUCKDB_VERSION: ${{ inputs.duckdb_version }}
+          FILE_FORMAT: ${{ inputs.file_format }}
+          FUZZ_REPO: ${{ github.repository }}
+          FUZZ_SCENARIO: ${{ inputs.fuzzer }}
+          FUZZ_WORKFLOW: ${{ github.workflow }}
+          NUM_CRASHES: ${{ inputs.num_crashes }}
+          NUM_HANGS: ${{ inputs.num_hangs }}
+          REPRODUCTION_DIR: ${{ env.REPRODUCTION_DIR }}
+        run: |
+          chmod -R +x $DUCKDB_AFLPLUSPLUS_DIR/scripts
+          $DUCKDB_AFLPLUSPLUS_DIR/scripts/register_issues/register_issues.py

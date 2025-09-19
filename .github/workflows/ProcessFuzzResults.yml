@@ -1,0 +1,135 @@
+name: Process Fuzz Results
+on:
+  workflow_call:
+    inputs:
+      fuzzer:
+        description: "fuzz scenario"
+        required: true
+        type: string
+      duckdb_sha:
+        type: string
+      num_crashes:
+        type: number
+      num_hangs:
+        type: number
+      queue_length:
+        type: number
+      file_format:
+        type: string
+
+jobs:
+  process-fuzz-results:
+    name: Post-process fuzz results
+    runs-on: ubuntu-24.04
+    if: inputs.num_crashes != '0' || inputs.num_hangs != '0'
+
+    env:
+      NUM_CRASHES: ${{ inputs.num_crashes }}
+      NUM_HANGS: ${{ inputs.num_hangs }}
+      QUEUE_LENGTH: ${{ inputs.queue_length }}
+      FILE_FORMAT: ${{ inputs.file_format }}
+
+    steps:
+      - name: print fuzz statistics
+        run: |
+          echo crahses found: $NUM_CRASHES
+          echo hangs found: $NUM_HANGS
+          echo queue length: $QUEUE_LENGTH
+          echo file format: $FILE_FORMAT
+
+      - name: define input dependent variables
+        run: |
+          case $FILE_FORMAT in
+            csv)
+              echo "SQLLOGIC_DATA_DIR=data/csv/afl/${{ github.run_id }}_csv_fuzz_error" >> $GITHUB_ENV
+              ;;
+            json)
+              echo "SQLLOGIC_DATA_DIR=data/json/afl/${{ github.run_id }}_json_fuzz_error" >> $GITHUB_ENV
+              ;;
+            parquet)
+              echo "SQLLOGIC_DATA_DIR=data/parquet-testing/afl/${{ github.run_id }}_parquet_fuzz_error" >> $GITHUB_ENV
+              ;;
+            *)
+              echo "unsupported file format"
+              exit 1
+              ;;
+          esac
+
+      - name: Checkout duckdb_aflplusplus
+        uses: actions/checkout@v4
+        with:
+          repository: duckdblabs/duckdb-aflplusplus
+          path: duckdb_aflplusplus
+          # src directory is used by some python scripts (e.g. decode_multi_param_files.py)
+          sparse-checkout: |
+            scripts
+            src
+
+      - name: download fuzz-results (created by previous job)
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.fuzzer }}-${{ inputs.duckdb_sha }}-fuzz_results
+
+      - name: extract fuzz-results
+        run: |
+          tar -xf fuzz_results.tar
+
+      - name: decode crashes
+        if: inputs.num_crashes != '0'
+        run: |
+          $DUCKDB_AFLPLUSPLUS_DIR/scripts/reproduction/decode_multi_param_files.py \
+            read_$FILE_FORMAT \
+            ${{ github.workspace }}/fuzz_results/${{ inputs.fuzzer }}/default/crashes \
+            ${{ github.workspace }}/reproductions/crashes
+
+      - name: decode hangs
+        if: inputs.num_hangs != '0'
+        run: |
+          $DUCKDB_AFLPLUSPLUS_DIR/scripts/reproduction/decode_multi_param_files.py \
+            read_$FILE_FORMAT \
+            ${{ github.workspace }}/fuzz_results/${{ inputs.fuzzer }}/default/hangs \
+            ${{ github.workspace }}/reproductions/hangs
+
+      - run: tar -cvf reproductions.tar reproductions
+
+      - name: Store reproductions as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.fuzzer }}-${{ inputs.duckdb_sha }}-reproductions
+          path: reproductions.tar
+
+      - name: create sqllogic tests for crashes
+        if: inputs.num_crashes != '0'
+        env:
+          REPRODUCTION_DIR: ${{ github.workspace }}/reproductions/crashes
+          SQLLOGIC_TEST_NAME: test/fuzzer/afl/${{ inputs.fuzzer }}-${{ inputs.duckdb_sha }}.test
+          SQLLOGIC_FILE_PATH: ${{ github.workspace }}/${{ inputs.fuzzer }}-${{ inputs.duckdb_sha }}.test
+          SQLLOGIC_DATA_DIR: ${{ env.SQLLOGIC_DATA_DIR }}
+        run: |
+          $DUCKDB_AFLPLUSPLUS_DIR/scripts/reproduction/create_sqllogic_for_file_readers.py \
+            read_$FILE_FORMAT $REPRODUCTION_DIR $SQLLOGIC_TEST_NAME $SQLLOGIC_FILE_PATH $SQLLOGIC_DATA_DIR
+
+      - name: create sqllogic tests for hangs
+        if: inputs.num_hangs != '0'
+        env:
+          REPRODUCTION_DIR: ${{ github.workspace }}/reproductions/hangs
+          SQLLOGIC_TEST_NAME: test/fuzzer/afl/${{ inputs.fuzzer }}-${{ inputs.duckdb_sha }}-hangs.test
+          SQLLOGIC_FILE_PATH: ${{ github.workspace }}/${{ inputs.fuzzer }}-${{ inputs.duckdb_sha }}-hangs.test
+          SQLLOGIC_DATA_DIR: ${{ env.SQLLOGIC_DATA_DIR }}_hangs
+        run: |
+          $DUCKDB_AFLPLUSPLUS_DIR/scripts/reproduction/create_sqllogic_for_file_readers.py \
+            read_$FILE_FORMAT $REPRODUCTION_DIR $SQLLOGIC_TEST_NAME $SQLLOGIC_FILE_PATH $SQLLOGIC_DATA_DIR
+
+      - name: Store sqllogic test for crashes as artifact
+        if: inputs.num_crashes != '0'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.fuzzer }}-${{ inputs.duckdb_sha }}.test
+          path: ${{ inputs.fuzzer }}-${{ inputs.duckdb_sha }}.test
+
+      - name: Store sqllogic test for hangs as artifact
+        if: inputs.num_hangs != '0'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.fuzzer }}-${{ inputs.duckdb_sha }}-hangs.test
+          path: ${{ inputs.fuzzer }}-${{ inputs.duckdb_sha }}-hangs.test
