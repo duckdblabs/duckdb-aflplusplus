@@ -95,9 +95,9 @@ jobs:
       duckdbRepo: ${{ inputs.duckdbRepo }}
       ref: ${{ inputs.ref }}
       fuzzer: ${{ inputs.fuzzer }}
-      fuzzTime: ${{ inputs.fuzzTime }}
-      cacheAFL: ${{ inputs.cacheAFL }}
-      cacheDuckDB: ${{ inputs.cacheDuckDB }}
+      fuzzTime: "${{ inputs.fuzzTime }}"
+      cacheAFL: "${{ inputs.cacheAFL }}"
+      cacheDuckDB: "${{ inputs.cacheDuckDB }}"
       createIssues: ${{ inputs.createIssues }}
     secrets:
       FUZZEROFDUCKSKEY: ${{ secrets.FUZZEROFDUCKSKEY }}
