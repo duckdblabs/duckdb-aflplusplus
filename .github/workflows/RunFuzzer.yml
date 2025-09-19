@@ -95,9 +95,10 @@ jobs:
       duckdbRepo: ${{ inputs.duckdbRepo }}
       ref: ${{ inputs.ref }}
       fuzzer: ${{ inputs.fuzzer }}
-      fuzzTime: "${{ inputs.fuzzTime }}"
-      cacheAFL: "${{ inputs.cacheAFL }}"
-      cacheDuckDB: "${{ inputs.cacheDuckDB }}"
+      # workaround for numerical inputs: https://github.com/orgs/community/discussions/67182#discussioncomment-8617964
+      fuzzTime: ${{ fromJson(inputs.fuzzTime) }}
+      cacheAFL: ${{ inputs.cacheAFL }}
+      cacheDuckDB: ${{ inputs.cacheDuckDB }}
       createIssues: ${{ inputs.createIssues }}
     secrets:
       FUZZEROFDUCKSKEY: ${{ secrets.FUZZEROFDUCKSKEY }}
