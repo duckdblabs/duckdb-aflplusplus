@@ -34,9 +34,6 @@ on:
         required: false
         type: string
         default: 'YesIndeed'
-    secrets:
-      FUZZEROFDUCKSKEY:
-        required: true
 
 jobs:
   aflplusplus-fuzz-run:
@@ -46,6 +43,7 @@ jobs:
       CC: ${{ github.workspace }}/bin/afl-clang-fast
       CXX: ${{ github.workspace }}/bin/afl-clang-fast++
       DUCKDB_DIR: ${{ github.workspace }}/duckdb
+      DUCKDB_AFLPLUSPLUS_DIR: ${{ github.workspace }}/duckdb_aflplusplus
     outputs:
       file_format: ${{ steps.define_vars.outputs.file_format }}
       num_crashes: ${{ steps.define_statistics.outputs.num_crashes }}

@@ -22,8 +22,8 @@ jobs:
     name: Post-process fuzz results
     runs-on: ubuntu-24.04
     if: inputs.num_crashes != '0' || inputs.num_hangs != '0'
-
     env:
+      DUCKDB_AFLPLUSPLUS_DIR: ${{ github.workspace }}/duckdb_aflplusplus
       NUM_CRASHES: ${{ inputs.num_crashes }}
       NUM_HANGS: ${{ inputs.num_hangs }}
       QUEUE_LENGTH: ${{ inputs.queue_length }}

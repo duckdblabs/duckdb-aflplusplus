@@ -30,6 +30,9 @@ jobs:
     runs-on: ubuntu-24.04
     env:
       FUZZ_RUN_ID: ${{ github.run_id }}
+      DUCKDB_REF: ${{ inputs.ref }}
+      DUCKDB_AFLPLUSPLUS_DIR: ${{ github.workspace }}/duckdb_aflplusplus
+      FUZZEROFDUCKSKEY: ${{ secrets.FUZZEROFDUCKSKEY }}
     steps:
       - name: Checkout duckdb_aflplusplus
         uses: actions/checkout@v4
