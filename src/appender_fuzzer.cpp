@@ -2,8 +2,10 @@
 
 #include <cassert>
 #include <iostream>
+#include <iomanip>
 #include <unistd.h>
 #include <cstdio>
+#include <sstream>
 
 const int NR_SCENARIO_BYTES = 3;
 const int BUFF_SIZE = 4096;
@@ -23,15 +25,63 @@ std::string CreatePrintableString(const std::string &str) {
 	return printable_str;
 }
 
-void RepeatString(std::string &str, size_t n) {
-	assert(n > 0);
-	const size_t original_size = str.size();
-	assert(original_size > 0);
+std::string generate_random_string(uint16_t len, const std::string &seed_str) {
+	const std::string charset =
+		"0123456789"
+		"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+		"abcdefghijklmnopqrstuvwxyz";
+	unsigned int seed = std::hash<std::string>{}(seed_str);
+	std::mt19937 num_generator(seed);
+	std::uniform_int_distribution<> dist(0, charset.size() - 1);
 
-	str.resize(original_size * n);
-	for (size_t i = 1; i < n; ++i) {
-		std::copy(str.begin(), str.begin() + original_size, str.begin() + i * original_size);
+	std::string str;
+	str.reserve(len);
+	for (uint16_t i = 0; i < len; ++i) {
+		str += charset[dist(num_generator)];
 	}
+	return str;
+}
+
+// creates a 3-char hex-string
+std::string intToHexStr(uint16_t value) {
+	std::stringstream ss;
+	ss << std::hex << std::setw(3) << std::setfill('-') << (value % 4096);
+	return ss.str();
+}
+
+void RepeatString(std::string &str, uint16_t nr_repeats, bool apply_rotating_suffix) {
+	assert(nr_repeats > 1);
+	const std::string initial_str(str);
+	const size_t initial_str_len = initial_str.size();
+	assert(initial_str_len > 0);
+	const uint8_t suffix_size = apply_rotating_suffix ? 3 : 0;
+
+	// create string
+	str.resize((initial_str_len + suffix_size) * nr_repeats);
+	for (uint16_t rep_nr = 0; rep_nr < nr_repeats; rep_nr++) {
+		idx_t idx_rep_start = rep_nr * (initial_str_len + suffix_size);
+		if (rep_nr > 0) {
+			// append string (first one is already in place)
+			for (idx_t idx_ch = 0; idx_ch < initial_str_len; idx_ch++) {
+				str[idx_rep_start + idx_ch] = initial_str[idx_ch];
+			}
+		}
+		if (apply_rotating_suffix) {
+			// append 3 char suffix
+			std::string suffix = intToHexStr(rep_nr);
+			for (size_t idx_suffix = 0; idx_suffix < 3; idx_suffix++) {
+				str[idx_rep_start + initial_str_len + idx_suffix] = suffix[idx_suffix];
+			}
+		}
+	}
+}
+
+std::string CreateStringWithSuffix(const std::string &str, uint16_t num) {
+	std::string str_out = std::string(str);
+	str_out.resize(str.size() + 3);
+	std::string suffix = intToHexStr(num);
+	std::copy(suffix.begin(), suffix.end(), str_out.end() - 3);
+	return str_out;
 }
 
 void GetBoolSettings(uint8_t &scenario_byte, bool (&bool_settings)[8]) {
@@ -41,40 +91,38 @@ void GetBoolSettings(uint8_t &scenario_byte, bool (&bool_settings)[8]) {
 }
 
 void AppendScenarioRow(duckdb::Appender &appender, uint8_t scenario_buf[NR_SCENARIO_BYTES], std::string &val1,
-                       std::string &val2) {
+					   std::string &val2) {
 	// use first scenario byte to get bool-settings
 	bool bool_settings[8];
 	GetBoolSettings(scenario_buf[0], bool_settings);
 
 	// use second and third scenario byte to get n value [0 - 400]
 	assert(NR_SCENARIO_BYTES == 3);
-	uint16_t n_value = ((static_cast<uint16_t>(scenario_buf[1]) << 8) | static_cast<uint16_t>(scenario_buf[2])) % 400;
+	uint16_t n_value = ((static_cast<uint16_t>(scenario_buf[1]) << 8) | static_cast<uint16_t>(scenario_buf[2])) % 4010;
 
 	// apply bool-settings
 	// 0 - replace val1 by ""
 	std::string append_str1 = (bool_settings[0]) ? "" : val1;
 
-	// 1 - replace val2 by ""
-	std::string append_str2 = (bool_settings[1]) ? "" : val2;
+	// 1 - replace val2 by random (non-compressible) string (deterministic, of lenght n)
+	std::string append_str2 = (bool_settings[1]) ? generate_random_string(n_value, val2) : val2;
 
 	// 2 - replace val1: convert to printable chars
 	if (bool_settings[2] && append_str1 != "") {
 		append_str1 = CreatePrintableString(append_str1);
 	}
 
-	// 3 - replace val2 by val1
-	if (bool_settings[3]) {
-		append_str2 = append_str1;
-	}
+	// 3 - use rotating suffixes in repetitions
+	bool apply_rotating_suffix = (bool_settings[3]) ? true : false;
 
 	// 4 - repeat val1 n times
 	if (bool_settings[4] && append_str1 != "" && n_value >= 2) {
-		RepeatString(append_str1, n_value);
+		RepeatString(append_str1, n_value, apply_rotating_suffix);
 	}
 
 	// 5 - repeat val2 n times
 	if (bool_settings[5] && append_str2 != "" && n_value >= 2) {
-		RepeatString(append_str2, n_value);
+		RepeatString(append_str2, n_value, apply_rotating_suffix);
 	}
 
 	// 6 - append same row n times
@@ -86,19 +134,23 @@ void AppendScenarioRow(duckdb::Appender &appender, uint8_t scenario_buf[NR_SCENA
 		duckdb::Value append_val_2 = (append_str2 == "") ? duckdb::Value(nullptr) : duckdb::Value(append_str2);
 		for (u_int16_t i = 0; i < nr_row_inserts; i++) {
 			appender.AppendRow(append_val_1, append_val_2);
+			// debug
+			// std::cout << "val append: " << append_val_1.ToString() << ", " << append_val_1.ToString() << std::endl;
 		}
 	} else {
 		for (u_int16_t i = 0; i < nr_row_inserts; i++) {
 			appender.AppendRow(duckdb::string_t(append_str1), duckdb::string_t(append_str2));
+			// std::cout << "str append: " << append_str1 << ", " << append_str2 << std::endl;
 		}
 	}
 
 	// DEBUG: print bool settings:
+	// std::cout << "scenario_buf[0]: " << static_cast<unsigned int>(scenario_buf[0]) << ": ";
 	// for (bool b : bool_settings) {
-	// 	std::cout << b << std::endl;
+	// 	std::cout << b;
 	// }
+	// std::cout << std::endl;
 	// std::cout << "-----------" << std::endl;
-	// std::cout << scenario_buf[0] << std::endl;
 }
 
 void AppenderFuzzer() {
@@ -113,9 +165,9 @@ void AppenderFuzzer() {
 	uint8_t buf[BUFF_SIZE];
 	uint8_t scenario_buf[NR_SCENARIO_BYTES];
 	enum read_state_option {
-    	SCENARIO_BYTES,
-    	FIRST_VAL,
-    	SECOND_VAL
+		SCENARIO_BYTES,
+		FIRST_VAL,
+		SECOND_VAL
 	};
 
 	int n_read = 1;
@@ -133,10 +185,10 @@ void AppenderFuzzer() {
 		// before reading new chunk, preserve partial values of previous chunck
 		if (idx_buf >= idx_start_char) {
 			if (read_state == FIRST_VAL) {
-				val1 = val1 + std::string(reinterpret_cast<const char*>(buf + idx_start_char), idx_buf - idx_start_char);
+				val1 += std::string(reinterpret_cast<const char*>(buf + idx_start_char), idx_buf - idx_start_char);
 			}
 			if (read_state == SECOND_VAL) {
-				val2 = val2 + std::string(reinterpret_cast<const char*>(buf + idx_start_char), idx_buf - idx_start_char);
+				val2 += std::string(reinterpret_cast<const char*>(buf + idx_start_char), idx_buf - idx_start_char);
 			}
 		}
 		// read new chunck
@@ -162,10 +214,10 @@ void AppenderFuzzer() {
 				}
 			} else if (buf[idx_buf] == '\n') {
 				if (read_state == FIRST_VAL) {
-					val1 = val1 + std::string(reinterpret_cast<const char*>(buf + idx_start_char), idx_buf - idx_start_char);
+					val1 += std::string(reinterpret_cast<const char*>(buf + idx_start_char), idx_buf - idx_start_char);
 				}
 				if (read_state == SECOND_VAL) {
-					val2 = val2 + std::string(reinterpret_cast<const char*>(buf + idx_start_char), idx_buf - idx_start_char);
+					val2 += std::string(reinterpret_cast<const char*>(buf + idx_start_char), idx_buf - idx_start_char);
 				}
 				AppendScenarioRow(appender, scenario_buf, val1, val2);
 				// reset
@@ -175,7 +227,7 @@ void AppenderFuzzer() {
 				idx_start_char = idx_buf + 1;
 			} else if (buf[idx_buf] == ',' && read_state == FIRST_VAL) {
 				assert(idx_buf >= idx_start_char);
-				val1 = val1 + std::string(reinterpret_cast<const char*>(buf + idx_start_char), idx_buf - idx_start_char);
+				val1 += std::string(reinterpret_cast<const char*>(buf + idx_start_char), idx_buf - idx_start_char);
 				idx_start_char = idx_buf + 1;
 				read_state = SECOND_VAL;
 			}
@@ -204,7 +256,7 @@ int main() {
 	try {
 		AppenderFuzzer();
 	} catch (duckdb::InvalidInputException &e) {
-		// std::cout << e.what() << std::endl;
+		std::cout << e.what() << std::endl;
 	}
 	// cleanup
 	std::remove("tempdb.duckdb");
