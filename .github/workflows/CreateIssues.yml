@@ -49,7 +49,7 @@ jobs:
           path: duckdb-fuzzer
           token: ${{ secrets.FUZZEROFDUCKSKEY }}
 
-      - name: download reproductions and sqllogic tests (created by previous job)
+      - name: download reproductions (created by previous job)
         uses: actions/download-artifact@v4
         with:
           pattern: ${{ inputs.fuzzer }}-${{ inputs.duckdb_sha }}*
@@ -65,23 +65,8 @@ jobs:
           REPRODUCTION_DIR="fuzz_result_duckdb_file_readers/run_${{ env.FUZZ_RUN_ID }}/$DUCKDB_REF_CLEAN-${{ inputs.duckdb_sha }}/${{ inputs.fuzzer }}"
           echo "REPRODUCTION_DIR=$REPRODUCTION_DIR" >> $GITHUB_ENV
 
-      - name: Commit reproduction files
+      - name: reproduce; commit reproduction files; create gh issues
         shell: bash
-        working-directory: duckdb-fuzzer
-        run: |
-          git config user.name "fuzzerofducks"
-          git config user.email "fuzzerofducks@duckdblabs.com"
-          git pull
-          mkdir -p ${{ env.REPRODUCTION_DIR }}
-          cp -rf ../reproductions/* ${{ env.REPRODUCTION_DIR }}
-          cp ../${{ inputs.fuzzer }}-${{ inputs.duckdb_sha }}.test ${{ env.REPRODUCTION_DIR }} || echo "no .test file for crashes; skipping... "
-          cp ../${{ inputs.fuzzer }}-${{ inputs.duckdb_sha }}-hangs.test ${{ env.REPRODUCTION_DIR }} || echo "no .test file for hangs; skipping... "
-          git add .
-          git commit -m "add fuzz reproductions for run ${{ env.FUZZ_RUN_ID }}; ${{ inputs.fuzzer }}; duckdb ref: ${{ inputs.ref }};"
-          git push || (git config pull.rebase true && git pull && git push)
-          echo "created commit: $(git -P log -n 1 --pretty=format:%H)"
-
-      - name: Register issues
         env:
           DUCKDB_REF: ${{ inputs.ref }}
           DUCKDB_SHA: ${{ inputs.duckdb_sha }}
@@ -90,9 +75,12 @@ jobs:
           FUZZ_REPO: ${{ github.repository }}
           FUZZ_SCENARIO: ${{ inputs.fuzzer }}
           FUZZ_WORKFLOW: ${{ github.workflow }}
-          NUM_CRASHES: ${{ inputs.num_crashes }}
-          NUM_HANGS: ${{ inputs.num_hangs }}
           REPRODUCTION_DIR: ${{ env.REPRODUCTION_DIR }}
+        working-directory: duckdb-fuzzer
         run: |
+          git config user.name "fuzzerofducks"
+          git config user.email "fuzzerofducks@duckdblabs.com"
+          git pull
+          mkdir -p ${{ env.REPRODUCTION_DIR }}
           chmod -R +x $DUCKDB_AFLPLUSPLUS_DIR/scripts
-          $DUCKDB_AFLPLUSPLUS_DIR/scripts/register_issues/register_issues.py
+          $DUCKDB_AFLPLUSPLUS_DIR/scripts/register_issues/reproduce_and_file_issues.py ${{ inputs.fuzzer }} ${{ env.REPRODUCTION_DIR }} "."
