@@ -61,8 +61,7 @@ jobs:
       - name: extract reproductions
         run: |
           tar -xvf reproductions.tar
-          DUCKDB_REF_CLEAN=$(echo $DUCKDB_REF | sed 's/\./-/g')
-          REPRODUCTION_DIR="fuzz_result_duckdb_file_readers/run_${{ env.FUZZ_RUN_ID }}/$DUCKDB_REF_CLEAN-${{ inputs.duckdb_sha }}/${{ inputs.fuzzer }}"
+          REPRODUCTION_DIR="${{ github.workspace }}/reproductions"
           echo "REPRODUCTION_DIR=$REPRODUCTION_DIR" >> $GITHUB_ENV
 
       - name: reproduce; commit reproduction files; create gh issues
@@ -83,4 +82,4 @@ jobs:
           git pull
           mkdir -p ${{ env.REPRODUCTION_DIR }}
           chmod -R +x $DUCKDB_AFLPLUSPLUS_DIR/scripts
-          $DUCKDB_AFLPLUSPLUS_DIR/scripts/register_issues/reproduce_and_file_issues.py ${{ inputs.fuzzer }} ${{ env.REPRODUCTION_DIR }} "."
+          $DUCKDB_AFLPLUSPLUS_DIR/scripts/register_issues/reproduce_and_file_issues.py ${{ inputs.fuzzer }} ${{ env.REPRODUCTION_DIR }} ${{ env.DUCKDB_DIR }} "."
