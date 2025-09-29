@@ -34,6 +34,19 @@ on:
         required: false
         type: string
         default: 'YesIndeed'
+    outputs:
+      file_format:
+        value: ${{ jobs.aflplusplus-fuzz-run.outputs.file_format }}
+      num_crashes:
+        value: ${{ jobs.aflplusplus-fuzz-run.outputs.num_crashes }}
+      num_hangs:
+        value: ${{ jobs.aflplusplus-fuzz-run.outputs.num_hangs }}
+      queue_length:
+        value: ${{ jobs.aflplusplus-fuzz-run.outputs.queue_length }}
+      duckdb_version:
+        value: ${{ jobs.aflplusplus-fuzz-run.outputs.duckdb_version }}
+      duckdb_sha:
+        value: ${{ jobs.aflplusplus-fuzz-run.outputs.duckdb_sha }}
 
 jobs:
   aflplusplus-fuzz-run:
