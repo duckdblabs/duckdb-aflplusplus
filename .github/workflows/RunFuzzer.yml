@@ -43,6 +43,7 @@ on:
         type: choice
         options:
           - 'NotPossible'
+          - 'YesIndeed'
         default: 'NotPossible'
 
   workflow_call:
