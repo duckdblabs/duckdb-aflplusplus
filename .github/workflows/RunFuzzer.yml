@@ -103,9 +103,9 @@ jobs:
     with:
       fuzzer: ${{ inputs.fuzzer }}
       duckdb_sha: ${{ needs.aflplusplus-fuzz-run.outputs.duckdb_sha }}
-      num_crashes: ${{ needs.aflplusplus-fuzz-run.outputs.num_crashes }}
-      num_hangs: ${{ needs.aflplusplus-fuzz-run.outputs.num_hangs }}
-      queue_length: ${{ needs.aflplusplus-fuzz-run.outputs.queue_length }}
+      num_crashes: ${{ fromJson(needs.aflplusplus-fuzz-run.outputs.num_crashes) }}
+      num_hangs: ${{ fromJson(needs.aflplusplus-fuzz-run.outputs.num_hangs) }}
+      queue_length: ${{ fromJson(needs.aflplusplus-fuzz-run.outputs.queue_length) }}
       file_format: ${{ needs.aflplusplus-fuzz-run.outputs.file_format }}
 
   create_issues:
@@ -118,7 +118,7 @@ jobs:
       ref: ${{ inputs.ref }}
       duckdb_version:  ${{ needs.aflplusplus-fuzz-run.outputs.duckdb_version }}
       file_format: ${{ needs.aflplusplus-fuzz-run.outputs.file_format }}
-      num_crashes: ${{ needs.aflplusplus-fuzz-run.outputs.num_crashes }}
-      num_hangs: ${{ needs.aflplusplus-fuzz-run.outputs.num_hangs }}
+      num_crashes: ${{ fromJson(needs.aflplusplus-fuzz-run.outputs.num_crashes) }}
+      num_hangs: ${{ fromJson(needs.aflplusplus-fuzz-run.outputs.num_hangs) }}
     secrets:
       FUZZEROFDUCKSKEY: ${{ secrets.FUZZEROFDUCKSKEY }}
