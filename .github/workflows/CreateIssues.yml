@@ -31,6 +31,8 @@ jobs:
     env:
       FUZZ_RUN_ID: ${{ github.run_id }}
       DUCKDB_REF: ${{ inputs.ref }}
+      GEN: ninja
+      DUCKDB_DIR: ${{ github.workspace }}/duckdb
       DUCKDB_AFLPLUSPLUS_DIR: ${{ github.workspace }}/duckdb_aflplusplus
       FUZZEROFDUCKSKEY: ${{ secrets.FUZZEROFDUCKSKEY }}
     steps:
@@ -48,6 +50,26 @@ jobs:
           repository: duckdb/duckdb-fuzzer
           path: duckdb-fuzzer
           token: ${{ secrets.FUZZEROFDUCKSKEY }}
+
+      - name: DuckDB Build Dependencies
+        shell: bash
+        run: sudo apt-get update -y -qq && sudo apt-get install -y -qq ninja-build ccache
+
+      - name: Checkout duckdb
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          repository: ${{ inputs.duckdbRepo }}
+          ref: ${{ inputs.ref }}
+          path: duckdb
+
+      - name: Setup Ccache
+        uses: hendrikmuhs/ccache-action@main
+
+      - name: Build
+        shell: bash
+        run: |
+          make debug
 
       - name: download reproductions (created by previous job)
         uses: actions/download-artifact@v4

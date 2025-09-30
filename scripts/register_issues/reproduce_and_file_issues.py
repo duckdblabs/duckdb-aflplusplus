@@ -67,13 +67,16 @@ def run_duckdb(duckdb_cli, sql_statement):
 
 
 def main(argv: list[str]):
-    file_reader_function = argv[1]  # read_csv / read_json / read_parquet
-    match file_reader_function:
-        case 'read_csv':
+    fuzz_scenario = argv[1]
+    match fuzz_scenario:
+        case 'csv_multi_param_fuzzer':
+            file_reader_function = 'read_csv'
             file_type = 'csv'
-        case 'read_json':
+        case 'json_multi_param_fuzzer':
+            file_reader_function = 'read_json'
             file_type = 'json'
-        case 'read_parquet':
+        case 'parquet_multi_param_fuzzer':
+            file_reader_function = 'read_parquet'
             file_type = 'parquet'
         case _:
             raise ValueError(f"invalid input: {file_reader_function}")
@@ -163,11 +166,11 @@ def main(argv: list[str]):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) not in range(2, 5):
+    if len(sys.argv) not in range(2, 6):
         sys.exit(
             """
             ERROR; call this script with the following arguments:
-              1 - target function ('read_csv', 'read_json' or 'read_parquet')
+              1 - fuzz scenario ('csv_multi_param_fuzzer', 'json_multi_param_fuzzer' or 'parquet_multi_param_fuzzer')
               2 - (optional) path to reproductions directory (created by decode_multi_param_files.py)
               3 - (optional) path to duckdb directory
               4 - (optional) path to /duckdb/duckdb-fuzzer directory
