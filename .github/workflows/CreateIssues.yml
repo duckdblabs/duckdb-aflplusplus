@@ -1,0 +1,85 @@
+name: Create Issues
+on:
+  workflow_call:
+    inputs:
+      fuzzer:
+        description: "fuzz scenario"
+        required: true
+        type: string
+      duckdb_sha:
+        type: string
+      ref:
+        description: "duckdb branch, tag, or full-length SHA"
+        required: true
+        type: string
+      duckdb_version:
+        type: string
+      file_format:
+        type: string
+      num_crashes:
+        type: number
+      num_hangs:
+        type: number
+    secrets:
+      FUZZEROFDUCKSKEY:
+        required: true
+
+jobs:
+  create_issues:
+    name: Register issues to github
+    runs-on: ubuntu-24.04
+    env:
+      FUZZ_RUN_ID: ${{ github.run_id }}
+      DUCKDB_REF: ${{ inputs.ref }}
+      DUCKDB_AFLPLUSPLUS_DIR: ${{ github.workspace }}/duckdb_aflplusplus
+      FUZZEROFDUCKSKEY: ${{ secrets.FUZZEROFDUCKSKEY }}
+    steps:
+      - name: Checkout duckdb_aflplusplus
+        uses: actions/checkout@v4
+        with:
+          repository: duckdblabs/duckdb-aflplusplus
+          path: duckdb_aflplusplus
+          sparse-checkout: |
+            scripts
+
+      - name: Checkout duckdb-fuzzer
+        uses: actions/checkout@v4
+        with:
+          repository: duckdb/duckdb-fuzzer
+          path: duckdb-fuzzer
+          token: ${{ secrets.FUZZEROFDUCKSKEY }}
+
+      - name: download reproductions (created by previous job)
+        uses: actions/download-artifact@v4
+        with:
+          pattern: ${{ inputs.fuzzer }}-${{ inputs.duckdb_sha }}*
+          run-id: ${{ env.FUZZ_RUN_ID }}
+          github-token: ${{ secrets.FUZZEROFDUCKSKEY }}
+          repository:  ${{ github.repository }}
+          merge-multiple: true
+
+      - name: extract reproductions
+        run: |
+          tar -xvf reproductions.tar
+          REPRODUCTION_DIR="${{ github.workspace }}/reproductions"
+          echo "REPRODUCTION_DIR=$REPRODUCTION_DIR" >> $GITHUB_ENV
+
+      - name: reproduce; commit reproduction files; create gh issues
+        shell: bash
+        env:
+          DUCKDB_REF: ${{ inputs.ref }}
+          DUCKDB_SHA: ${{ inputs.duckdb_sha }}
+          DUCKDB_VERSION: ${{ inputs.duckdb_version }}
+          FILE_FORMAT: ${{ inputs.file_format }}
+          FUZZ_REPO: ${{ github.repository }}
+          FUZZ_SCENARIO: ${{ inputs.fuzzer }}
+          FUZZ_WORKFLOW: ${{ github.workflow }}
+          REPRODUCTION_DIR: ${{ env.REPRODUCTION_DIR }}
+        working-directory: duckdb-fuzzer
+        run: |
+          git config user.name "fuzzerofducks"
+          git config user.email "fuzzerofducks@duckdblabs.com"
+          git pull
+          mkdir -p ${{ env.REPRODUCTION_DIR }}
+          chmod -R +x $DUCKDB_AFLPLUSPLUS_DIR/scripts
+          $DUCKDB_AFLPLUSPLUS_DIR/scripts/register_issues/reproduce_and_file_issues.py ${{ inputs.fuzzer }} ${{ env.REPRODUCTION_DIR }} ${{ env.DUCKDB_DIR }} "."
