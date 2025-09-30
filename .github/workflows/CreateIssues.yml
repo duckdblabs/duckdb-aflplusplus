@@ -6,6 +6,11 @@ on:
         description: "fuzz scenario"
         required: true
         type: string
+      duckdbRepo:
+        description: "duckdb repository"
+        required: false
+        type: string
+        default: duckdb/duckdb
       duckdb_sha:
         type: string
       ref:
