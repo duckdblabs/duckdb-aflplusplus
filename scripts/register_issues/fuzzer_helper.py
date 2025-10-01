@@ -114,7 +114,6 @@ def file_issue(title, sql_statement, exception_msg, stacktrace, fuzzer, seed, ha
         .replace("${SEED}", str(seed))
     )
     body += sql_header + sql_statement + exception_header + exception_msg + trace_header + stacktrace + footer
-    print(title, body)
     github_helper.make_github_issue(title, body)
 
 

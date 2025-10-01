@@ -46,9 +46,7 @@ def split_exception_trace(exception_msg_full: str) -> tuple[str, str]:
     # if exception_msg is non-descritive AddressSanitizer issue, use first 2 lines of stack trace instead.
     if "AddressSanitizer: heap-buffer-overflow" in exception_msg and stack_trace:
         trace_lines = stack_trace.split('\n')
-        # exception_msg = "AddressSanitizer: heap-buffer-overflow; " + stack_trace.partition('\n')[0]
         exception_msg = "AddressSanitizer: heap-buffer-overflow; " + '\n'.join(trace_lines[:2])
-
     return (exception_msg.strip(), stack_trace)
 
 
@@ -57,6 +55,16 @@ def run_command(command):
     if res != 0:
         print(f"command '{command}' failed with exit code: {res}")
         exit(res)
+
+
+def print_std_error(duckdb_cli, sql_statement, stderr):
+    print("\n==== duckdb_cli: ===")
+    print(duckdb_cli)
+    print("\n==== sql_statement: ===")
+    print(sql_statement)
+    print("\n==== STD error: ===")
+    print(stderr)
+    print("==========", flush=True)
 
 
 def reproduce_file_reader_issue(duckdb_cli, repro_file_path, file_reader_function, arguments):
@@ -68,8 +76,10 @@ def reproduce_file_reader_issue(duckdb_cli, repro_file_path, file_reader_functio
         case 1 if not is_internal_error(stderr):  # regular error
             return ("", "")
         case 1:  # internal error
+            print_std_error(duckdb_cli, sql_statement, stderr)
             exception_msg, stacktrace = split_exception_trace(stderr)
         case _ if returncode < 0:  # crash
+            print_std_error(duckdb_cli, sql_statement, stderr)
             exception_msg, stacktrace = split_exception_trace(stderr)
             sig_name = signal.Signals(-returncode).name
             exception_msg = f"{sig_name}: {exception_msg}"
@@ -220,7 +230,6 @@ def main(argv: list[str]):
         fuzzer_helper.file_issue(
             title, sql_statement_gh, exception_msg, stacktrace, os.environ['FUZZ_SCENARIO'], 0, os.environ['DUCKDB_SHA']
         )
-        print(sql_statement_gh)
 
 
 if __name__ == "__main__":
