@@ -197,7 +197,7 @@ def main(argv: list[str]):
         if not github_helper.is_known_github_issue(title):
             file_name_uuid = f"{time.strftime(r"%Y%m%d")}_{uuid.uuid4().hex[:6]}.{file_type}"
             rel_file_path = f"{file_type}/{file_name_uuid}"
-            sql_statement_gh = f".sh wget {github_helper.file_url(rel_file_path)}; from {file_reader_function}('{file_name_uuid}'{arguments});"
+            sql_statement_gh = f".sh wget {github_helper.file_url(rel_file_path)}\nfrom {file_reader_function}('{file_name_uuid}'{arguments});"
             new_issues[exception_msg] = (title, rel_file_path, repro_file_path, sql_statement_gh, exception_msg, stacktrace)
 
     # commit reproduction files
