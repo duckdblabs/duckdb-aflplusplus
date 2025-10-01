@@ -21,6 +21,8 @@ import json
 import re
 import struct
 import sys
+import uuid
+import time
 
 
 def main(argv: list[str]):
@@ -49,12 +51,12 @@ def main(argv: list[str]):
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     reproductions = []
-    for count, fuzz_file in enumerate(sorted(INPUT_DIR.iterdir())):
+    for fuzz_file in sorted(INPUT_DIR.iterdir()):
         if fuzz_file.name == "README.txt":
             # skip readme file that afl++ adds to the 'crashes' directory
             continue
         argument_str, file_content = decode_file(fuzz_file, parameters)
-        file_name = f"case_{count}{extension}"
+        file_name = f"{time.strftime(r"%Y%m%d")}_{uuid.uuid4().hex[:6]}{extension}"
         (OUTPUT_DIR / file_name).write_bytes(file_content)
         reproductions.append({'file_name': file_name, 'arguments': argument_str})
 

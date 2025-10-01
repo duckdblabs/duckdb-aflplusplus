@@ -4,12 +4,10 @@ import json
 from pathlib import Path
 import sys
 import subprocess
-import time
 import signal
 import re
 import fuzzer_helper
 import github_helper
-import uuid
 import os
 
 
@@ -95,7 +93,7 @@ def run_duckdb(duckdb_cli, sql_statement):
     timed_out = False
     try:
         res = subprocess.run(
-            command, input=bytearray(sql_statement, 'utf8'), stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=5
+            command, input=bytearray(sql_statement, 'utf8'), stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=300
         )
         stdout = res.stdout.decode('utf8', 'ignore').strip()
         stderr = res.stderr.decode('utf8', 'ignore').strip()
@@ -105,7 +103,7 @@ def run_duckdb(duckdb_cli, sql_statement):
     return (stdout, stderr, returncode, timed_out)
 
 
-def reproduce_crashes(reproduction_dir, duckdb_cli, file_reader_function):
+def reproduce_crashes(reproduction_dir: Path, duckdb_cli, file_reader_function):
     unique_crashes = {}
     # verify file _REPRODUCTIONS.json exists
     crashes_json_file = reproduction_dir / 'crashes/_REPRODUCTIONS.json'
@@ -200,19 +198,20 @@ def main(argv: list[str]):
     unique_issues.update(unique_hangs)
 
     # only keep new issues
+    rel_file_dir = f"reproduction_inputs/{file_type}"
     new_issues = {}
     for issue in unique_issues.values():
         repro_file_path, arguments, exception_msg, stacktrace = issue
         title = exception_msg[:200]
         if not github_helper.is_known_github_issue(title):
-            file_name_uuid = f"{time.strftime(r"%Y%m%d")}_{uuid.uuid4().hex[:6]}.{file_type}"
-            rel_file_path = f"{file_type}/{file_name_uuid}"
-            sql_statement_gh = f".sh wget {github_helper.file_url(rel_file_path)}\nfrom {file_reader_function}('{file_name_uuid}'{arguments});"
+            repro_file_name = repro_file_path.name
+            rel_file_path = f"{rel_file_dir}/{repro_file_name}"
+            sql_statement_gh = f".sh wget {github_helper.file_url(rel_file_path)}\nfrom {file_reader_function}('{repro_file_name}'{arguments});"
             new_issues[exception_msg] = (title, rel_file_path, repro_file_path, sql_statement_gh, exception_msg, stacktrace)
 
     # commit reproduction files
     if new_issues:
-        run_command(f"mkdir -p {DUCKDB_FUZZER_DIR / file_type}")
+        run_command(f"mkdir -p {DUCKDB_FUZZER_DIR / rel_file_dir}")
         for issue in new_issues.values():
             title, rel_file_path, repro_file_path, sql_statement_gh, exception_msg, stacktrace = issue
             run_command(f"cp {repro_file_path} {DUCKDB_FUZZER_DIR / rel_file_path}")
