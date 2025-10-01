@@ -11,6 +11,7 @@ REPO_NAME = 'duckdb-fuzzer'
 
 # functions borrowed from duckdb/duckdb_sqlsmith -> fuzzer_helper.py
 
+
 def issue_url():
     return 'https://api.github.com/repos/%s/%s/issues' % (REPO_OWNER, REPO_NAME)
 
@@ -66,24 +67,6 @@ def issues_by_title_url(issue_title):
     return f"{base_url}?q={query_string}"
 
 
-def get_github_issues_list() -> list[dict]:
-    issues: list[dict] = []
-    for p in range(1, 10):
-        issues = issues + get_github_issues_per_page(p)
-    return issues
-
-
-def get_github_issues_per_page(page: int) -> list[dict]:
-    session = create_session()
-    url = issue_url() + '?per_page=100&page=' + str(page)
-    r = session.get(url)
-    if r.status_code != 200:
-        print('Failed to get list of issues')
-        print('Response:', r.content.decode('utf8'))
-        raise Exception("Failed to get list of issues")
-    return json.loads(r.content.decode('utf8'))
-
-
 def get_github_issues_by_title(issue_title) -> list[dict]:
     session = create_session()
     url = issues_by_title_url(issue_title)
@@ -95,31 +78,6 @@ def get_github_issues_by_title(issue_title) -> list[dict]:
     issue_list = r.json().get("items", [])
     return issue_list
 
-
-def close_github_issue(number):
-    session = create_session()
-    url = issue_url() + '/' + str(number)
-    params = {'state': 'closed'}
-    r = session.patch(url, json.dumps(params))
-    if r.status_code == 200:
-        print(f'Successfully closed Issue "{number}"')
-    else:
-        print(f'Could not close Issue "{number}" (status code {r.status_code})')
-        print('Response:', r.content.decode('utf8'))
-        raise Exception("Failed to close issue")
-
-
-def label_github_issue(number, label):
-    session = create_session()
-    url = issue_url() + '/' + str(number)
-    params = {'labels': [label]}
-    r = session.patch(url, json.dumps(params))
-    if r.status_code == 200:
-        print(f'Successfully labeled Issue "{number}"')
-    else:
-        print(f'Could not label Issue "{number}" (status code {r.status_code})')
-        print('Response:', r.content.decode('utf8'))
-        raise Exception("Failed to label issue")
 
 def is_known_github_issue(exception_msg):
     existing_issues = get_github_issues_by_title(exception_msg)
