@@ -97,6 +97,10 @@ def main(argv: list[str]):
 
 
 def encode_arguments(arguments: dict[str, str], parameter_types: dict[str, tuple[int, str]]) -> bytes:
+    # clean inputs: remove 'compression' arguments, as they cause too much false positives
+    if 'compression' in arguments:
+        del arguments['compression']
+
     # header: 1 byte with the number of arguments
     assert len(arguments) < 256
     encoded_arguments = len(arguments).to_bytes(1)
@@ -156,7 +160,7 @@ def read_tuples_from_cpp(cpp_source_file: Path) -> list[tuple[str, str]]:
     tuples: list[tuple] = []
     file_content = cpp_source_file.read_text()
     tuple_string: str
-    for tuple_string in re.findall(r"std::make_tuple\((.*?)\)", file_content, flags=re.NOFLAG):
+    for tuple_string in re.findall(r"^ *std::make_tuple\((.*?)\)", file_content, flags=re.MULTILINE):
         parts = tuple_string.partition(',')
         tuples.append((parts[0].strip('\" '), parts[2].strip('\" ')))
     return tuples
