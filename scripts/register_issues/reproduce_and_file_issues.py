@@ -135,7 +135,7 @@ def main(argv: list[str]):
             f"git -C {DUCKDB_FUZZER_DIR} commit -m 'add reproduction file for afl++ fuzz run {os.environ.get('FUZZ_RUN_ID')}'"
         )
         fuzzer_helper.run_command(
-            f"git -C {DUCKDB_FUZZER_DIR} push || (git -C {DUCKDB_FUZZER_DIR} config pull.rebase true && git -C {DUCKDB_FUZZER_DIR} pull git -C {DUCKDB_FUZZER_DIR} git push)"
+            f"git -C {DUCKDB_FUZZER_DIR} push || (git -C {DUCKDB_FUZZER_DIR} config pull.rebase true && git -C {DUCKDB_FUZZER_DIR} pull && git -C {DUCKDB_FUZZER_DIR} push)"
         )
 
     # create github issues
