@@ -77,7 +77,7 @@ jobs:
           EXPORT_DYNAMIC_SYMBOLS: 1
         shell: bash
         run: |
-          make debug
+          make
 
       - name: download reproductions (created by previous job)
         uses: actions/download-artifact@v4

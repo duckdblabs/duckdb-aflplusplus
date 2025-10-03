@@ -99,7 +99,7 @@ def main(argv: list[str]):
         DUCKDB_FUZZER_DIR = Path(argv[4]).expanduser()
 
     # verify duckdb_cli can be found
-    duckdb_cli = DUCKDB_DIR / "build/debug/duckdb"
+    duckdb_cli = DUCKDB_DIR / "build/release/duckdb"
     if not duckdb_cli.is_file():
         raise ValueError(f"expected file not found: {duckdb_cli}")
 
