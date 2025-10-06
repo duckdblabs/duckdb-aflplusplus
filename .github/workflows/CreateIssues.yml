@@ -75,9 +75,10 @@ jobs:
         env:
           GEN: ninja
           EXPORT_DYNAMIC_SYMBOLS: 1
+          CRASH_ON_ASSERT: 1
         shell: bash
         run: |
-          make
+          make relassert
 
       - name: download reproductions (created by previous job)
         uses: actions/download-artifact@v4
@@ -112,4 +113,4 @@ jobs:
           git pull
           mkdir -p ${{ env.REPRODUCTION_DIR }}
           chmod -R +x $DUCKDB_AFLPLUSPLUS_DIR/scripts
-          $DUCKDB_AFLPLUSPLUS_DIR/scripts/register_issues/reproduce_and_file_issues.py ${{ inputs.fuzzer }} ${{ env.REPRODUCTION_DIR }} ${{ env.DUCKDB_DIR }} "."
+          $DUCKDB_AFLPLUSPLUS_DIR/scripts/register_issues/reproduce_and_file_issues.py ${{ inputs.fuzzer }} ${{ env.REPRODUCTION_DIR }} ${{ env.DUCKDB_DIR }}/build/relassert/duckdb "."

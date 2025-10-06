@@ -50,7 +50,7 @@ def reproduce_hangs(reproduction_dir, duckdb_cli, file_reader_function):
         return unique_hangs
     with open(hangs_json_file, 'r') as repr_file_fd:
         reproduction_data: list = json.load(repr_file_fd)
-    # verify REPRODUCTION_DIR contains the expected data files
+    # verify reproduction_dir contains the expected data files
     for repro_item in reproduction_data:
         repro_file_path = reproduction_dir / 'hangs' / repro_item['file_name']
         if not repro_file_path.is_file():
@@ -87,27 +87,26 @@ def main(argv: list[str]):
             raise ValueError(f"invalid input: {file_reader_function}")
 
     # default inputs (for local reproduction)
-    REPRODUCTION_DIR = Path("~/Desktop/reproductions").expanduser()
-    DUCKDB_DIR = Path("~/git/duckdb").expanduser()
-    DUCKDB_FUZZER_DIR = Path("~/git/duckdb-fuzzer").expanduser()
+    reproduction_dir = Path("~/Desktop/reproductions").expanduser()
+    duckdb_cli = Path("~/git/duckdb/build/relassert/duckdb").expanduser()
+    duckdb_fuzzer_dir = Path("~/git/duckdb-fuzzer").expanduser()
 
     if len(argv) > 2:
-        REPRODUCTION_DIR = Path(argv[2]).expanduser()
+        reproduction_dir = Path(argv[2]).expanduser()
     if len(argv) > 3:
-        DUCKDB_DIR = Path(argv[3]).expanduser()
+        duckdb_cli = Path(argv[3]).expanduser()
     if len(argv) > 4:
-        DUCKDB_FUZZER_DIR = Path(argv[4]).expanduser()
+        duckdb_fuzzer_dir = Path(argv[4]).expanduser()
 
     # verify duckdb_cli can be found
-    duckdb_cli = DUCKDB_DIR / "build/release/duckdb"
     if not duckdb_cli.is_file():
         raise ValueError(f"expected file not found: {duckdb_cli}")
 
     # reproduce crashes (keep unique crashes)
-    unique_issues = reproduce_crashes(REPRODUCTION_DIR, duckdb_cli, file_reader_function)
+    unique_issues = reproduce_crashes(reproduction_dir, duckdb_cli, file_reader_function)
 
     # reproduce hangs (keep max 1)
-    unique_hangs = reproduce_hangs(REPRODUCTION_DIR, duckdb_cli, file_reader_function)
+    unique_hangs = reproduce_hangs(reproduction_dir, duckdb_cli, file_reader_function)
     unique_issues.update(unique_hangs)
     print(f"{len(unique_issues)} total unique and reproducible errors found by fuzzer")
 
@@ -126,16 +125,16 @@ def main(argv: list[str]):
 
     # commit reproduction files
     if new_issues:
-        fuzzer_helper.run_command(f"mkdir -p {DUCKDB_FUZZER_DIR / rel_file_dir}")
+        fuzzer_helper.run_command(f"mkdir -p {duckdb_fuzzer_dir / rel_file_dir}")
         for issue in new_issues.values():
             title, rel_file_path, repro_file_path, sql_statement_gh, exception_msg, stacktrace = issue
-            fuzzer_helper.run_command(f"cp {repro_file_path} {DUCKDB_FUZZER_DIR / rel_file_path}")
-        fuzzer_helper.run_command(f"git -C {DUCKDB_FUZZER_DIR} add .")
+            fuzzer_helper.run_command(f"cp {repro_file_path} {duckdb_fuzzer_dir / rel_file_path}")
+        fuzzer_helper.run_command(f"git -C {duckdb_fuzzer_dir} add .")
         fuzzer_helper.run_command(
-            f"git -C {DUCKDB_FUZZER_DIR} commit -m 'add reproduction file for afl++ fuzz run {os.environ.get('FUZZ_RUN_ID')}'"
+            f"git -C {duckdb_fuzzer_dir} commit -m 'add reproduction file for afl++ fuzz run {os.environ.get('FUZZ_RUN_ID')}'"
         )
         fuzzer_helper.run_command(
-            f"git -C {DUCKDB_FUZZER_DIR} push || (git -C {DUCKDB_FUZZER_DIR} config pull.rebase true && git -C {DUCKDB_FUZZER_DIR} pull && git -C {DUCKDB_FUZZER_DIR} push)"
+            f"git -C {duckdb_fuzzer_dir} push || (git -C {duckdb_fuzzer_dir} config pull.rebase true && git -C {duckdb_fuzzer_dir} pull && git -C {duckdb_fuzzer_dir} push)"
         )
 
     # create github issues
@@ -153,7 +152,7 @@ if __name__ == "__main__":
             ERROR; call this script with the following arguments:
               1 - fuzz scenario ('csv_multi_param_fuzzer', 'json_multi_param_fuzzer' or 'parquet_multi_param_fuzzer')
               2 - (optional) path to reproductions directory (created by decode_multi_param_files.py)
-              3 - (optional) path to duckdb directory
+              3 - (optional) path to duckdb cli (executable)
               4 - (optional) path to /duckdb/duckdb-fuzzer directory
             """
         )
