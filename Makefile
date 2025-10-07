@@ -30,7 +30,7 @@ DUCKDB_COMMIT_ISH   ?= main
 # clones duckdb into AFL++ container
 afl-up:
 	@open -a docker && while ! docker info > /dev/null 2>&1; do sleep 1 ; done
-	@docker pull aflplusplus/aflplusplus > /dev/null
+	@docker pull aflplusplus/aflplusplus:v4.32c > /dev/null
 	@docker run --name afl-container  -d \
 		aflplusplus/aflplusplus sleep infinity \
 		> /dev/null
