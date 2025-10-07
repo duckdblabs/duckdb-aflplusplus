@@ -1,7 +1,8 @@
 import json
 import requests
+import re
 import os
-import urllib
+import urllib.parse
 
 USERNAME = 'fuzzerofducks'
 
@@ -61,15 +62,16 @@ def make_github_issue(title, body, labels=[]):
         raise Exception("Failed to create issue")
 
 
-def issues_by_title_url(issue_title):
+def issues_by_title_url(*title_parts):
     base_url = "https://api.github.com/search/issues"
-    query_string = urllib.parse.quote(f"repo:{REPO_OWNER}/{REPO_NAME} {issue_title} in:title is:open")
+    title_str = " ".join(title_part for title_part in title_parts)
+    query_string = urllib.parse.quote(f"repo:{REPO_OWNER}/{REPO_NAME} {title_str} in:title is:open")
     return f"{base_url}?q={query_string}"
 
 
-def get_github_issues_by_title(issue_title) -> list[dict]:
+def get_github_issues_by_title(*issue_title) -> list[dict]:
     session = create_session()
-    url = issues_by_title_url(issue_title)
+    url = issues_by_title_url(*issue_title)
     r = session.get(url)
     if r.status_code != 200:
         print('Failed to query the issues')
@@ -80,7 +82,9 @@ def get_github_issues_by_title(issue_title) -> list[dict]:
 
 
 def is_known_github_issue(exception_msg):
-    existing_issues = get_github_issues_by_title(exception_msg)
+    # search for combination of title parts, strip some numbers, to prevent near-duplicates
+    title_parts = re.split(r" \d+", exception_msg)
+    existing_issues = get_github_issues_by_title(*tuple(title_parts))
     if existing_issues:
         print("Skip filing duplicate issue")
         print(
