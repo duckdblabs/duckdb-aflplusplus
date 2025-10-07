@@ -88,7 +88,7 @@ def main(argv: list[str]):
 
     # default inputs (for local reproduction)
     reproduction_dir = Path("~/Desktop/reproductions").expanduser()
-    duckdb_cli = Path("~/git/duckdb/build/relassert/duckdb").expanduser()
+    duckdb_cli = Path("~/git/duckdb/build/debug/duckdb").expanduser()
     duckdb_fuzzer_dir = Path("~/git/duckdb-fuzzer").expanduser()
 
     if len(argv) > 2:
