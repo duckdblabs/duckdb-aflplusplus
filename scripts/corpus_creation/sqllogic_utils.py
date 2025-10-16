@@ -1,6 +1,6 @@
 import re
 
-from statement_types import SQLLOGIC_COMMANDS
+from statement_types import SQLLOGIC_COMMANDS, SQL_STATEMENT_TYPES
 
 
 def verify_sqllocig_command(str: str):
@@ -24,7 +24,7 @@ def verify_sqllocig_command(str: str):
 
 
 def sqllogic_commands_from_str(str):
-    pattern = fr"^(?:{'|'.join(SQLLOGIC_COMMANDS)}) .*$"
+    pattern = fr"^#*(?:{'|'.join(SQLLOGIC_COMMANDS)})(?:$| .*$)"
     sqllogic_commands_crude = re.findall(pattern, str, flags=(re.IGNORECASE | re.MULTILINE))
     sqllogic_commands = [cmd for cmd in sqllogic_commands_crude if verify_sqllocig_command(cmd)]
     return sqllogic_commands
@@ -36,12 +36,18 @@ def sql_from_sqllogic_block(sqllogic_command: str, code_block: str):
         sql_statement = sql_statement.strip()
         if len(sql_statement) == 0:
             sql_statement = ";"
+        else:
+            # validate sql start clause (very crude validation to reject obviously wrong)
+            pattern = fr"^[\(\s]*(?:{'|'.join(SQL_STATEMENT_TYPES)})(?:$|\s|\*|;|\()"
+            if not re.match(pattern, sql_statement, flags=re.IGNORECASE):
+                # print(f"skip invalid sql start clause:\n=={sql_statement}==")
+                sql_statement = ";"
         # add semicolon (;) if missing
         if sql_statement[-1] != ';':
             sql_statement += ";"
         return sql_statement
     if sqllogic_command.lower().startswith('load'):
-        # TODO: attach db file
+        # TODO: attach + use db file
         pass
     return None
 
