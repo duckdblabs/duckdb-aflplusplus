@@ -31,19 +31,17 @@ def get_sql_statements(sqllogic_str: str):
     remainder = sqllogic_str
     sqllogic_command: str = ""
     for next_sqllogic_command in sqllogic_commands:
-        lead, next_sqllogic_command, trail = remainder.partition(next_sqllogic_command)
-        lead = lead.strip()
-        if sqllogic_command.lower().startswith('statement'):
-            sql_statements.append(lead)
-        if sqllogic_command.lower().startswith('query'):
-            sql_statement, _, _ = lead.partition("\n----")
-            sql_statements.append(sql_statement)
+        code_block, next_sqllogic_command, remainder = remainder.partition(next_sqllogic_command)
+        if sqllogic_command.lower().startswith('statement') or sqllogic_command.lower().startswith('query'):
+            sql_statement, _, _ = code_block.partition("\n----")
+            sql_statements.append(sql_statement.strip())
         if sqllogic_command.lower().startswith('load'):
             pass
             # TODO: attach db file
-        remainder = trail
         sqllogic_command = next_sqllogic_command.strip()
         # TODO: parse final trail (e.g. final CHECKPOINT;)
+    # parse final code block
+
     for idx, sql in enumerate(sql_statements):
         if sql and sql[-1] != ';':
             sql_statements[idx] = sql + ";"
