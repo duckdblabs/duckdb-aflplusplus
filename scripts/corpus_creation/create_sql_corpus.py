@@ -5,9 +5,7 @@ This script scrapes sql statements from the test directory, and stores them as s
 '''
 
 from pathlib import Path
-import re
 import shutil
-from statement_types import SQL_STATEMENT_TYPES
 import sqllogic_utils
 
 
@@ -26,7 +24,7 @@ def create_sql_corpus():
     corpus_dir.mkdir()
 
     # create a .sql corpus file per .test file
-    all_test_files = FILE_DIR_TO_SCRAPE.rglob('*')
+    all_test_files = FILE_DIR_TO_SCRAPE.rglob('*.test')
     for test_file in all_test_files:
         if not test_file.is_file():
             continue
