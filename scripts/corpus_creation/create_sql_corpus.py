@@ -8,6 +8,17 @@ from pathlib import Path
 import shutil
 import sqllogic_utils
 
+# discord some sql statement that won't (yet) work well in fuzzing context
+def sql_exempted(sql_statement):
+    forbidden_words = [
+        'enable_verification',
+        '__TEST_DIR__',  # data sources not available in fuzzing context
+        'read_',         # data sources not available in fuzzing context
+        '${',            # sqllogic variable expansion not yet supported
+        'repeat(',       # used to create long strings, which is too slow for fuzzing
+    ]
+    return any(word in sql_statement for word in forbidden_words)
+
 
 def create_sql_corpus():
     global CORPUS_ROOT_DIR
@@ -34,8 +45,10 @@ def create_sql_corpus():
             # skip for now: non-unicode files
             continue
         statements = sqllogic_utils.get_sql_statements(file_content)
-        filename = f"{test_file.stem.replace(' ', '-')}.sql"
-        (corpus_dir / filename).write_text("\n".join(statements))
+        pruned_statements = [stmnt for stmnt in statements if not sql_exempted(stmnt)]
+        if pruned_statements:
+            filename = f"{test_file.stem.replace(' ', '-')}.sql"
+            (corpus_dir / filename).write_text("\n".join(pruned_statements))
 
 
 if __name__ == "__main__":

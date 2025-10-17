@@ -86,6 +86,21 @@ compile-fuzzers-local:
 check_duckdb_in_pyenv:
 	@[[ "$(shell pip3 list)" == *"duckdb"* ]] || (echo "error: python package 'duckdb' not found" && exit 1)
 
+fuzz_sql:
+	$(eval ROOT_DIR := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST)))))
+	$(ROOT_DIR)/scripts/corpus_creation/create_sql_corpus.py
+	docker exec afl-container mkdir -p $(RESULT_DIR)/sql_fuzzer
+	docker cp $(ROOT_DIR)/corpus/sql afl-container:$(CORPUS_DIR)/sql
+	docker exec afl-container /AFLplusplus/afl-fuzz \
+		-V 3600 \
+		-i $(CORPUS_DIR)/sql \
+		-o $(RESULT_DIR)/sql \
+		-m none \
+		-a text \
+		-- $(DUCKDB_DIR)/build/release/duckdb -f @@
+	mkdir -p fuzz_results/
+	docker cp afl-container:$(RESULT_DIR)/sql_fuzzer fuzz_results
+
 fuzz_csv_base:
 	docker exec afl-container mkdir -p $(RESULT_DIR)/csv_base_fuzzer
 	docker exec afl-container find $(DUCKDB_DIR)/data/csv -type f -size +40k -delete

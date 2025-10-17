@@ -53,7 +53,7 @@ def sql_from_sqllogic_block(sqllogic_command: str, code_block: str):
 
 
 # scrape sql statements from sqllogic file
-def get_sql_statements(sqllogic_str: str):
+def get_sql_statements(sqllogic_str: str) -> list[str]:
     # sql-statements can not directly be scraped via regex because of multi-line nested statements that don't necessarily end with ';'
     # therefore, find the sqllogic commands first: the sql is in the code blocks in between
     sqllogic_commands = sqllogic_commands_from_str(sqllogic_str)
