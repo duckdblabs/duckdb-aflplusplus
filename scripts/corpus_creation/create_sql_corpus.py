@@ -7,6 +7,7 @@ This script scrapes sql statements from the test directory, and stores them as s
 from pathlib import Path
 import shutil
 import sqllogic_utils
+import random
 
 # discord some sql statement that won't (yet) work well in fuzzing context
 def sql_exempted(sql_statement):
@@ -18,6 +19,19 @@ def sql_exempted(sql_statement):
         'repeat(',       # used to create long strings, which is too slow for fuzzing
     ]
     return any(word in sql_statement for word in forbidden_words)
+
+
+def select_random_corpus_files(corpus_dir: Path, keep_max=20):
+    if not corpus_dir.is_dir():
+        raise ValueError(f"'{corpus_dir}' is not a directory!")
+    all_corpus_files = list(corpus_dir.iterdir())
+    if len(all_corpus_files) <= keep_max:
+        return
+    corpus_to_keep = set(random.sample(all_corpus_files, keep_max))
+    for corpus_file in all_corpus_files:
+        if corpus_file not in corpus_to_keep:
+            # delete file
+            corpus_file.unlink()
 
 
 def create_sql_corpus():
@@ -49,6 +63,9 @@ def create_sql_corpus():
         if pruned_statements:
             filename = f"{test_file.stem.replace(' ', '-')}.sql"
             (corpus_dir / filename).write_text("\n".join(pruned_statements))
+
+    # only keep random set, to prevent the corpus is too big -> DELETE the others!
+    select_random_corpus_files(corpus_dir)
 
 
 if __name__ == "__main__":
