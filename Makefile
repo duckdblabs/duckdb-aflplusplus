@@ -89,13 +89,11 @@ check_duckdb_in_pyenv:
 fuzz_sql:
 	$(eval ROOT_DIR := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST)))))
 	$(ROOT_DIR)/scripts/corpus_creation/create_sql_corpus.py
-	docker exec afl-container mkdir -p $(RESULT_DIR)/sql_fuzzer
 	docker cp $(ROOT_DIR)/corpus/sql afl-container:$(CORPUS_DIR)/sql
 	docker exec afl-container /AFLplusplus/afl-fuzz \
 		-V 3600 \
 		-i $(CORPUS_DIR)/sql \
-		-o $(RESULT_DIR)/sql \
-		-m none \
+		-o $(RESULT_DIR)/sql_fuzzer \
 		-a text \
 		-- $(DUCKDB_DIR)/build/release/duckdb -f @@
 	mkdir -p fuzz_results/
