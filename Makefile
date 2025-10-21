@@ -45,7 +45,9 @@ afl-up:
 
 copy-src-to-container:
 	@docker exec afl-container rm -rf $(SRC_DIR) > /dev/null
+	@docker exec afl-container rm -rf $(SCRIPT_DIR) > /dev/null
 	@docker cp src afl-container:$(SRC_DIR) > /dev/null
+	@docker cp scripts afl-container:$(SCRIPT_DIR) > /dev/null
 
 checkout-duckdb:
 	docker exec -w $(DUCKDB_DIR) afl-container git checkout main
@@ -86,12 +88,22 @@ compile-fuzzers-local:
 check_duckdb_in_pyenv:
 	@[[ "$(shell pip3 list)" == *"duckdb"* ]] || (echo "error: python package 'duckdb' not found" && exit 1)
 
+# 	docker exec afl-container /AFLplusplus/afl-cmin \
+# 	  -i $(CORPUS_DIR)/sql -o $(CORPUS_DIR)/sql-unique -- $(DUCKDB_DIR)/build/release/duckdb -f @@
+# 	docker exec afl-container rm -rf $(CORPUS_DIR)/sql
+# 	docker exec afl-container mkdir -p $(RESULT_DIR)/sql_fuzzer
 fuzz_sql:
 	$(eval ROOT_DIR := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST)))))
 	$(ROOT_DIR)/scripts/corpus_creation/create_sql_corpus.py
-	docker cp $(ROOT_DIR)/corpus/sql afl-container:$(CORPUS_DIR)/sql
+
+	rm -rf $(ROOT_DIR)/corpus/sql/*
+	docker exec afl-container rm -rf $(CORPUS_DIR)/sql
+	echo "select 42;" > $(ROOT_DIR)/corpus/sql/dummy.sql
+
+
+	docker cp $(ROOT_DIR)/corpus/sql afl-container:$(CORPUS_DIR)/
 	docker exec afl-container /AFLplusplus/afl-fuzz \
-		-V 3600 \
+		-V 20 \
 		-i $(CORPUS_DIR)/sql \
 		-o $(RESULT_DIR)/sql_fuzzer \
 		-a text \
