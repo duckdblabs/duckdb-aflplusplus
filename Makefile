@@ -95,7 +95,7 @@ fuzz_sql:
 		-i $(CORPUS_DIR)/sql \
 		-o $(RESULT_DIR)/sql_fuzzer \
 		-a text \
-		-x /AFLplusplus/dictionaries/sql.dict \
+		-x $(SCRIPT_DIR)/fuzz_utils/duckdb_sql.dict \
 		-- $(DUCKDB_DIR)/build/release/duckdb -f @@
 	mkdir -p fuzz_results/
 	docker cp afl-container:$(RESULT_DIR)/sql_fuzzer fuzz_results
