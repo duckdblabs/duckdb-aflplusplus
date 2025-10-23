@@ -15,7 +15,7 @@ CORPUS_ROOT_DIR = Path(__file__).parents[2] / 'corpus'
 FILE_DIR_TO_SCRAPE = Path('~/git/duckdb/test/').expanduser()
 KEY_WORD_FILE = Path(__file__).parents[1] / 'fuzz_utils/duckdb_sql.dict'
 
-key_words = re.findall("^\"(\w+)\"$", KEY_WORD_FILE.read_text(), flags=re.MULTILINE)
+key_words = re.findall(r"^\"(\w+)\"$", KEY_WORD_FILE.read_text(), flags=re.MULTILINE)
 
 
 # create sql coprus
@@ -42,7 +42,7 @@ def main():
             (corpus_dir / filename).write_text("\n".join(pruned_statements))
 
     # only keep random set, to prevent the corpus is too big -> DELETE the others!
-    select_random_corpus_files(corpus_dir)
+    # select_random_corpus_files(corpus_dir)
 
 
 # follow the casing from the .dict file, for better keyword detection by the fuzzer

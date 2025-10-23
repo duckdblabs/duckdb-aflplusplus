@@ -88,23 +88,40 @@ compile-fuzzers-local:
 check_duckdb_in_pyenv:
 	@[[ "$(shell pip3 list)" == *"duckdb"* ]] || (echo "error: python package 'duckdb' not found" && exit 1)
 
-# 	docker exec afl-container /AFLplusplus/afl-cmin \
-# 	  -i $(CORPUS_DIR)/sql -o $(CORPUS_DIR)/sql-unique -- $(DUCKDB_DIR)/build/release/duckdb -f @@
-# 	docker exec afl-container rm -rf $(CORPUS_DIR)/sql
-# 	docker exec afl-container mkdir -p $(RESULT_DIR)/sql_fuzzer
-fuzz_sql:
+create-sql-corpus:
 	$(eval ROOT_DIR := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST)))))
 	$(ROOT_DIR)/scripts/corpus_creation/create_sql_corpus.py
-
-	rm -rf $(ROOT_DIR)/corpus/sql/*
-	docker exec afl-container rm -rf $(CORPUS_DIR)/sql
-	echo "select 42;" > $(ROOT_DIR)/corpus/sql/dummy.sql
-
-
 	docker cp $(ROOT_DIR)/corpus/sql afl-container:$(CORPUS_DIR)/
-	docker exec afl-container /AFLplusplus/afl-fuzz \
-		-V 20 \
+
+# reduce nr of corpus files (prune corpus files that don't introduce new execution paths)
+# requires: create-sql-corpus
+afl-cmin:
+	docker exec afl-container /AFLplusplus/afl-cmin \
 		-i $(CORPUS_DIR)/sql \
+		-o $(CORPUS_DIR)/sql_cmin \
+		--crash-dir $(CORPUS_DIR)/sql_crash_corpus \
+		$(DUCKDB_DIR)/build/release/duckdb -f @@
+
+# reduce size of corpus files: requires: afl-cmin
+# - note1: `$` in echo statement is escaped as: `\$$` ($$ is escape in Makefile; \$ is escape in bash)
+# - note2: this step is currently not used, as it is very slow (~3 sec per file)
+afl-tmin:
+	$(eval ROOT_DIR := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST)))))
+	echo \
+	"export AFL_MAP_SIZE=1448450;\n"\
+	"mkdir -p $(CORPUS_DIR)/sql_tmin;\n"\
+	"for f in $(CORPUS_DIR)/sql_cmin/*; do\n"\
+	"    base=\$$(basename \"\$$f\")\n"\
+	"    afl-tmin -i "\$$f" -o \"$(CORPUS_DIR)/sql_tmin/\$$base\" -- $(DUCKDB_DIR)/build/release/duckdb -f @@\n"\
+	"done" > $(ROOT_DIR)/scripts/corpus_creation/prune_corpus.sh;
+	docker cp $(ROOT_DIR)/scripts/corpus_creation/prune_corpus.sh afl-container:$(CORPUS_DIR)/prune_corpus.sh
+	docker exec afl-container bash $(CORPUS_DIR)/prune_corpus.sh
+
+# requires: afl-cmin
+fuzz_sql:
+	docker exec afl-container /AFLplusplus/afl-fuzz \
+		-V 3600 \
+		-i $(CORPUS_DIR)/sql_cmin \
 		-o $(RESULT_DIR)/sql_fuzzer \
 		-a text \
 		-x $(SCRIPT_DIR)/fuzz_utils/duckdb_sql.dict \
