@@ -28,6 +28,7 @@ def main(argv: list[str]):
         FILE_DIR_TO_SCRAPE = DUCKDB_DIR / 'test'
 
     # delete and recreate the corpus directory
+    CORPUS_ROOT_DIR.mkdir(exist_ok=True)
     corpus_dir = CORPUS_ROOT_DIR / 'sql'
     shutil.rmtree(str(corpus_dir), ignore_errors=True)
     corpus_dir.mkdir()
