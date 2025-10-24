@@ -19,7 +19,7 @@ on:
 
 jobs:
   process-fuzz-results:
-    name: Post-process fuzz results
+    name: Post-process file fuzzer fuzz results
     runs-on: ubuntu-24.04
     if: inputs.num_crashes != '0' || inputs.num_hangs != '0'
     env:

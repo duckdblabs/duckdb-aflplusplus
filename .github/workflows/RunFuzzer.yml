@@ -1,4 +1,4 @@
-name: Afl++ Fuzzer
+name: Afl++ File Fuzzer
 on:
   workflow_dispatch:
     inputs:
