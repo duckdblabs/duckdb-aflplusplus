@@ -93,10 +93,15 @@ jobs:
         run: |
           sudo apt-get install -y ninja-build
 
+      # - name: Checkout duckdb_aflplusplus
+      #   uses: actions/checkout@v4
+      #   with:
+      #     repository: duckdblabs/duckdb-aflplusplus
+      #     path: duckdb_aflplusplus
+
       - name: Checkout duckdb_aflplusplus
         uses: actions/checkout@v4
         with:
-          repository: duckdblabs/duckdb-aflplusplus
           path: duckdb_aflplusplus
 
       - name: Checkout aflplusplus
