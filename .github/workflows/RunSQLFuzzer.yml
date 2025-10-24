@@ -75,6 +75,11 @@ jobs:
   aflplusplus-sql-fuzz-run:
     name: Run AFL++ sql fuzzer
     runs-on: ubuntu-24.04
+    env:
+      CC: ${{ github.workspace }}/bin/afl-clang-fast
+      CXX: ${{ github.workspace }}/bin/afl-clang-fast++
+      DUCKDB_DIR: ${{ github.workspace }}/duckdb
+      DUCKDB_AFLPLUSPLUS_DIR: ${{ github.workspace }}/duckdb_aflplusplus
     steps:
       # https://github.com/AFLplusplus/AFLplusplus/blob/stable/docs/INSTALL.md
       - name: Install AFL++ dependencies
