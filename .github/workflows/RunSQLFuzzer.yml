@@ -185,6 +185,11 @@ jobs:
       - name: Scrape SQL corpus from sqllogic tests
         working-directory: ${{ env.DUCKDB_AFLPLUSPLUS_DIR }}
         run: |
+          echo ${{ env.DUCKDB_DIR }}
+          echo ${{ env.DUCKDB_AFLPLUSPLUS_DIR }}
+          pwd
+          ls -la
+          tree
           ./scripts/corpus_creation/create_sql_corpus.py ${{ env.DUCKDB_DIR }}
 
       - name: Minify corpus with afl-cmin

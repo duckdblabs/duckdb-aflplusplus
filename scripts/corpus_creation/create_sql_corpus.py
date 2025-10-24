@@ -21,6 +21,7 @@ CORPUS_ROOT_DIR = Path(__file__).parents[2] / 'corpus'
 
 # create sql coprus
 def main(argv: list[str]):
+    print("starting script", flush=True)
     if len(argv) == 2:
         global DUCKDB_DIR
         global FILE_DIR_TO_SCRAPE
