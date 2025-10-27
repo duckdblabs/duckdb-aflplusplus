@@ -32,7 +32,7 @@ afl-up:
 	@open -a docker && while ! docker info > /dev/null 2>&1; do sleep 1 ; done
 	@docker pull aflplusplus/aflplusplus:v4.32c > /dev/null
 	@docker run --name afl-container  -d \
-		aflplusplus/aflplusplus sleep infinity \
+		aflplusplus/aflplusplus:v4.32c sleep infinity \
 		> /dev/null
 	@docker exec -w / afl-container mkdir -p duckdb_aflplusplus
 	@docker cp src afl-container:$(SRC_DIR) > /dev/null

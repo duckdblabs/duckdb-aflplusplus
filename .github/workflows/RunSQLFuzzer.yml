@@ -109,7 +109,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: aflplusplus/aflplusplus
-          ref: v4.30c
+          ref: v4.32c
           path: aflplusplus
 
       - name: Checkout duckdb
