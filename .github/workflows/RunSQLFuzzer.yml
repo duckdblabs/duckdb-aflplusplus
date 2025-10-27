@@ -197,11 +197,9 @@ jobs:
           tree
           ./scripts/corpus_creation/create_sql_corpus.py ${{ env.DUCKDB_DIR }}
 
-      # --crash-dir $DUCKDB_AFLPLUSPLUS_DIR/corpus/sql_crash_corpus \
       - name: Minify corpus with afl-cmin
         working-directory: ${{ env.DUCKDB_AFLPLUSPLUS_DIR }}
         run: |
-          ${{ github.workspace }}/bin/afl-cmin --help
           ${{ github.workspace }}/bin/afl-cmin \
           -i $DUCKDB_AFLPLUSPLUS_DIR/corpus/sql \
           -o $DUCKDB_AFLPLUSPLUS_DIR/corpus/sql_cmin \
