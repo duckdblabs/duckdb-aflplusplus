@@ -53,7 +53,7 @@ def main(argv: list[str]):
             (corpus_dir / filename).write_text("\n".join(pruned_statements))
 
     # only keep random set, to prevent the corpus is too big -> DELETE the others!
-    # select_random_corpus_files(corpus_dir)
+    select_random_corpus_files(corpus_dir)
 
 
 # follow the casing from the .dict file, for better keyword detection by the fuzzer
@@ -76,7 +76,7 @@ def sql_exempted(sql_statement):
     return any(word in sql_statement for word in forbidden_words)
 
 
-def select_random_corpus_files(corpus_dir: Path, keep_max=20):
+def select_random_corpus_files(corpus_dir: Path, keep_max=50):
     if not corpus_dir.is_dir():
         raise ValueError(f"'{corpus_dir}' is not a directory!")
     all_corpus_files = list(corpus_dir.iterdir())
