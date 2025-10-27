@@ -219,7 +219,7 @@ jobs:
 
       - name: Archive fuzz results
         run: |
-          tar -cf ${{ github.workspace }}/fuzz_results.tar $DUCKDB_AFLPLUSPLUS_DIR/fuzz_results/sql_fuzzer
+          tar -cf ${{ github.workspace }}/fuzz_results.tar fuzz_results/sql_fuzzer
 
       - name: Store fuzz result as artifact
         uses: actions/upload-artifact@v4
