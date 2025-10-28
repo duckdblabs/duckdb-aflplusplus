@@ -2,6 +2,7 @@ import os
 import re
 import signal
 import subprocess
+from pathlib import Path
 
 import github_helper
 
@@ -98,14 +99,13 @@ def print_std_error(duckdb_cli, sql_statement, stderr):
     print("==========", flush=True)
 
 
-def reproduce_filereader_issue(duckdb_cli, repro_file_path, file_reader_function, arguments):
-    sql_statement = f"from {file_reader_function}('{repro_file_path}'{arguments})"
+def run_sql(duckdb_cli, sql_statement, fuzzer_name) -> tuple[str, str]:
     (stdout, stderr, returncode, timed_out) = run_duckdb(duckdb_cli, sql_statement)
     match returncode:
         case 0:
-            return ("", "")
+            exception_msg, stacktrace = "", ""
         case 1 if not is_internal_error(stderr):  # regular error
-            return ("", "")
+            exception_msg, stacktrace = "", ""
         case 1:  # internal error
             print_std_error(duckdb_cli, sql_statement, stderr)
             exception_msg, stacktrace = split_exception_trace(stderr)
@@ -115,10 +115,30 @@ def reproduce_filereader_issue(duckdb_cli, repro_file_path, file_reader_function
             sig_name = signal.Signals(-returncode).name
             exception_msg = f"{sig_name}: {exception_msg}"
         case _ if timed_out:  # hang
-            exception_msg, stacktrace = (f"{file_reader_function} timed out after 300 s", "")
+            exception_msg, stacktrace = (f"{fuzzer_name} timed out after 300 s", "")
         case _:
             raise ValueError(f"undefined return code: {returncode} (expected 0, 1, or negative values)")
     return (exception_msg, stacktrace)
+
+
+def reproduce_filereader_issue(duckdb_cli, repro_file_path, file_reader_function, arguments):
+    sql_statement = f"from {file_reader_function}('{repro_file_path}'{arguments})"
+    exception_msg, stacktrace = run_sql(duckdb_cli, sql_statement, file_reader_function)
+    return (exception_msg, stacktrace)
+
+
+def reproduce_crashes_from_sql_dir(sql_file_dir: Path, duckdb_cli: Path, max_one=False):
+    unique_crashes = {}
+    all_sql_files = sorted(sql_file_dir.iterdir())
+    print(f"reproducing errors in {len(all_sql_files)} sql files in dir {sql_file_dir} ...")
+    for sql_file in all_sql_files:
+        sql_statement = sql_file.read_text()
+        exception_msg, stacktrace = run_sql(duckdb_cli, sql_statement, 'sql_fuzzer')
+        if exception_msg:
+            unique_crashes[exception_msg] = (sql_statement, exception_msg, stacktrace)
+            if max_one:
+                break
+    return unique_crashes
 
 
 def run_duckdb(duckdb_cli, sql_statement):

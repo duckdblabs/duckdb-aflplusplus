@@ -120,6 +120,7 @@ jobs:
           ref: ${{ inputs.ref }}
           path: duckdb
 
+
       # /proc/sys/kernel/core_pattern needs to be adjusted, see:
       # https://github.com/AFLplusplus/AFLplusplus/blob/fb52b8edf86e12628df834f4bb144916b18a503d/src/afl-fuzz-init.c#L2476C1-L2489C70
       - name: Config step
@@ -241,5 +242,49 @@ jobs:
           echo "num_hangs=$NUM_HANGS" >> "$GITHUB_OUTPUT"
           echo "queue_length=$QUEUE_LENGTH" >> "$GITHUB_OUTPUT"
 
+  reproduce_and_create_issues:
+    name: Reproduce and create issues
+    runs-on: ubuntu-24.04
+    needs: aflplusplus-sql-fuzz-run
+    if: >-
+      ${{ inputs.createIssues == 'YesIndeed' &&
+      (needs.aflplusplus-sql-fuzz-run.outputs.num_crashes != '0' ||
+      needs.aflplusplus-sql-fuzz-run.outputs.num_hangs != '0') }}
+    steps:
+      - name: download fuzz-results (created by previous job)
+        uses: actions/download-artifact@v4
+        with:
+          name: sql_fuzzer-${{ inputs.duckdb_sha }}-fuzz_results
 
-  # TODO: reproduce crashes and register gh issue if unique
+      - name: extract fuzz-results
+        run: |
+          tar -xf fuzz_results.tar
+
+      - name: Checkout duckdb
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          repository: ${{ inputs.duckdbRepo }}
+          ref: ${{ inputs.ref }}
+          path: duckdb
+
+      - name: Build DuckDB debug to reproduce issues
+        working-directory: duckdb
+        env:
+          GEN: ninja
+          EXPORT_DYNAMIC_SYMBOLS: 1
+          CRASH_ON_ASSERT: 1
+        shell: bash
+        run: |
+          make debug
+
+      - name: DuckDB version
+        working-directory: duckdb
+        run: |
+          ./build/debug/duckdb --version
+
+      - name: Reproduce and create issues
+        run: |
+          $DUCKDB_AFLPLUSPLUS_DIR/scripts/register_issues/reproduce_and_file_sql_issues.py \
+          ${{ github.workspace }}/fuzz_results/sql_fuzzer/default \
+          ${{ env.DUCKDB_DIR }}/build/debug/duckdb "."
