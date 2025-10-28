@@ -1,3 +1,10 @@
+# Makefile with commands for fuzzing with locally running afl container.
+# Basic usage:
+# - make afl-up
+# - make compile-fuzzers  (takes a while to compile duckdb and fuzz targets with the AFL-clang-fast compiler)
+# - make fuzz_csv_multi_param  (default: fuzz 3600 seconds)
+# - make afl-down  (clean up container, by default it keeps spinning even after fuzzing is done, for debug purposes)
+
 # local setting (set local path to duckdb repository); only for target 'compile-fuzzers-local'
 DUCKDB_LOCAL_DIR ?= ${HOME}/git/duckdb
 
@@ -99,7 +106,6 @@ afl-cmin:
 	docker exec afl-container /AFLplusplus/afl-cmin \
 		-i $(CORPUS_DIR)/sql \
 		-o $(CORPUS_DIR)/sql_cmin \
-		--crash-dir $(CORPUS_DIR)/sql_crash_corpus \
 		$(DUCKDB_DIR)/build/release/duckdb -f @@
 
 # reduce size of corpus files: requires: afl-cmin
@@ -299,6 +305,7 @@ format:
 	find src -name "*.cpp" -o -name "*.hpp" | xargs clang-format -i --sort-includes=0 -style=file
 
 .PHONY: afl-up compile-fuzzers afl-down \
+		fuzz_sql \
 		fuzz_csv_base fuzz_csv_single_param fuzz_csv_multi_param fuzz_csv_pipe \
 		fuzz_json_base fuzz_json_pipe fuzz_json_multi_param \
 		fuzz_parquet_base fuzz_parquet_multi_param \
