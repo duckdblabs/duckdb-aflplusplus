@@ -63,7 +63,7 @@ def use_casing_from_dict(statement: str, key_words:list[str]):
     return statement
 
 
-# discord some sql statement that won't (yet) work well in fuzzing context
+# discard some sql statements that won't (yet) work well in fuzzing context
 def sql_exempted(sql_statement):
     forbidden_words = [
         'enable_verification',

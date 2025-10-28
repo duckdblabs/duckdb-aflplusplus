@@ -1,9 +1,12 @@
-# Makefile with commands for fuzzing with locally running afl container.
+# Makefile with commands for development and fuzzing with locally running afl container.
 # Basic usage:
 # - make afl-up
 # - make compile-fuzzers  (takes a while to compile duckdb and fuzz targets with the AFL-clang-fast compiler)
 # - make fuzz_csv_multi_param  (default: fuzz 3600 seconds)
 # - make afl-down  (clean up container, by default it keeps spinning even after fuzzing is done, for debug purposes)
+
+# To test building fuzz targest with regular clang compiler (outside of container) use:
+# - make compile-fuzzers-local
 
 # local setting (set local path to duckdb repository); only for target 'compile-fuzzers-local'
 DUCKDB_LOCAL_DIR ?= ${HOME}/git/duckdb
@@ -304,7 +307,11 @@ man-page:
 format:
 	find src -name "*.cpp" -o -name "*.hpp" | xargs clang-format -i --sort-includes=0 -style=file
 
-.PHONY: afl-up compile-fuzzers afl-down \
+.PHONY: afl-up afl-down \
+		copy-src-to-container checkout-duckdb \
+		compile-duckdb re-compile-duckdb compile-fuzzers compile-fuzzers-local \
+		check_duckdb_in_pyenv create-sql-corpus \
+		afl-cmin afl-tmin \
 		fuzz_sql \
 		fuzz_csv_base fuzz_csv_single_param fuzz_csv_multi_param fuzz_csv_pipe \
 		fuzz_json_base fuzz_json_pipe fuzz_json_multi_param \
