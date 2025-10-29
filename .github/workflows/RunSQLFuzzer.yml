@@ -96,8 +96,7 @@ jobs:
       - name: Checkout duckdb-aflplusplus
         uses: actions/checkout@v4
         with:
-          repository: c-herrewijn/duckdb-aflplusplus
-          ref: afl-sql-fuzzer
+          repository: duckdblabs/duckdb-aflplusplus
           path: duckdb_aflplusplus
 
       - name: Checkout aflplusplus
