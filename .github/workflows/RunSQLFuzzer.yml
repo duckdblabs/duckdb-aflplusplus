@@ -1,0 +1,280 @@
+name: Afl++ SQL Fuzzer
+on:
+  workflow_dispatch:
+    inputs:
+      duckdbRepo:
+        description: "duckdb repository"
+        required: true
+        type: string
+        default: duckdb/duckdb
+      ref:
+        description: "duckdb branch, tag, or full-length SHA"
+        required: true
+        type: string
+        # oldest usable ref: 4ebeb16350eb2f819d682c581490af460dd0c995
+        default: v1.4.1
+      fuzzTime:
+        description: "fuzz time (seconds)"
+        required: true
+        type: number
+        default: 3600
+      cacheAFL:
+        description: "cache AFL++ binaries"
+        required: true
+        type: boolean
+        default: true
+      cacheDuckDB:
+        description: "use ccache for DuckDB"
+        required: true
+        type: boolean
+        default: true
+      createIssues:
+        description: "create issues (only from duckdb-fuzzer-ci)"
+        required: true
+        type: choice
+        options:
+          - 'NotPossible'
+          - 'YesIndeed'
+        default: 'NotPossible'
+
+  workflow_call:
+    inputs:
+      duckdbRepo:
+        description: "duckdb repository"
+        required: false
+        type: string
+        default: duckdb/duckdb
+      ref:
+        description: "duckdb branch, tag, or full-length SHA"
+        required: true
+        type: string
+      fuzzTime:
+        description: "fuzz time (seconds)"
+        required: true
+        type: number
+      cacheAFL:
+        description: "cache AFL++ binaries"
+        required: false
+        type: boolean
+        default: true
+      cacheDuckDB:
+        description: "use ccache for DuckDB"
+        required: false
+        type: boolean
+        default: true
+      createIssues:
+        description: "create issues"
+        required: false
+        type: string
+        default: 'YesIndeed'
+    secrets:
+      FUZZEROFDUCKSKEY:
+        required: true
+
+jobs:
+  aflplusplus-sql-fuzz-run:
+    name: Run AFL++ sql fuzzer
+    runs-on: ubuntu-24.04
+    env:
+      CC: ${{ github.workspace }}/bin/afl-clang-fast
+      CXX: ${{ github.workspace }}/bin/afl-clang-fast++
+      DUCKDB_DIR: ${{ github.workspace }}/duckdb
+      DUCKDB_AFLPLUSPLUS_DIR: ${{ github.workspace }}/duckdb_aflplusplus
+    steps:
+      # https://github.com/AFLplusplus/AFLplusplus/blob/stable/docs/INSTALL.md
+      - name: Install AFL++ dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential python3-dev automake cmake git flex bison libglib2.0-dev libpixman-1-dev python3-setuptools cargo libgtk-3-dev
+          sudo apt-get install -y lld-14 llvm-14 llvm-14-dev clang-14 || sudo apt-get install -y lld llvm llvm-dev clang
+          sudo apt-get install -y gcc-$(gcc --version|head -n1|sed 's/\..*//'|sed 's/.* //')-plugin-dev libstdc++-$(gcc --version|head -n1|sed 's/\..*//'|sed 's/.* //')-dev
+
+      - name: Install DuckDB dependencies
+        run: |
+          sudo apt-get install -y ninja-build
+
+      - name: Checkout duckdb-aflplusplus
+        uses: actions/checkout@v4
+        with:
+          repository: duckdblabs/duckdb-aflplusplus
+          path: duckdb_aflplusplus
+
+      - name: Checkout aflplusplus
+        id: checkout-aflplusplus
+        uses: actions/checkout@v4
+        with:
+          repository: aflplusplus/aflplusplus
+          ref: v4.32c
+          path: aflplusplus
+
+      - name: Checkout duckdb
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          repository: ${{ inputs.duckdbRepo }}
+          ref: ${{ inputs.ref }}
+          path: duckdb
+
+
+      # /proc/sys/kernel/core_pattern needs to be adjusted, see:
+      # https://github.com/AFLplusplus/AFLplusplus/blob/fb52b8edf86e12628df834f4bb144916b18a503d/src/afl-fuzz-init.c#L2476C1-L2489C70
+      - name: Config step
+        working-directory: ${{ env.DUCKDB_AFLPLUSPLUS_DIR }}
+        run: |
+          echo core | sudo tee /proc/sys/kernel/core_pattern
+          mkdir -p build
+          mkdir -p corpus
+          mkdir -p fuzz_results
+          chmod -R +x $DUCKDB_AFLPLUSPLUS_DIR/scripts
+
+      # https://github.com/AFLplusplus/AFLplusplus/blob/stable/GNUmakefile
+      - name: Cache AFL++ binaries
+        if: ${{ inputs.cacheAFL }}
+        id: cache-aflplusplus
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ github.workspace }}/bin/afl*
+            ${{ github.workspace }}/lib/afl/*
+            ${{ github.workspace }}/share/doc/afl/*
+            ${{ github.workspace }}/share/afl/*
+            ${{ github.workspace }}/share/man/man8/*
+            ${{ github.workspace }}/include/afl/*
+            ${{ github.workspace }}/aflplusplus/afl-fuzz
+            ${{ github.workspace }}/aflplusplus/afl-clang-fast
+            ${{ github.workspace }}/aflplusplus/afl-clang-fast++
+          key: ${{ runner.os }}-aflplusplus-${{ steps.checkout-aflplusplus.outputs.commit }}
+
+      - name: build AFL++
+        if: steps.cache-aflplusplus.outputs.cache-hit != 'true'
+        working-directory: aflplusplus
+        run: |
+          sudo make PREFIX=${{ github.workspace }} source-only
+          sudo make PREFIX=${{ github.workspace }} install
+
+      - name: AFL++ version
+        run: |
+          ${{ github.workspace }}/bin/afl-fuzz --version
+          $CC --version
+          $CXX --version
+
+      - name: Setup ccache
+        if: ${{ inputs.cacheDuckDB }}
+        uses: hendrikmuhs/ccache-action@main
+        with:
+          key: ${{ github.job }}
+
+      - name: Compile DuckDB with afl++ compiler
+        run: |
+          make -C $DUCKDB_AFLPLUSPLUS_DIR/src \
+          DUCKDB_DIR=$DUCKDB_DIR \
+          DUCKDB_AFLPLUSPLUS_DIR=$DUCKDB_AFLPLUSPLUS_DIR \
+          CC=$CC \
+          CXX=$CXX \
+          BUILD_JEMALLOC=1 \
+          USE_CCACHE=1 \
+          duckdb-lib
+
+      - name: duckdb version
+        id: get_duckdb_version
+        working-directory: ${{ env.DUCKDB_DIR }}
+        run: |
+          ./build/release/duckdb --version
+          echo "duckdb_version=$(./build/release/duckdb --version)" >> "$GITHUB_OUTPUT"
+          echo "duckdb_sha=$(git -P log -n 1 --pretty=format:%H)" >> "$GITHUB_OUTPUT"
+
+      - name: Scrape SQL corpus from sqllogic tests
+        working-directory: ${{ env.DUCKDB_AFLPLUSPLUS_DIR }}
+        run: |
+          ./scripts/corpus_creation/create_sql_corpus.py ${{ env.DUCKDB_DIR }}
+
+      - name: Minify corpus with afl-cmin
+        working-directory: ${{ env.DUCKDB_AFLPLUSPLUS_DIR }}
+        run: |
+          ${{ github.workspace }}/bin/afl-cmin \
+          -i $DUCKDB_AFLPLUSPLUS_DIR/corpus/sql \
+          -o $DUCKDB_AFLPLUSPLUS_DIR/corpus/sql_cmin \
+          $DUCKDB_DIR/build/release/duckdb -f @@
+
+      - name: Start fuzzing
+        env:
+          AFL_IGNORE_SEED_PROBLEMS: 1
+        run: |
+          ${{ github.workspace }}/bin/afl-fuzz \
+          -V ${{ inputs.fuzzTime }} \
+          -i $DUCKDB_AFLPLUSPLUS_DIR/corpus/sql_cmin \
+          -o $DUCKDB_AFLPLUSPLUS_DIR/fuzz_results/sql_fuzzer \
+          -a text \
+          -x $DUCKDB_AFLPLUSPLUS_DIR/scripts/fuzz_utils/duckdb_sql.dict \
+          -- $DUCKDB_DIR/build/release/duckdb -f @@
+
+      - name: Archive fuzz results
+        run: |
+          tar -cf ${{ github.workspace }}/fuzz_results.tar -C $DUCKDB_AFLPLUSPLUS_DIR fuzz_results/sql_fuzzer
+
+      - name: Store fuzz result as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sql_fuzzer-${{ steps.get_duckdb_version.outputs.duckdb_sha }}-fuzz_results
+          path: fuzz_results.tar
+
+      - name: Add summary statistics
+        id: define_statistics
+        working-directory: ${{ env.DUCKDB_AFLPLUSPLUS_DIR }}
+        run: |
+          NUM_CRASHES=$(ls -l fuzz_results/sql_fuzzer/default/crashes | grep id: | wc -l | sed 's/ *//')
+          NUM_HANGS=$(ls -l fuzz_results/sql_fuzzer/default/hangs | grep id: | wc -l | sed 's/ *//')
+          QUEUE_LENGTH=$(ls -l fuzz_results/sql_fuzzer/default/queue | grep id: | wc -l | sed 's/ *//')
+          echo "::notice::crahses found: $NUM_CRASHES"
+          echo "::notice::hangs found: $NUM_HANGS"
+          echo "::notice::queue length: $QUEUE_LENGTH"
+          echo "num_crashes=$NUM_CRASHES" >> "$GITHUB_OUTPUT"
+          echo "num_hangs=$NUM_HANGS" >> "$GITHUB_OUTPUT"
+          echo "queue_length=$QUEUE_LENGTH" >> "$GITHUB_OUTPUT"
+
+  reproduce_and_create_issues:
+    name: Reproduce and create issues
+    runs-on: ubuntu-24.04
+    needs: aflplusplus-sql-fuzz-run
+    if: >-
+      ${{ inputs.createIssues == 'YesIndeed' &&
+      (needs.aflplusplus-sql-fuzz-run.outputs.num_crashes != '0' ||
+      needs.aflplusplus-sql-fuzz-run.outputs.num_hangs != '0') }}
+    steps:
+      - name: download fuzz-results (created by previous job)
+        uses: actions/download-artifact@v4
+        with:
+          name: sql_fuzzer-${{ inputs.duckdb_sha }}-fuzz_results
+
+      - name: extract fuzz-results
+        run: |
+          tar -xf fuzz_results.tar
+
+      - name: Checkout duckdb
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          repository: ${{ inputs.duckdbRepo }}
+          ref: ${{ inputs.ref }}
+          path: duckdb
+
+      - name: Build DuckDB debug to reproduce issues
+        working-directory: duckdb
+        env:
+          GEN: ninja
+          EXPORT_DYNAMIC_SYMBOLS: 1
+          CRASH_ON_ASSERT: 1
+        shell: bash
+        run: |
+          make debug
+
+      - name: DuckDB version
+        working-directory: duckdb
+        run: |
+          ./build/debug/duckdb --version
+
+      - name: Reproduce and create issues
+        run: |
+          $DUCKDB_AFLPLUSPLUS_DIR/scripts/register_issues/reproduce_and_file_sql_issues.py \
+          ${{ github.workspace }}/fuzz_results/sql_fuzzer/default \
+          ${{ env.DUCKDB_DIR }}/build/debug/duckdb "."

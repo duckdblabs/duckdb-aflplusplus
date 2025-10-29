@@ -1,3 +1,13 @@
+# Makefile with commands for development and fuzzing with locally running afl container.
+# Basic usage:
+# - make afl-up
+# - make compile-fuzzers  (takes a while to compile duckdb and fuzz targets with the AFL-clang-fast compiler)
+# - make fuzz_csv_multi_param  (default: fuzz 3600 seconds)
+# - make afl-down  (clean up container, by default it keeps spinning even after fuzzing is done, for debug purposes)
+
+# To test building fuzz targest with regular clang compiler (outside of container) use:
+# - make compile-fuzzers-local
+
 # local setting (set local path to duckdb repository); only for target 'compile-fuzzers-local'
 DUCKDB_LOCAL_DIR ?= ${HOME}/git/duckdb
 
@@ -32,7 +42,7 @@ afl-up:
 	@open -a docker && while ! docker info > /dev/null 2>&1; do sleep 1 ; done
 	@docker pull aflplusplus/aflplusplus:v4.32c > /dev/null
 	@docker run --name afl-container  -d \
-		aflplusplus/aflplusplus sleep infinity \
+		aflplusplus/aflplusplus:v4.32c sleep infinity \
 		> /dev/null
 	@docker exec -w / afl-container mkdir -p duckdb_aflplusplus
 	@docker cp src afl-container:$(SRC_DIR) > /dev/null
@@ -45,7 +55,9 @@ afl-up:
 
 copy-src-to-container:
 	@docker exec afl-container rm -rf $(SRC_DIR) > /dev/null
+	@docker exec afl-container rm -rf $(SCRIPT_DIR) > /dev/null
 	@docker cp src afl-container:$(SRC_DIR) > /dev/null
+	@docker cp scripts afl-container:$(SCRIPT_DIR) > /dev/null
 
 checkout-duckdb:
 	docker exec -w $(DUCKDB_DIR) afl-container git checkout main
@@ -85,6 +97,46 @@ compile-fuzzers-local:
 
 check_duckdb_in_pyenv:
 	@[[ "$(shell pip3 list)" == *"duckdb"* ]] || (echo "error: python package 'duckdb' not found" && exit 1)
+
+create-sql-corpus:
+	$(eval ROOT_DIR := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST)))))
+	$(ROOT_DIR)/scripts/corpus_creation/create_sql_corpus.py
+	docker cp $(ROOT_DIR)/corpus/sql afl-container:$(CORPUS_DIR)/
+
+# reduce nr of corpus files (prune corpus files that don't introduce new execution paths)
+# requires: create-sql-corpus
+afl-cmin:
+	docker exec afl-container /AFLplusplus/afl-cmin \
+		-i $(CORPUS_DIR)/sql \
+		-o $(CORPUS_DIR)/sql_cmin \
+		$(DUCKDB_DIR)/build/release/duckdb -f @@
+
+# reduce size of corpus files: requires: afl-cmin
+# - note1: `$` in echo statement is escaped as: `\$$` ($$ is escape in Makefile; \$ is escape in bash)
+# - note2: this step is currently not used, as it is very slow (~3 sec per file)
+afl-tmin:
+	$(eval ROOT_DIR := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST)))))
+	echo \
+	"export AFL_MAP_SIZE=1448450;\n"\
+	"mkdir -p $(CORPUS_DIR)/sql_tmin;\n"\
+	"for f in $(CORPUS_DIR)/sql_cmin/*; do\n"\
+	"    base=\$$(basename \"\$$f\")\n"\
+	"    afl-tmin -i "\$$f" -o \"$(CORPUS_DIR)/sql_tmin/\$$base\" -- $(DUCKDB_DIR)/build/release/duckdb -f @@\n"\
+	"done" > $(ROOT_DIR)/scripts/corpus_creation/prune_corpus.sh;
+	docker cp $(ROOT_DIR)/scripts/corpus_creation/prune_corpus.sh afl-container:$(CORPUS_DIR)/prune_corpus.sh
+	docker exec afl-container bash $(CORPUS_DIR)/prune_corpus.sh
+
+# requires: afl-cmin
+fuzz_sql:
+	docker exec afl-container /AFLplusplus/afl-fuzz \
+		-V 3600 \
+		-i $(CORPUS_DIR)/sql_cmin \
+		-o $(RESULT_DIR)/sql_fuzzer \
+		-a text \
+		-x $(SCRIPT_DIR)/fuzz_utils/duckdb_sql.dict \
+		-- $(DUCKDB_DIR)/build/release/duckdb -f @@
+	mkdir -p fuzz_results/
+	docker cp afl-container:$(RESULT_DIR)/sql_fuzzer fuzz_results
 
 fuzz_csv_base:
 	docker exec afl-container mkdir -p $(RESULT_DIR)/csv_base_fuzzer
@@ -255,7 +307,12 @@ man-page:
 format:
 	find src -name "*.cpp" -o -name "*.hpp" | xargs clang-format -i --sort-includes=0 -style=file
 
-.PHONY: afl-up compile-fuzzers afl-down \
+.PHONY: afl-up afl-down \
+		copy-src-to-container checkout-duckdb \
+		compile-duckdb re-compile-duckdb compile-fuzzers compile-fuzzers-local \
+		check_duckdb_in_pyenv create-sql-corpus \
+		afl-cmin afl-tmin \
+		fuzz_sql \
 		fuzz_csv_base fuzz_csv_single_param fuzz_csv_multi_param fuzz_csv_pipe \
 		fuzz_json_base fuzz_json_pipe fuzz_json_multi_param \
 		fuzz_parquet_base fuzz_parquet_multi_param \

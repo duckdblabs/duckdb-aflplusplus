@@ -6,3 +6,4 @@
 /fuzz_results*
 **/tmp/
 __pycache__
+prune_corpus.sh
