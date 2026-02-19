@@ -40,7 +40,8 @@ DUCKDB_DEPS=$(DUCKDB_DIR)/build/release/third_party/fmt/libduckdb_fmt.a \
 	$(DUCKDB_DIR)/build/release/third_party/yyjson/libduckdb_yyjson.a \
 	$(DUCKDB_DIR)/build/release/third_party/zstd/libduckdb_zstd.a
 
-DUCKDB_EXT= $(DUCKDB_DIR)/build/release/extension/core_functions/libcore_functions_extension.a \
+DUCKDB_EXT=$(DUCKDB_DIR)/build/release/extension/libduckdb_generated_extension_loader.a \
+	$(DUCKDB_DIR)/build/release/extension/core_functions/libcore_functions_extension.a \
 	$(DUCKDB_DIR)/build/release/extension/parquet/libparquet_extension.a \
 	$(DUCKDB_DIR)/build/release/extension/json/libjson_extension.a
 
