@@ -3,9 +3,9 @@
 #include <vector>
 
 extern const std::vector<std::tuple<std::string, std::string>> g_all_parameters = {
+    std::make_tuple("array", "BOOLEAN"),
     std::make_tuple("auto_detect", "BOOLEAN"),
     std::make_tuple("columns", "VARCHAR"),
-    // std::make_tuple("compression", "VARCHAR"),
     std::make_tuple("convert_strings_to_integers", "BOOLEAN"),
     std::make_tuple("date_format", "VARCHAR"),
     std::make_tuple("dateform", "VARCHAR"),
