@@ -59,6 +59,7 @@ def main(argv: list):
         for func in functions_to_scrape:
             for expression in find_function_expressions(file_content, func):
                 file_and_argument_str = expression.partition(f'{func}(')[2].rpartition(')')[0]
+                file_and_argument_str = file_and_argument_str.replace("{DATA_DIR}", 'data')
                 expression_obj = create_file_reader_dict(file_and_argument_str, scenario_id)
                 if expression_obj:
                     function_expressions.append(expression_obj)
