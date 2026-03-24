@@ -83,7 +83,7 @@ def get_github_issues_by_title(*issue_title) -> list[dict]:
 
 def is_known_github_issue(exception_msg):
     # search for combination of title parts, strip some numbers, to prevent near-duplicates
-    title_parts = re.split(r" \d+", exception_msg)
+    title_parts = re.split(r"\d+", exception_msg)
     existing_issues = get_github_issues_by_title(*tuple(title_parts))
     if existing_issues:
         print("Skip filing duplicate issue")
