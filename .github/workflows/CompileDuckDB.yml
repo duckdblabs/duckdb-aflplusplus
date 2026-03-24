@@ -11,6 +11,9 @@ on:
         description: "duckdb branch, tag, or full-length SHA"
         required: true
         type: string
+    outputs:
+      duckdb-sha:
+        value: ${{ jobs.compile-duckdb.outputs.duckdb-sha }}
 
   workflow_dispatch:
     inputs:
@@ -31,7 +34,7 @@ jobs:
     name: Build DuckDB debug
     runs-on: ubuntu-24.04
     outputs:
-        duckdb_sha: ${{ steps.get_duckdb_version.outputs.duckdb_sha }}
+        duckdb-sha: ${{ steps.get_duckdb_version.outputs.duckdb-sha }}
 
     steps:
       - name: print intpus
@@ -73,7 +76,7 @@ jobs:
         working-directory: duckdb
         run: |
           ./build/debug/duckdb --version
-          echo "duckdb_sha=$(git -P log -n 1 --pretty=format:%H)" >> "$GITHUB_OUTPUT"
+          echo "duckdb-sha=$(git -P log -n 1 --pretty=format:%H)" >> "$GITHUB_OUTPUT"
 
       - name: rename duckdb binary
         run: |
@@ -230,4 +233,4 @@ jobs:
           ls -l
           chmod +x duckdb-debug && ./duckdb-debug --version
 
-      - run: echo "sha:" ${{ needs.compile-duckdb.outputs.duckdb_sha }}
+      - run: echo "sha:" ${{ needs.compile-duckdb.outputs.duckdb-sha }}
