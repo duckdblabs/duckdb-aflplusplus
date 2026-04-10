@@ -75,6 +75,10 @@ jobs:
   aflplusplus-sql-fuzz-run:
     name: Run AFL++ sql fuzzer
     runs-on: ubuntu-24.04
+    outputs:
+      num_crashes: ${{ steps.define_statistics.outputs.num_crashes }}
+      num_hangs: ${{ steps.define_statistics.outputs.num_hangs }}
+      duckdb_sha: ${{ steps.get_duckdb_version.outputs.duckdb_sha }}
     env:
       CC: ${{ github.workspace }}/bin/afl-clang-fast
       CXX: ${{ github.workspace }}/bin/afl-clang-fast++
@@ -245,7 +249,7 @@ jobs:
       - name: download fuzz-results (created by previous job)
         uses: actions/download-artifact@v6
         with:
-          name: sql_fuzzer-${{ inputs.duckdb_sha }}-fuzz_results
+          name: sql_fuzzer-${{ needs.aflplusplus-sql-fuzz-run.outputs.duckdb_sha }}-fuzz_results
 
       - name: extract fuzz-results
         run: |
@@ -258,6 +262,12 @@ jobs:
           repository: ${{ inputs.duckdbRepo }}
           ref: ${{ inputs.ref }}
           path: duckdb
+
+      - name: Checkout duckdb-aflplusplus
+        uses: actions/checkout@v6
+        with:
+          repository: duckdblabs/duckdb-aflplusplus
+          path: duckdb_aflplusplus
 
       - name: Build DuckDB debug to reproduce issues
         working-directory: duckdb
@@ -275,7 +285,9 @@ jobs:
           ./build/debug/duckdb --version
 
       - name: Reproduce and create issues
+        env:
+          DUCKDB_SHA: ${{ needs.aflplusplus-sql-fuzz-run.outputs.duckdb_sha }}
         run: |
-          $DUCKDB_AFLPLUSPLUS_DIR/scripts/register_issues/reproduce_and_file_sql_issues.py \
+          ${{ github.workspace }}/duckdb_aflplusplus/scripts/register_issues/reproduce_and_file_sql_issues.py \
           ${{ github.workspace }}/fuzz_results/sql_fuzzer/default \
-          ${{ env.DUCKDB_DIR }}/build/debug/duckdb "."
+          ${{ github.workspace }}/duckdb/build/debug/duckdb
