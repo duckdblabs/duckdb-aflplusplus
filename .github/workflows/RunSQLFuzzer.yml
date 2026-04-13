@@ -72,6 +72,19 @@ on:
         required: true
 
 jobs:
+  log_inputs:
+    name: Log inputs
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Log inputs
+        run: |
+          echo "duckdbRepo: ${{ inputs.duckdbRepo }}"
+          echo "ref: ${{ inputs.ref }}"
+          echo "fuzzTime: ${{ inputs.fuzzTime }}"
+          echo "cacheAFL: ${{ inputs.cacheAFL }}"
+          echo "cacheDuckDB: ${{ inputs.cacheDuckDB }}"
+          echo "createIssues: ${{ inputs.createIssues }}"
+
   aflplusplus-sql-fuzz-run:
     name: Run AFL++ sql fuzzer
     runs-on: ubuntu-24.04
@@ -236,6 +249,11 @@ jobs:
           echo "num_crashes=$NUM_CRASHES" >> "$GITHUB_OUTPUT"
           echo "num_hangs=$NUM_HANGS" >> "$GITHUB_OUTPUT"
           echo "queue_length=$QUEUE_LENGTH" >> "$GITHUB_OUTPUT"
+
+      - name: Log statistics
+        run: |
+          echo "crashes: ${{ steps.define_statistics.outputs.num_crashes }}"
+          echo "hangs: ${{ steps.define_statistics.outputs.num_hangs }}"
 
   reproduce_and_create_issues:
     name: Reproduce and create issues
