@@ -123,7 +123,8 @@ def run_sql(duckdb_cli, sql_statement_bytes, fuzzer_name) -> tuple[str, str]:
 
 def reproduce_filereader_issue(duckdb_cli, repro_file_path, file_reader_function, arguments):
     sql_statement = f"from {file_reader_function}('{repro_file_path}'{arguments})"
-    exception_msg, stacktrace = run_sql(duckdb_cli, sql_statement, file_reader_function)
+    sql_statement_bytes = bytearray(sql_statement.encode())
+    exception_msg, stacktrace = run_sql(duckdb_cli, sql_statement_bytes, file_reader_function)
     return (exception_msg, stacktrace)
 
 
