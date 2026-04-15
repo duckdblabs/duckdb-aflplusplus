@@ -59,7 +59,7 @@ Note that there are make-commands to run most of these steps, they are listed fu
         - `$ cat my_json_file | duckdb -c "SELECT * FROM read_json('/dev/stdin')"`
         - `$ duckdb -c "SELECT * FROM read_parquet('my_parquet_file')"`
     - For `csv_single_param_fuzzer`, the crashes should be reproduced with script: `test_csv_reader_single_param.py`. The reason is that the first byte contains the parameter scenario info, and is not part of the actual csv input.
-    - For `multi_param_fuzzer`, the crashes cases should first be decoded with script `decode_multi_param_files.py`. See step 5 of [Appendix A - encoding arguments to corpus files](#appendix-a---encoding-arguments-to-corpus-files). After the crashes (or hangs) are decoded, you can o use script `create_sqllogic_for_file_readers.py` to generate the corresponding sqllogic tests, to verify during debuging if a potential bugfix was effictive.
+    - For `multi_param_fuzzer`, the crashes cases should first be decoded with script `decode_multi_param_files.py`. See step 5 of [Appendix A - encoding arguments to corpus files](#appendix-a---encoding-arguments-to-corpus-files). After the crashes (or hangs) are decoded, script `create_sqllogic_for_file_readers.py` can be used to generate the corresponding sqllogic tests, to verify during debuging if a potential bugfix was effictive.
     - For duckdb file inputs (`duckdb_file_fuzzer`), the input files from AFL++ should be post-processed with script `fix_duckdb_file.py`. Afterwards, they can be reproduced by opening the duckdb file with duckdb:
         - `$ duckdb my_duckdb_file`
         - `$ duckdb -c "ATTACH 'my_duckdb_file' AS tmp_db (READ_ONLY); use tmp_db; show tables;"`
@@ -120,7 +120,7 @@ Steps:
     ```
 2. Compile fuzz-executables
 
-    Compile fuzz-executables with normal `clang++` compiler instead of `afl-clang-fast++`:
+    Compile fuzz-executables (target binaries) with normal `clang++` compiler instead of `afl-clang-fast++`:
     ```bash
     make DUCKDB_LOCAL_DIR=/my_path/duckdb compile-fuzzers-local
     ```

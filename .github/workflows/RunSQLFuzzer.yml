@@ -32,6 +32,7 @@ on:
         description: "create issues (only from duckdb-fuzzer-ci)"
         required: true
         type: choice
+        # note: to create issues FUZZEROFDUCKSKEY is required (via workflow_call)
         options:
           - 'NotPossible'
           - 'YesIndeed'
