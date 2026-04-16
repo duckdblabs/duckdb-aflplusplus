@@ -265,15 +265,6 @@ jobs:
       (needs.aflplusplus-sql-fuzz-run.outputs.num_crashes != '0' ||
       needs.aflplusplus-sql-fuzz-run.outputs.num_hangs != '0') }}
     steps:
-      - name: download fuzz-results (created by previous job)
-        uses: actions/download-artifact@v6
-        with:
-          name: sql_fuzzer-${{ needs.aflplusplus-sql-fuzz-run.outputs.duckdb_sha }}-fuzz_results
-
-      - name: extract fuzz-results
-        run: |
-          tar -xf fuzz_results.tar
-
       - name: Checkout duckdb
         uses: actions/checkout@v6
         with:
@@ -287,6 +278,24 @@ jobs:
         with:
           repository: duckdblabs/duckdb-aflplusplus
           path: duckdb_aflplusplus
+
+      - uses: ./duckdb/.github/actions/cleanup_runner
+
+      - name: download fuzz-results (created by previous job)
+        uses: actions/download-artifact@v6
+        with:
+          name: sql_fuzzer-${{ needs.aflplusplus-sql-fuzz-run.outputs.duckdb_sha }}-fuzz_results
+
+      - name: extract fuzz-results
+        run: |
+          tar -xf fuzz_results.tar
+
+      - name: DuckDB Build Dependencies
+        shell: bash
+        run: sudo apt-get update -y -qq && sudo apt-get install -y -qq ninja-build ccache mold
+
+      - name: Setup Ccache
+        uses: hendrikmuhs/ccache-action@main
 
       - name: Build DuckDB debug to reproduce issues
         working-directory: duckdb
