@@ -259,6 +259,15 @@ jobs:
           ref: ${{ inputs.ref }}
           path: duckdb
 
+      - uses: ./duckdb/.github/actions/cleanup_runner
+
+      - name: DuckDB Build Dependencies
+        shell: bash
+        run: sudo apt-get update -y -qq && sudo apt-get install -y -qq ninja-build ccache mold
+
+      - name: Setup Ccache
+        uses: hendrikmuhs/ccache-action@main
+
       - name: Build DuckDB debug to reproduce issues
         working-directory: duckdb
         env:
