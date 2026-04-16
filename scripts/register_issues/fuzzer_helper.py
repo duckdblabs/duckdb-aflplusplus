@@ -89,28 +89,28 @@ def run_command(command):
         exit(res)
 
 
-def print_std_error(duckdb_cli, sql_statement, stderr):
+def print_std_error(duckdb_cli, sql_statement_bytes, stderr):
     print("\n==== duckdb_cli: ===")
     print(duckdb_cli)
     print("\n==== sql_statement: ===")
-    print(sql_statement)
+    print(sql_statement_bytes.decode(errors='backslashreplace'))
     print("\n==== STD error: ===")
     print(stderr)
     print("==========", flush=True)
 
 
-def run_sql(duckdb_cli, sql_statement, fuzzer_name) -> tuple[str, str]:
-    (stdout, stderr, returncode, timed_out) = run_duckdb(duckdb_cli, sql_statement)
+def run_sql(duckdb_cli, sql_statement_bytes, fuzzer_name) -> tuple[str, str]:
+    (stdout, stderr, returncode, timed_out) = run_duckdb(duckdb_cli, sql_statement_bytes)
     match returncode:
         case 0:
             exception_msg, stacktrace = "", ""
         case 1 if not is_internal_error(stderr):  # regular error
             exception_msg, stacktrace = "", ""
         case 1:  # internal error
-            print_std_error(duckdb_cli, sql_statement, stderr)
+            print_std_error(duckdb_cli, sql_statement_bytes, stderr)
             exception_msg, stacktrace = split_exception_trace(stderr)
         case _ if returncode < 0:  # crash
-            print_std_error(duckdb_cli, sql_statement, stderr)
+            print_std_error(duckdb_cli, sql_statement_bytes, stderr)
             exception_msg, stacktrace = split_exception_trace(stderr)
             sig_name = signal.Signals(-returncode).name
             exception_msg = f"{sig_name}: {exception_msg}"
@@ -123,7 +123,8 @@ def run_sql(duckdb_cli, sql_statement, fuzzer_name) -> tuple[str, str]:
 
 def reproduce_filereader_issue(duckdb_cli, repro_file_path, file_reader_function, arguments):
     sql_statement = f"from {file_reader_function}('{repro_file_path}'{arguments})"
-    exception_msg, stacktrace = run_sql(duckdb_cli, sql_statement, file_reader_function)
+    sql_statement_bytes = bytearray(sql_statement, 'utf8')
+    exception_msg, stacktrace = run_sql(duckdb_cli, sql_statement_bytes, file_reader_function)
     return (exception_msg, stacktrace)
 
 
@@ -132,21 +133,21 @@ def reproduce_crashes_from_sql_dir(sql_file_dir: Path, duckdb_cli: Path, max_one
     all_sql_files = sorted(sql_file_dir.iterdir())
     print(f"reproducing errors in {len(all_sql_files)} sql files in dir {sql_file_dir} ...")
     for sql_file in all_sql_files:
-        sql_statement = sql_file.read_text()
-        exception_msg, stacktrace = run_sql(duckdb_cli, sql_statement, 'sql_fuzzer')
+        sql_statement_bytes = bytearray(sql_file.read_bytes())
+        exception_msg, stacktrace = run_sql(duckdb_cli, sql_statement_bytes, 'sql_fuzzer')
         if exception_msg:
-            unique_crashes[exception_msg] = (sql_statement, exception_msg, stacktrace)
+            unique_crashes[exception_msg] = (sql_statement_bytes, exception_msg, stacktrace)
             if max_one:
                 break
     return unique_crashes
 
 
-def run_duckdb(duckdb_cli, sql_statement):
+def run_duckdb(duckdb_cli, sql_statement_bytes):
     command = [duckdb_cli, '-batch', '-init', '/dev/null']
     timed_out = False
     try:
         res = subprocess.run(
-            command, input=bytearray(sql_statement, 'utf8'), stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=300
+            command, input=sql_statement_bytes, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=300
         )
         stdout = res.stdout.decode('utf8', 'ignore').strip()
         stderr = res.stderr.decode('utf8', 'ignore').strip()

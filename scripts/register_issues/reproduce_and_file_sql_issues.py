@@ -31,15 +31,16 @@ def main(argv: list[str]):
     # only keep new issues
     new_issues = {}
     for issue in unique_issues.values():
-        sql_statement, exception_msg, stacktrace = issue
+        sql_statement_bytes, exception_msg, stacktrace = issue
         title = exception_msg[:200]
         if not github_helper.is_known_github_issue(title):
-            new_issues[exception_msg] = (title, sql_statement, exception_msg, stacktrace)
+            new_issues[exception_msg] = (title, sql_statement_bytes, exception_msg, stacktrace)
     print(f"{len(new_issues)} new issues found by fuzzer")
 
     # create github issues
     for issue in new_issues.values():
-        title, sql_statement, exception_msg, stacktrace = issue
+        title, sql_statement_bytes, exception_msg, stacktrace = issue
+        sql_statement = sql_statement_bytes.decode(errors='backslashreplace')
         fuzzer_helper.file_issue(
             title, sql_statement, exception_msg, stacktrace, "sql_fuzzer", 0, os.environ['DUCKDB_SHA']
         )
