@@ -35,7 +35,6 @@ on:
         # note: to create issues FUZZEROFDUCKSKEY is required (via workflow_call)
         options:
           - 'NotPossible'
-          - 'YesIndeed'
         default: 'NotPossible'
 
   workflow_call:
@@ -315,7 +314,8 @@ jobs:
       - name: Reproduce and create issues
         env:
           DUCKDB_SHA: ${{ needs.aflplusplus-sql-fuzz-run.outputs.duckdb_sha }}
+          FUZZEROFDUCKSKEY: ${{ secrets.FUZZEROFDUCKSKEY }}
         run: |
-          ${{ github.workspace }}/duckdb_aflplusplus/scripts/register_issues/reproduce_and_file_sql_issues.py \
+          python3 ${{ github.workspace }}/duckdb_aflplusplus/scripts/register_issues/reproduce_and_file_sql_issues.py \
           ${{ github.workspace }}/fuzz_results/sql_fuzzer/default \
           ${{ github.workspace }}/duckdb/build/debug/duckdb
