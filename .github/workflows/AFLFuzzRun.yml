@@ -192,7 +192,7 @@ jobs:
           CC=$CC \
           CXX=$CXX \
           BUILD_JEMALLOC=1 \
-          USE_CCACHE=1 \
+          USE_CCACHE=${{ inputs.cacheDuckDB && '1' || '0' }} \ \
           duckdb-lib
 
       - name: duckdb version
@@ -217,7 +217,7 @@ jobs:
           CC=$CC \
           CXX=$CXX \
           BUILD_JEMALLOC=1 \
-          USE_CCACHE=1 \
+          USE_CCACHE=${{ inputs.cacheDuckDB && '1' || '0' }} \
           $DUCKDB_AFLPLUSPLUS_DIR/build/${{ inputs.fuzzer }}
 
       - name: Create corpus
@@ -263,7 +263,7 @@ jobs:
           NUM_CRASHES=$(ls -l fuzz_results/${{ inputs.fuzzer }}/default/crashes | grep id: | wc -l | sed 's/ *//')
           NUM_HANGS=$(ls -l fuzz_results/${{ inputs.fuzzer }}/default/hangs | grep id: | wc -l | sed 's/ *//')
           QUEUE_LENGTH=$(ls -l fuzz_results/${{ inputs.fuzzer }}/default/queue | grep id: | wc -l | sed 's/ *//')
-          echo "::notice::crahses found: $NUM_CRASHES"
+          echo "::notice::crashes found: $NUM_CRASHES"
           echo "::notice::hangs found: $NUM_HANGS"
           echo "::notice::queue length: $QUEUE_LENGTH"
           echo "num_crashes=$NUM_CRASHES" >> "$GITHUB_OUTPUT"
