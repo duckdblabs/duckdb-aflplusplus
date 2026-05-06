@@ -192,7 +192,7 @@ jobs:
           CC=$CC \
           CXX=$CXX \
           BUILD_JEMALLOC=1 \
-          USE_CCACHE=${{ inputs.cacheDuckDB && '1' || '0' }} \ \
+          USE_CCACHE=${{ inputs.cacheDuckDB && '1' || '0' }} \
           duckdb-lib
 
       - name: duckdb version
