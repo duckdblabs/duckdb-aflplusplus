@@ -32,7 +32,7 @@ jobs:
     steps:
       - name: print fuzz statistics
         run: |
-          echo crahses found: $NUM_CRASHES
+          echo crashes found: $NUM_CRASHES
           echo hangs found: $NUM_HANGS
           echo queue length: $QUEUE_LENGTH
           echo file format: $FILE_FORMAT
