@@ -39,7 +39,7 @@ jobs:
         run: |
           echo GITHUB_SHA $GITHUB_SHA
           echo ${{ inputs.duckdbRepo }}
-          echo "duckdb ref: ${{ inputs.ref }}""
+          echo "duckdb ref: ${{ inputs.ref }}"
 
       - name: Checkout duckdb
         uses: actions/checkout@v6
