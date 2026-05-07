@@ -38,9 +38,10 @@ jobs:
     steps:
       - name: print inputs
         run: |
-          echo $GITHUB_SHA
+          echo GITHUB_SHA $GITHUB_SHA
           echo ${{ inputs.duckdbRepo }}
-          echo ${{ inputs.ref }}
+          echo "duckdb ref: ${{ inputs.ref }}""
+
       - name: Checkout duckdb_aflplusplus
         uses: actions/checkout@v6
         with:
