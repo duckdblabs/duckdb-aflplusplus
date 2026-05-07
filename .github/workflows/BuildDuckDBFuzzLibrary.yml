@@ -11,6 +11,7 @@ on:
         description: "duckdb branch, tag, or full-length SHA"
         required: true
         type: string
+        default: main
 
   workflow_dispatch:
     inputs:
