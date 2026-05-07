@@ -7,9 +7,14 @@ on:
         required: false
         type: string
         default: duckdb/duckdb
-      ref:
+      duckdb_ref:
         description: "duckdb branch, tag, or full-length SHA"
         required: true
+        type: string
+        default: main
+      duckdb_aflplusplus_ref:
+        description: "duckdb-aflplusplus branch, tag, or full-length SHA"
+        required: false
         type: string
         default: main
 
@@ -20,12 +25,17 @@ on:
         required: true
         type: string
         default: duckdb/duckdb
-      ref:
+      duckdb_ref:
         description: "duckdb branch, tag, or full-length SHA"
         required: true
         type: string
         # main branch: May 6, 2026
         default: 67a0a733f12119424dddee68aed6ad271792ec42
+      duckdb_aflplusplus_ref:
+        description: "duckdb-aflplusplus branch, tag, or full-length SHA"
+        required: false
+        type: string
+        default: main
 
 jobs:
   compile-duckdb-afl:
@@ -41,12 +51,13 @@ jobs:
         run: |
           echo GITHUB_SHA $GITHUB_SHA
           echo ${{ inputs.duckdbRepo }}
-          echo "duckdb ref: ${{ inputs.ref }}"
+          echo "duckdb ref: ${{ inputs.duckdb_ref }}"
 
       - name: Checkout duckdb_aflplusplus
         uses: actions/checkout@v6
         with:
           repository: duckdblabs/duckdb-aflplusplus
+          ref: ${{ inputs.duckdb_aflplusplus_ref }}
           path: duckdb_aflplusplus
 
       - name: Checkout aflplusplus
@@ -62,7 +73,7 @@ jobs:
         with:
           fetch-depth: 0
           repository: ${{ inputs.duckdbRepo }}
-          ref: ${{ inputs.ref }}
+          ref: ${{ inputs.duckdb_ref }}
           path: duckdb
 
       - uses: ./duckdb/.github/actions/cleanup_runner
@@ -151,5 +162,5 @@ jobs:
       - name: Store DuckDB library
         uses: actions/upload-artifact@v6
         with:
-          name: ${{ inputs.ref }}-libduckdb_static
+          name: ${{ inputs.duckdb_ref }}-libduckdb_static
           path: duckdb/build/release/src/libduckdb_static.a
