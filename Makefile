@@ -33,6 +33,9 @@ PARQUET_MULTI_PARAM_FUZZER ?= $(BUILD_DIR)/parquet_multi_param_fuzzer
 DUCKDB_FILE_FUZZER         ?= $(BUILD_DIR)/duckdb_file_fuzzer
 WAL_FUZZER                 ?= $(BUILD_DIR)/wal_fuzzer
 
+# version_printer
+VERSION_PRINTER            ?= $(BUILD_DIR)/version_printer
+
 # duckdb version
 # DUCKDB_COMMIT_ISH   ?= v1.1.3
 DUCKDB_COMMIT_ISH   ?= main
@@ -71,6 +74,17 @@ compile-duckdb: checkout-duckdb
 		-e BUILD_JEMALLOC=1 \
 		afl-container \
 		make duckdb-lib
+
+version: copy-src-to-container compile-duckdb
+	docker exec -w $(SRC_DIR) \
+		-e CC=/AFLplusplus/afl-clang-fast \
+		-e CXX=/AFLplusplus/afl-clang-fast++ \
+		-e BUILD_JEMALLOC=1 \
+		afl-container \
+		make $(VERSION_PRINTER)
+
+print_version: version
+	docker exec -w $(SRC_DIR) afl-container $(VERSION_PRINTER)
 
 re-compile-duckdb: checkout-duckdb
 	docker exec -w $(DUCKDB_DIR) afl-container make clean
@@ -310,6 +324,7 @@ format:
 .PHONY: afl-up afl-down \
 		copy-src-to-container checkout-duckdb \
 		compile-duckdb re-compile-duckdb compile-fuzzers compile-fuzzers-local \
+		version print_version
 		check_duckdb_in_pyenv create-sql-corpus \
 		afl-cmin afl-tmin \
 		fuzz_sql \
