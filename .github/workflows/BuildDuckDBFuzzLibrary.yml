@@ -97,8 +97,7 @@ jobs:
           sudo apt-get install -y gcc-$(gcc --version|head -n1|sed 's/\..*//'|sed 's/.* //')-plugin-dev libstdc++-$(gcc --version|head -n1|sed 's/\..*//'|sed 's/.* //')-dev
 
       - name: Install DuckDB dependencies
-        run: |
-          sudo apt-get install -y ninja-build
+        run: sudo apt-get install -y ninja-build ccache mold
 
       # /proc/sys/kernel/core_pattern needs to be adjusted, see:
       # https://github.com/AFLplusplus/AFLplusplus/blob/fb52b8edf86e12628df834f4bb144916b18a503d/src/afl-fuzz-init.c#L2476C1-L2489C70
