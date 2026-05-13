@@ -172,4 +172,7 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: ${{ inputs.duckdb_ref }}-libduckdb_static
-          path: duckdb/build/release/src/libduckdb_static.a
+          path: |
+            duckdb/build/release/src/libduckdb_static.a
+            duckdb/build/release/extension/**/*.a
+            duckdb/build/release/third_party/**/*.a

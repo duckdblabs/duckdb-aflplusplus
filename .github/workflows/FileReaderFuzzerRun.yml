@@ -182,7 +182,7 @@ jobs:
         uses: actions/download-artifact@v6
         with:
           name: ${{ inputs.duckdb_ref }}-libduckdb_static
-          path: ${{ env.DUCKDB_DIR }}/build/release/src
+          path: ${{ env.DUCKDB_DIR }}/build/release
 
       # NOTE: duckdb-python is only used for pre and post processing; does not have to be compiled from source
       - name: Install duckdb python API
@@ -249,9 +249,3 @@ jobs:
           echo "num_crashes=$NUM_CRASHES" >> "$GITHUB_OUTPUT"
           echo "num_hangs=$NUM_HANGS" >> "$GITHUB_OUTPUT"
           echo "queue_length=$QUEUE_LENGTH" >> "$GITHUB_OUTPUT"
-
-      # TODO, add steps to reproduce and file the issues
-      - name: Create issues for crashes
-        if: inputs.createIssues == 'YesIndeed' && steps.define_statistics.outputs.num_crashes != '0'
-        run: |
-          echo "TODO: create issues for crashes"
