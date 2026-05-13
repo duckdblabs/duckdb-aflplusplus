@@ -1,0 +1,107 @@
+name: Afl++ File Reader Fuzzer (csv/json/parquet)
+on:
+  workflow_dispatch:
+    inputs:
+      csv:
+        description: Fuzz CSV inputs
+        type: boolean
+        default: true
+      json:
+        description: Fuzz JSON inputs
+        type: boolean
+        default: true
+      parquet:
+        description: Fuzz Parquet inputs
+        type: boolean
+        default: true
+      duckdbRepo:
+        description: duckdb repository
+        type: string
+        default: duckdb/duckdb
+      duckdb_ref:
+        description: duckdb branch, tag, or full-length SHA
+        type: string
+        default: main
+      duckdb_aflplusplus_repo:
+        description: duckdb-aflplusplus repository
+        type: string
+        default: duckdblabs/duckdb-aflplusplus
+      duckdb_aflplusplus_ref:
+        description: duckdb-aflplusplus branch, tag, or full-length SHA
+        type: string
+        default: main
+      fuzzTime:
+        description: fuzz time (seconds)
+        type: number
+        default: 1200
+
+  workflow_call:
+    inputs:
+      csv:
+        description: Fuzz CSV inputs
+        type: boolean
+        default: true
+      json:
+        description: Fuzz JSON inputs
+        type: boolean
+        default: true
+      parquet:
+        description: Fuzz Parquet inputs
+        type: boolean
+        default: true
+      duckdbRepo:
+        description: duckdb repository
+        type: string
+        default: duckdb/duckdb
+      duckdb_ref:
+        description: duckdb branch, tag, or full-length SHA
+        type: string
+        default: main
+      duckdb_aflplusplus_repo:
+        description: duckdb-aflplusplus repository
+        type: string
+        default: duckdblabs/duckdb-aflplusplus
+      duckdb_aflplusplus_ref:
+        description: duckdb-aflplusplus branch, tag, or full-length SHA
+        type: string
+        default: main
+      fuzzTime:
+        description: fuzz time (seconds)
+        type: number
+        default: 1200
+
+jobs:
+  build-duckdb-fuzz-library:
+    if: inputs.csv || inputs.json || inputs.parquet
+    uses: ./.github/workflows/BuildDuckDBFuzzLibrary.yml
+    with:
+      duckdbRepo: ${{ inputs.duckdbRepo }}
+      duckdb_ref: ${{ inputs.duckdb_ref }}
+      duckdb_aflplusplus_repo: ${{ inputs.duckdb_aflplusplus_repo }}
+      duckdb_aflplusplus_ref: ${{ inputs.duckdb_aflplusplus_ref }}
+
+  # convert boolean inputs to array (fuzzer matrix)
+  select-fuzzers:
+    runs-on: ubuntu-latest
+    outputs:
+      fuzzers: ${{ steps.set-matrix.outputs.fuzzers }}
+    steps:
+      - id: set-matrix
+        run: |
+          fuzzers=$(jq -nc '{csv_multi_param_fuzzer: ${{ inputs.csv }}, json_multi_param_fuzzer: ${{ inputs.json }}, parquet_multi_param_fuzzer: ${{ inputs.parquet }}} | to_entries | map(select(.value == true) | .key)')
+          echo "fuzzers=$fuzzers" >> "$GITHUB_OUTPUT"
+
+  fuzz:
+    needs: [build-duckdb-fuzz-library, select-fuzzers]
+    strategy:
+      fail-fast: false
+      matrix:
+        fuzzer: ${{ fromJson(needs.select-fuzzers.outputs.fuzzers) }}
+    uses: ./.github/workflows/FileReaderFuzzerRun.yml
+    with:
+      duckdbRepo: ${{ inputs.duckdbRepo }}
+      duckdb_ref: ${{ inputs.duckdb_ref }}
+      duckdb_aflplusplus_repo: ${{ inputs.duckdb_aflplusplus_repo }}
+      duckdb_aflplusplus_ref: ${{ inputs.duckdb_aflplusplus_ref }}
+      fuzzer: ${{ matrix.fuzzer }}
+      fuzzTime: ${{ inputs.fuzzTime }}
