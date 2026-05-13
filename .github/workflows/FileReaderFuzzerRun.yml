@@ -30,11 +30,6 @@ on:
         description: "fuzz time (seconds)"
         required: true
         type: number
-      createIssues:
-        description: "create issues"
-        required: false
-        type: string
-        default: 'YesIndeed'
     outputs:
       file_format:
         value: ${{ jobs.fuzz-run.outputs.file_format }}
@@ -44,12 +39,10 @@ on:
         value: ${{ jobs.fuzz-run.outputs.num_hangs }}
       queue_length:
         value: ${{ jobs.fuzz-run.outputs.queue_length }}
-      duckdb_sha:
-        value: ${{ jobs.fuzz-run.outputs.duckdb_sha }}
 
 jobs:
   fuzz-run:
-    name: Run AFL++ file fuzzer
+    name: Run AFL++ fuzzer ${{ inputs.fuzzer }}
     runs-on: ubuntu-24.04
     env:
       CC: ${{ github.workspace }}/bin/afl-clang-fast
@@ -61,7 +54,7 @@ jobs:
       num_crashes: ${{ steps.define_statistics.outputs.num_crashes }}
       num_hangs: ${{ steps.define_statistics.outputs.num_hangs }}
       queue_length: ${{ steps.define_statistics.outputs.queue_length }}
-      duckdb_sha: ${{ steps.get_duckdb_sha.outputs.duckdb_sha }}
+
 
     steps:
       - name: print fuzz scenario
@@ -71,7 +64,6 @@ jobs:
           echo ${{ inputs.duckdb_ref }}
           echo ${{ inputs.fuzzer }}
           echo ${{ inputs.fuzzTime }}
-          echo ${{ inputs.createIssues }}
 
       - name: define input dependent variables
         id: define_vars
