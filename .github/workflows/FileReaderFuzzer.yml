@@ -170,7 +170,6 @@ jobs:
           path: duckdb/build/debug/duckdb
 
   reproduce-and-file-issues:
-    if: ${{ secrets.FUZZEROFDUCKSKEY != '' }}
     needs: [pin-duckdb-version, fuzz, build-duckdb-debug, select-fuzzers]
     strategy:
       fail-fast: false
@@ -189,13 +188,6 @@ jobs:
           sparse-checkout: |
             scripts
             src
-
-      - name: Checkout duckdb-fuzzer
-        uses: actions/checkout@v6
-        with:
-          repository: duckdb/duckdb-fuzzer
-          path: duckdb-fuzzer
-          token: ${{ secrets.FUZZEROFDUCKSKEY }}
 
       - name: Download DuckDB debug binary
         uses: actions/download-artifact@v6
@@ -238,7 +230,16 @@ jobs:
             ${{ github.workspace }}/fuzz_results/${{ matrix.fuzzer }}/default/hangs \
             ${{ github.workspace }}/reproductions/hangs
 
+      - name: Checkout duckdb-fuzzer
+        if: ${{ secrets.FUZZEROFDUCKSKEY != '' }}
+        uses: actions/checkout@v6
+        with:
+          repository: duckdb/duckdb-fuzzer
+          path: duckdb-fuzzer
+          token: ${{ secrets.FUZZEROFDUCKSKEY }}
+
       - name: Reproduce and file issues
+        if: ${{ secrets.FUZZEROFDUCKSKEY != '' }}
         env:
           DUCKDB_SHA: ${{ needs.pin-duckdb-version.outputs.duckdb_sha }}
           FUZZ_SCENARIO: ${{ matrix.fuzzer }}
