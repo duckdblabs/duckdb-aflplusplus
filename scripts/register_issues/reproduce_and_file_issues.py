@@ -67,7 +67,8 @@ def reproduce_hangs(reproduction_dir, duckdb_cli, file_reader_function):
             unique_hangs[exception_msg] = (repro_file_path, arguments, exception_msg, stacktrace)
             print(f"hang could be reproduced (adding one unique case)")
             return unique_hangs
-    print("hang could not be reproduced")
+    if reproduction_data:
+        print("hang could not be reproduced")
     return unique_hangs
 
 

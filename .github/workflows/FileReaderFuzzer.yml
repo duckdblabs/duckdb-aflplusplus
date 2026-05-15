@@ -96,16 +96,6 @@ jobs:
           echo "duckdb_sha=$DUCKDB_SHA" >> "$GITHUB_OUTPUT"
           echo "Pinned DuckDB SHA: $DUCKDB_SHA"
 
-  # duckdb build with AFL++ compiler
-  build-duckdb-fuzz-library:
-    needs: [pin-duckdb-version]
-    uses: ./.github/workflows/BuildDuckDBFuzzLibrary.yml
-    with:
-      duckdbRepo: ${{ inputs.duckdbRepo }}
-      duckdb_ref: ${{ needs.pin-duckdb-version.outputs.duckdb_sha }}
-      duckdb_aflplusplus_repo: ${{ inputs.duckdb_aflplusplus_repo }}
-      duckdb_aflplusplus_ref: ${{ inputs.duckdb_aflplusplus_ref }}
-
   # convert boolean inputs to array (fuzzer matrix)
   select-fuzzers:
     runs-on: ubuntu-latest
@@ -115,7 +105,18 @@ jobs:
       - id: set-matrix
         run: |
           fuzzers=$(jq -nc '{csv_multi_param_fuzzer: ${{ inputs.csv }}, json_multi_param_fuzzer: ${{ inputs.json }}, parquet_multi_param_fuzzer: ${{ inputs.parquet }}} | to_entries | map(select(.value == true) | .key)')
+          echo "selected fuzzers: $fuzzers"
           echo "fuzzers=$fuzzers" >> "$GITHUB_OUTPUT"
+
+  # duckdb build with AFL++ compiler
+  build-duckdb-fuzz-library:
+    needs: [pin-duckdb-version]
+    uses: ./.github/workflows/BuildDuckDBFuzzLibrary.yml
+    with:
+      duckdbRepo: ${{ inputs.duckdbRepo }}
+      duckdb_ref: ${{ needs.pin-duckdb-version.outputs.duckdb_sha }}
+      duckdb_aflplusplus_repo: ${{ inputs.duckdb_aflplusplus_repo }}
+      duckdb_aflplusplus_ref: ${{ inputs.duckdb_aflplusplus_ref }}
 
   fuzz:
     needs: [pin-duckdb-version, build-duckdb-fuzz-library, select-fuzzers]
@@ -239,7 +240,7 @@ jobs:
             echo "FUZZEROFDUCKSKEY is available"
             echo "available=true" >> "$GITHUB_OUTPUT"
           else
-            echo "FUZZEROFDUCKSKEY is not available"
+            echo "FUZZEROFDUCKSKEY is not available; continue in dry_run mode ..."
           fi
 
       - name: Checkout duckdb-fuzzer
@@ -258,7 +259,7 @@ jobs:
           repository: duckdb/duckdb-fuzzer
           path: duckdb-fuzzer
 
-      # Note: if FUZZEROFDUCKSKEY is missing, the filing of issues is skipped in the python script
+      # Note: if FUZZEROFDUCKSKEY is missing, the python script will reproduce but not file the issues
       - name: Reproduce and file issues
         env:
           DUCKDB_SHA: ${{ needs.pin-duckdb-version.outputs.duckdb_sha }}
