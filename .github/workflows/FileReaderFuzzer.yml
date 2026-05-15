@@ -67,8 +67,8 @@ on:
         default: main
       fuzzTime:
         description: fuzz time (seconds)
+        required: true
         type: number
-        default: 1200
     secrets:
       FUZZEROFDUCKSKEY:
         required: false
