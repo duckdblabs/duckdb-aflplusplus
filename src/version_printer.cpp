@@ -1,3 +1,7 @@
+/*
+ * This file is just to test the duckdb library as compiled by the AFL++ compiler.
+ */
+
 #include "duckdb.hpp"
 
 #include <iostream>
