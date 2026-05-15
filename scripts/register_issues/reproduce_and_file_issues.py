@@ -98,6 +98,10 @@ def main(argv: list[str]):
     if len(argv) > 4:
         duckdb_fuzzer_dir = Path(argv[4]).expanduser()
 
+    # dry run mode:
+    # if 'FUZZEROFDUCKSKEY' is missing we assume it is a dry run
+    dry_run = False if ('FUZZEROFDUCKSKEY' in os.environ and len(os.environ['FUZZEROFDUCKSKEY']) > 0) else True
+
     # verify duckdb_cli can be found
     if not duckdb_cli.is_file():
         raise ValueError(f"expected file not found: {duckdb_cli}")
@@ -122,6 +126,11 @@ def main(argv: list[str]):
             sql_statement_gh = f".sh wget {github_helper.file_url(rel_file_path)}\nfrom {file_reader_function}('{repro_file_name}'{arguments});"
             new_issues[exception_msg] = (title, rel_file_path, repro_file_path, sql_statement_gh, exception_msg, stacktrace)
     print(f"{len(new_issues)} new issues found by fuzzer")
+
+    # dry run mode: early out
+    if dry_run:
+        print("running in dry run mode; no issues are created !")
+        return
 
     # commit reproduction files
     if new_issues:

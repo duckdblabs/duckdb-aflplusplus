@@ -230,16 +230,36 @@ jobs:
             ${{ github.workspace }}/fuzz_results/${{ matrix.fuzzer }}/default/hangs \
             ${{ github.workspace }}/reproductions/hangs
 
+      - name: Check availability of FUZZEROFDUCKSKEY
+        id: check-token
+        env:
+          FUZZEROFDUCKSKEY: ${{ secrets.FUZZEROFDUCKSKEY }}
+        run: |
+          if [ -n "$FUZZEROFDUCKSKEY" ]; then
+            echo "FUZZEROFDUCKSKEY is available"
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "FUZZEROFDUCKSKEY is not available"
+          fi
+
       - name: Checkout duckdb-fuzzer
-        if: ${{ secrets.FUZZEROFDUCKSKEY != '' }}
+        if: steps.check-token.outputs.available == 'true'
         uses: actions/checkout@v6
         with:
           repository: duckdb/duckdb-fuzzer
           path: duckdb-fuzzer
           token: ${{ secrets.FUZZEROFDUCKSKEY }}
 
+      # Note: this will only work if the repo is public (which it is atm)
+      - name: Checkout duckdb-fuzzer no token
+        if: steps.check-token.outputs.available != 'true'
+        uses: actions/checkout@v6
+        with:
+          repository: duckdb/duckdb-fuzzer
+          path: duckdb-fuzzer
+
+      # Note: if FUZZEROFDUCKSKEY is missing, the filing of issues is skipped in the python script
       - name: Reproduce and file issues
-        if: ${{ secrets.FUZZEROFDUCKSKEY != '' }}
         env:
           DUCKDB_SHA: ${{ needs.pin-duckdb-version.outputs.duckdb_sha }}
           FUZZ_SCENARIO: ${{ matrix.fuzzer }}
