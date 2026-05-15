@@ -24,8 +24,7 @@ on:
         description: "duckdb branch, tag, or full-length SHA"
         required: true
         type: string
-        # main branch: May 6, 2026
-        default: 67a0a733f12119424dddee68aed6ad271792ec42
+        default: main
 
 jobs:
   compile-duckdb:
