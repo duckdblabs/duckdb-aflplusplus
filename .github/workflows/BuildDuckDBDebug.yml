@@ -1,0 +1,86 @@
+name: Build DuckDB debug build
+on:
+  workflow_call:
+    inputs:
+      duckdbRepo:
+        description: "duckdb repository"
+        required: false
+        type: string
+        default: duckdb/duckdb
+      ref:
+        description: "duckdb branch, tag, or full-length SHA"
+        required: true
+        type: string
+        default: main
+
+  workflow_dispatch:
+    inputs:
+      duckdbRepo:
+        description: "duckdb repository"
+        required: true
+        type: string
+        default: duckdb/duckdb
+      ref:
+        description: "duckdb branch, tag, or full-length SHA"
+        required: true
+        type: string
+        default: main
+
+jobs:
+  compile-duckdb:
+    name: Build DuckDB debug
+    runs-on: ubuntu-24.04
+    outputs:
+        duckdb-sha: ${{ steps.get_duckdb_version.outputs.duckdb-sha }}
+
+    steps:
+      - name: print inputs
+        run: |
+          echo GITHUB_SHA $GITHUB_SHA
+          echo ${{ inputs.duckdbRepo }}
+          echo "duckdb ref: ${{ inputs.ref }}"
+
+      - name: Checkout duckdb
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          repository: ${{ inputs.duckdbRepo }}
+          ref: ${{ inputs.ref }}
+          path: duckdb
+
+      - name: Install DuckDB dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build ccache mold
+
+      - name: Setup ccache
+        uses: hendrikmuhs/ccache-action@main
+        with:
+          key: ${{ github.job }}
+
+      - name: Build DuckDB
+        working-directory: duckdb
+        env:
+          GEN: ninja
+          EXPORT_DYNAMIC_SYMBOLS: 1
+          BUILD_JEMALLOC: 1
+        shell: bash
+        run: |
+          make debug
+
+      - name: duckdb version
+        id: get_duckdb_version
+        working-directory: duckdb
+        run: |
+          ./build/debug/duckdb --version
+          echo "duckdb-sha=$(git -P log -n 1 --pretty=format:%H)" >> "$GITHUB_OUTPUT"
+
+      - name: rename duckdb binary
+        run: |
+          cp duckdb/build/debug/duckdb duckdb-debug
+
+      - name: Store DuckDB binary
+        uses: actions/upload-artifact@v6
+        with:
+          name: ${{ inputs.ref }}-duckdb-debug
+          path: duckdb-debug

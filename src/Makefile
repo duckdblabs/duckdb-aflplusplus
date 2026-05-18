@@ -21,14 +21,16 @@ PARQUET_MULTI_PARAM_FUZZER ?= $(BUILD_DIR)/parquet_multi_param_fuzzer
 DUCKDB_FILE_FUZZER         ?= $(BUILD_DIR)/duckdb_file_fuzzer
 WAL_FUZZER                 ?= $(BUILD_DIR)/wal_fuzzer
 
+# version_printer
+VERSION_PRINTER            ?= $(BUILD_DIR)/version_printer
+
 CC  ?= /AFLplusplus/afl-clang-fast
 CXX ?= /AFLplusplus/afl-clang-fast++
-CMAKE_VARS_BUILD ?= -DCMAKE_C_COMPILER=$(CC) -DCMAKE_CXX_COMPILER=$(CXX)
+CMAKE_VARS_BUILD ?= -DCMAKE_C_COMPILER=$(CC) -DCMAKE_CXX_COMPILER=$(CXX) -DBUILD_UNITTESTS=FALSE
 
 DUCKDBLIB=$(DUCKDB_DIR)/build/release/src/libduckdb_static.a
 
 DUCKDB_DEPS=$(DUCKDB_DIR)/build/release/third_party/fmt/libduckdb_fmt.a \
-	$(DUCKDB_DIR)/build/release/third_party/libpg_query/libduckdb_pg_query.a \
 	$(DUCKDB_DIR)/build/release/third_party/re2/libduckdb_re2.a \
 	$(DUCKDB_DIR)/build/release/third_party/miniz/libduckdb_miniz.a \
 	$(DUCKDB_DIR)/build/release/third_party/utf8proc/libduckdb_utf8proc.a \
@@ -46,7 +48,7 @@ DUCKDB_EXT=$(DUCKDB_DIR)/build/release/extension/libduckdb_generated_extension_l
 	$(DUCKDB_DIR)/build/release/extension/json/libjson_extension.a
 
 INC =-I$(DUCKDB_DIR)/src/include
-CXXFLAGS = -std=c++11 -DDUCKDB_DIR=\"$(DUCKDB_DIR)\" -DDUCKDB_AFLPLUSPLUS_DIR=\"$(DUCKDB_AFLPLUSPLUS_DIR)\"
+CXXFLAGS = -std=c++17 -DDUCKDB_DIR=\"$(DUCKDB_DIR)\" -DDUCKDB_AFLPLUSPLUS_DIR=\"$(DUCKDB_AFLPLUSPLUS_DIR)\"
 
 ifeq (${BUILD_JEMALLOC}, 1)
 	CXXFLAGS:=${CXXFLAGS} -DBUILD_JEMALLOC=1
@@ -110,5 +112,10 @@ $(DUCKDB_FILE_FUZZER): $(DUCKDBLIB) duckdb_file_fuzzer.cpp
 
 $(WAL_FUZZER): $(DUCKDBLIB) wal_fuzzer.cpp
 	$(CXX) wal_fuzzer.cpp $(INC) $(CXXFLAGS) $(DUCKDBLIB) $(DUCKDB_EXT) $(DUCKDB_DEPS) -o $(WAL_FUZZER)
+
+# version printer
+
+$(VERSION_PRINTER): $(DUCKDBLIB) version_printer.cpp
+	$(CXX) version_printer.cpp $(INC) $(CXXFLAGS) $(DUCKDBLIB) $(DUCKDB_EXT) $(DUCKDB_DEPS) -o $(VERSION_PRINTER)
 
 .PHONY: all duckdb-lib

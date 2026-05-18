@@ -42,6 +42,12 @@ def create_session():
     return session
 
 
+def create_session_no_auth():
+    # mainly for dry-run / testing / read-only purposes
+    session = requests.Session()
+    return session
+
+
 def make_github_issue(title, body, labels=[]):
     if len(title) > 240:
         #  avoid title is too long error (maximum is 256 characters)
@@ -70,7 +76,11 @@ def issues_by_title_url(*title_parts):
 
 
 def get_github_issues_by_title(*issue_title) -> list[dict]:
-    session = create_session()
+    session = (
+        create_session()
+        if 'FUZZEROFDUCKSKEY' in os.environ and len(os.environ['FUZZEROFDUCKSKEY']) > 0
+        else create_session_no_auth()
+    )
     url = issues_by_title_url(*issue_title)
     r = session.get(url)
     if r.status_code != 200:
@@ -83,7 +93,7 @@ def get_github_issues_by_title(*issue_title) -> list[dict]:
 
 def is_known_github_issue(exception_msg):
     # search for combination of title parts, strip some numbers, to prevent near-duplicates
-    title_parts = re.split(r"\d+", exception_msg)
+    title_parts = [part.strip() for part in re.split(r"\d+", exception_msg) if part.strip()]
     existing_issues = get_github_issues_by_title(*tuple(title_parts))
     if existing_issues:
         print("Skip filing duplicate issue")
