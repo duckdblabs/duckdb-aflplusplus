@@ -131,7 +131,7 @@ jobs:
       duckdb_aflplusplus_repo: ${{ inputs.duckdb_aflplusplus_repo }}
       duckdb_aflplusplus_ref: ${{ inputs.duckdb_aflplusplus_ref }}
       fuzzer: ${{ matrix.fuzzer }}
-      fuzzTime: ${{ inputs.fuzzTime }}
+      fuzzTime: ${{ fromJSON(inputs.fuzzTime) }}
 
   # debug build used to reproduce issues
   build-duckdb-debug:
