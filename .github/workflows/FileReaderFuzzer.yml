@@ -1,0 +1,278 @@
+name: Afl++ File Reader Fuzzer (csv/json/parquet)
+on:
+  workflow_dispatch:
+    inputs:
+      csv:
+        description: Fuzz CSV inputs
+        type: boolean
+        default: true
+      json:
+        description: Fuzz JSON inputs
+        type: boolean
+        default: true
+      parquet:
+        description: Fuzz Parquet inputs
+        type: boolean
+        default: true
+      duckdbRepo:
+        description: duckdb repository
+        type: string
+        default: duckdb/duckdb
+      duckdb_ref:
+        description: duckdb branch, tag, or full-length SHA
+        type: string
+        default: main
+      duckdb_aflplusplus_repo:
+        description: duckdb-aflplusplus repository
+        type: string
+        default: duckdblabs/duckdb-aflplusplus
+      duckdb_aflplusplus_ref:
+        description: duckdb-aflplusplus branch, tag, or full-length SHA
+        type: string
+        default: main
+      fuzzTime:
+        description: fuzz time (seconds)
+        type: number
+        default: 1200
+
+  workflow_call:
+    inputs:
+      csv:
+        description: Fuzz CSV inputs
+        type: boolean
+        default: true
+      json:
+        description: Fuzz JSON inputs
+        type: boolean
+        default: true
+      parquet:
+        description: Fuzz Parquet inputs
+        type: boolean
+        default: true
+      duckdbRepo:
+        description: duckdb repository
+        type: string
+        default: duckdb/duckdb
+      duckdb_ref:
+        description: duckdb branch, tag, or full-length SHA
+        type: string
+        default: main
+      duckdb_aflplusplus_repo:
+        description: duckdb-aflplusplus repository
+        type: string
+        default: duckdblabs/duckdb-aflplusplus
+      duckdb_aflplusplus_ref:
+        description: duckdb-aflplusplus branch, tag, or full-length SHA
+        type: string
+        default: main
+      fuzzTime:
+        description: fuzz time (seconds)
+        required: true
+        type: number
+    secrets:
+      FUZZEROFDUCKSKEY:
+        required: false
+
+jobs:
+  # resolve duckdb ref to a pinned SHA
+  pin-duckdb-version:
+    if: inputs.csv || inputs.json || inputs.parquet
+    runs-on: ubuntu-latest
+    outputs:
+      duckdb_sha: ${{ steps.get_sha.outputs.duckdb_sha }}
+    steps:
+      # If the ref is already a full SHA, use it directly; otherwise resolve via the GitHub API
+      - name: Pin DuckDB version
+        id: get_sha
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          REF="${{ inputs.duckdb_ref }}"
+          if [[ "$REF" =~ ^[0-9a-f]{40}$ ]]; then
+            DUCKDB_SHA="$REF"
+          else
+            DUCKDB_SHA=$(gh api repos/${{ inputs.duckdbRepo }}/commits/"$REF" --jq .sha)
+          fi
+          echo "duckdb_sha=$DUCKDB_SHA" >> "$GITHUB_OUTPUT"
+          echo "Pinned DuckDB SHA: $DUCKDB_SHA"
+
+  # convert boolean inputs to array (fuzzer matrix)
+  select-fuzzers:
+    runs-on: ubuntu-latest
+    outputs:
+      fuzzers: ${{ steps.set-matrix.outputs.fuzzers }}
+    steps:
+      - id: set-matrix
+        run: |
+          fuzzers=$(jq -nc '{csv_multi_param_fuzzer: ${{ inputs.csv }}, json_multi_param_fuzzer: ${{ inputs.json }}, parquet_multi_param_fuzzer: ${{ inputs.parquet }}} | to_entries | map(select(.value == true) | .key)')
+          echo "selected fuzzers: $fuzzers"
+          echo "fuzzers=$fuzzers" >> "$GITHUB_OUTPUT"
+
+  # duckdb build with AFL++ compiler
+  build-duckdb-fuzz-library:
+    needs: [pin-duckdb-version]
+    uses: ./.github/workflows/BuildDuckDBFuzzLibrary.yml
+    with:
+      duckdbRepo: ${{ inputs.duckdbRepo }}
+      duckdb_ref: ${{ needs.pin-duckdb-version.outputs.duckdb_sha }}
+      duckdb_aflplusplus_repo: ${{ inputs.duckdb_aflplusplus_repo }}
+      duckdb_aflplusplus_ref: ${{ inputs.duckdb_aflplusplus_ref }}
+
+  fuzz:
+    needs: [pin-duckdb-version, build-duckdb-fuzz-library, select-fuzzers]
+    strategy:
+      fail-fast: false
+      matrix:
+        fuzzer: ${{ fromJson(needs.select-fuzzers.outputs.fuzzers) }}
+    uses: ./.github/workflows/FileReaderFuzzerRun.yml
+    with:
+      duckdbRepo: ${{ inputs.duckdbRepo }}
+      duckdb_ref: ${{ needs.pin-duckdb-version.outputs.duckdb_sha }}
+      duckdb_aflplusplus_repo: ${{ inputs.duckdb_aflplusplus_repo }}
+      duckdb_aflplusplus_ref: ${{ inputs.duckdb_aflplusplus_ref }}
+      fuzzer: ${{ matrix.fuzzer }}
+      fuzzTime: ${{ inputs.fuzzTime }}
+
+  # debug build used to reproduce issues
+  build-duckdb-debug:
+    needs: [pin-duckdb-version]
+    runs-on: ubuntu-24.04
+    env:
+      DUCKDB_DIR: ${{ github.workspace }}/duckdb
+    steps:
+      - name: Checkout duckdb
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          repository: ${{ inputs.duckdbRepo }}
+          ref: ${{ needs.pin-duckdb-version.outputs.duckdb_sha }}
+          path: duckdb
+
+      - uses: ./duckdb/.github/actions/cleanup_runner
+
+      - name: Install build dependencies
+        run: sudo apt-get update -y -qq && sudo apt-get install -y -qq ninja-build ccache mold
+
+      - name: Setup ccache
+        uses: hendrikmuhs/ccache-action@main
+
+      - name: Build DuckDB
+        working-directory: duckdb
+        env:
+          GEN: ninja
+          EXPORT_DYNAMIC_SYMBOLS: 1
+          REDUCE_SYMBOLS: 1
+        run: make debug
+
+      - name: Store DuckDB binary
+        uses: actions/upload-artifact@v6
+        with:
+          name: ${{ inputs.duckdb_ref }}-duckdb-debug
+          path: duckdb/build/debug/duckdb
+
+  reproduce-and-file-issues:
+    needs: [pin-duckdb-version, fuzz, build-duckdb-debug, select-fuzzers]
+    strategy:
+      fail-fast: false
+      matrix:
+        fuzzer: ${{ fromJson(needs.select-fuzzers.outputs.fuzzers) }}
+    runs-on: ubuntu-24.04
+    env:
+      DUCKDB_AFLPLUSPLUS_DIR: ${{ github.workspace }}/duckdb_aflplusplus
+    steps:
+      - name: Checkout duckdb_aflplusplus
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ inputs.duckdb_aflplusplus_repo }}
+          ref: ${{ inputs.duckdb_aflplusplus_ref }}
+          path: duckdb_aflplusplus
+          sparse-checkout: |
+            scripts
+            src
+
+      - name: Download DuckDB debug binary
+        uses: actions/download-artifact@v6
+        with:
+          name: ${{ inputs.duckdb_ref }}-duckdb-debug
+          path: ${{ github.workspace }}/duckdb-debug
+
+      - name: Download fuzz results
+        uses: actions/download-artifact@v6
+        with:
+          pattern: ${{ matrix.fuzzer }}-*-fuzz_results
+          merge-multiple: true
+
+      - name: Extract fuzz results
+        run: |
+          tar -xvf fuzz_results.tar
+          chmod +x ${{ github.workspace }}/duckdb-debug/duckdb
+          chmod -R +x $DUCKDB_AFLPLUSPLUS_DIR/scripts
+
+      - name: Determine target function
+        id: target
+        run: |
+          case ${{ matrix.fuzzer }} in
+            csv_multi_param_fuzzer)    echo "function=read_csv" >> "$GITHUB_OUTPUT" ;;
+            json_multi_param_fuzzer)   echo "function=read_json" >> "$GITHUB_OUTPUT" ;;
+            parquet_multi_param_fuzzer) echo "function=read_parquet" >> "$GITHUB_OUTPUT" ;;
+          esac
+
+      - name: Decode crashes
+        run: |
+          $DUCKDB_AFLPLUSPLUS_DIR/scripts/reproduction/decode_multi_param_files.py \
+            ${{ steps.target.outputs.function }} \
+            ${{ github.workspace }}/fuzz_results/${{ matrix.fuzzer }}/default/crashes \
+            ${{ github.workspace }}/reproductions/crashes
+
+      - name: Decode hangs
+        run: |
+          $DUCKDB_AFLPLUSPLUS_DIR/scripts/reproduction/decode_multi_param_files.py \
+            ${{ steps.target.outputs.function }} \
+            ${{ github.workspace }}/fuzz_results/${{ matrix.fuzzer }}/default/hangs \
+            ${{ github.workspace }}/reproductions/hangs
+
+      - name: Check availability of FUZZEROFDUCKSKEY
+        id: check-token
+        env:
+          FUZZEROFDUCKSKEY: ${{ secrets.FUZZEROFDUCKSKEY }}
+        run: |
+          if [ -n "$FUZZEROFDUCKSKEY" ]; then
+            echo "FUZZEROFDUCKSKEY is available"
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "FUZZEROFDUCKSKEY is not available; continue in dry_run mode ..."
+          fi
+
+      - name: Checkout duckdb-fuzzer
+        if: steps.check-token.outputs.available == 'true'
+        uses: actions/checkout@v6
+        with:
+          repository: duckdb/duckdb-fuzzer
+          path: duckdb-fuzzer
+          token: ${{ secrets.FUZZEROFDUCKSKEY }}
+
+      # Note: this will only work if the repo is public (which it is atm)
+      - name: Checkout duckdb-fuzzer no token
+        if: steps.check-token.outputs.available != 'true'
+        uses: actions/checkout@v6
+        with:
+          repository: duckdb/duckdb-fuzzer
+          path: duckdb-fuzzer
+
+      # Note: if FUZZEROFDUCKSKEY is missing, the python script will reproduce but not file the issues
+      - name: Reproduce and file issues
+        env:
+          DUCKDB_SHA: ${{ needs.pin-duckdb-version.outputs.duckdb_sha }}
+          FUZZ_SCENARIO: ${{ matrix.fuzzer }}
+          FUZZ_RUN_ID: ${{ github.run_id }}
+          FUZZEROFDUCKSKEY: ${{ secrets.FUZZEROFDUCKSKEY }}
+        working-directory: duckdb-fuzzer
+        run: |
+          git config user.name "fuzzerofducks"
+          git config user.email "fuzzerofducks@duckdblabs.com"
+          git pull
+          $DUCKDB_AFLPLUSPLUS_DIR/scripts/register_issues/reproduce_and_file_issues.py \
+            ${{ matrix.fuzzer }} \
+            ${{ github.workspace }}/reproductions \
+            ${{ github.workspace }}/duckdb-debug/duckdb \
+            "."

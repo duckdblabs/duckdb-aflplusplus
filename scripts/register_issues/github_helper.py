@@ -42,6 +42,12 @@ def create_session():
     return session
 
 
+def create_session_no_auth():
+    # mainly for dry-run / testing / read-only purposes
+    session = requests.Session()
+    return session
+
+
 def make_github_issue(title, body, labels=[]):
     if len(title) > 240:
         #  avoid title is too long error (maximum is 256 characters)
@@ -70,7 +76,11 @@ def issues_by_title_url(*title_parts):
 
 
 def get_github_issues_by_title(*issue_title) -> list[dict]:
-    session = create_session()
+    session = (
+        create_session()
+        if 'FUZZEROFDUCKSKEY' in os.environ and len(os.environ['FUZZEROFDUCKSKEY']) > 0
+        else create_session_no_auth()
+    )
     url = issues_by_title_url(*issue_title)
     r = session.get(url)
     if r.status_code != 200:
