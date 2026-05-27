@@ -52,7 +52,7 @@ CXXFLAGS = -std=c++17 -DDUCKDB_DIR=\"$(DUCKDB_DIR)\" -DDUCKDB_AFLPLUSPLUS_DIR=\"
 
 ifeq (${BUILD_JEMALLOC}, 1)
 	CXXFLAGS:=${CXXFLAGS} -DBUILD_JEMALLOC=1
-	DUCKDB_EXT:=${DUCKDB_EXT} $(DUCKDB_DIR)/build/release/extension/jemalloc/libjemalloc_extension.a
+	DUCKDB_DEPS:=${DUCKDB_DEPS} $(DUCKDB_DIR)/build/release/third_party/jemalloc/libduckdb_jemalloc.a
 endif
 
 ifeq (${USE_CCACHE}, 1)
