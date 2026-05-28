@@ -127,9 +127,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential python3-dev automake cmake git flex bison libglib2.0-dev libpixman-1-dev python3-setuptools cargo libgtk-3-dev
-          sudo apt-get install -y lld-14 llvm-14 llvm-14-dev clang-14 || sudo apt-get install -y lld llvm llvm-dev clang
+          sudo apt-get install -y lld-18 llvm-18 llvm-18-dev clang-18 || sudo apt-get install -y lld llvm llvm-dev clang
           sudo apt-get install -y gcc-$(gcc --version|head -n1|sed 's/\..*//'|sed 's/.* //')-plugin-dev libstdc++-$(gcc --version|head -n1|sed 's/\..*//'|sed 's/.* //')-dev
-
       - name: Install DuckDB dependencies
         run: |
           sudo apt-get install -y ninja-build
@@ -271,6 +270,34 @@ jobs:
           repository: duckdblabs/duckdb-aflplusplus
           path: duckdb_aflplusplus
 
+      - name: Check availability of FUZZEROFDUCKSKEY
+        id: check-token
+        env:
+          FUZZEROFDUCKSKEY: ${{ secrets.FUZZEROFDUCKSKEY }}
+        run: |
+          if [ -n "$FUZZEROFDUCKSKEY" ]; then
+            echo "FUZZEROFDUCKSKEY is available"
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "FUZZEROFDUCKSKEY is not available; continue in dry_run mode ..."
+          fi
+
+      - name: Checkout duckdb-fuzzer
+        if: steps.check-token.outputs.available == 'true'
+        uses: actions/checkout@v6
+        with:
+          repository: duckdb/duckdb-fuzzer
+          path: duckdb-fuzzer
+          token: ${{ secrets.FUZZEROFDUCKSKEY }}
+
+      # Note: this will only work if the repo is public (which it is atm)
+      - name: Checkout duckdb-fuzzer no token
+        if: steps.check-token.outputs.available != 'true'
+        uses: actions/checkout@v6
+        with:
+          repository: duckdb/duckdb-fuzzer
+          path: duckdb-fuzzer
+
       - uses: ./duckdb/.github/actions/cleanup_runner
 
       - name: download fuzz-results (created by previous job)
@@ -328,11 +355,19 @@ jobs:
             python3 ./duckdb_aflplusplus/scripts/fuzz_utils/fix_duckdb_file.py $hangs_dir/$db_file; \
           done
 
-      - name: Reproduce and create issues
+      # Note: if FUZZEROFDUCKSKEY is missing, the python script will reproduce but not file the issues
+      - name: Reproduce and file issues
         env:
           DUCKDB_SHA: ${{ needs.aflplusplus-storage-fuzz-run.outputs.duckdb_sha }}
+          FUZZ_SCENARIO: 'storage_fuzzer'
+          FUZZ_RUN_ID: ${{ github.run_id }}
           FUZZEROFDUCKSKEY: ${{ secrets.FUZZEROFDUCKSKEY }}
+        working-directory: duckdb-fuzzer
         run: |
+          git config user.name "fuzzerofducks"
+          git config user.email "fuzzerofducks@duckdblabs.com"
+          git pull
           python3 ${{ github.workspace }}/duckdb_aflplusplus/scripts/register_issues/reproduce_and_file_storage_issues.py \
-          ${{ github.workspace }}/fuzz_results/storage_fuzzer/default \
-          ${{ github.workspace }}/duckdb/build/debug/duckdb
+            ${{ github.workspace }}/fuzz_results/storage_fuzzer/default \
+            ${{ github.workspace }}/duckdb/build/debug/duckdb \
+            "."
