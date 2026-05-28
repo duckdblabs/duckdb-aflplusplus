@@ -1,4 +1,4 @@
-name: Afl++ SQL Fuzzer
+name: Afl++ Storage Fuzzer
 on:
   workflow_dispatch:
     inputs:
@@ -85,8 +85,8 @@ jobs:
           echo "cacheDuckDB: ${{ inputs.cacheDuckDB }}"
           echo "createIssues: ${{ inputs.createIssues }}"
 
-  aflplusplus-sql-fuzz-run:
-    name: Run AFL++ sql fuzzer
+  aflplusplus-storage-fuzz-run:
+    name: Run AFL++ storage fuzzer
     runs-on: ubuntu-24.04
     outputs:
       num_crashes: ${{ steps.define_statistics.outputs.num_crashes }}
@@ -127,9 +127,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential python3-dev automake cmake git flex bison libglib2.0-dev libpixman-1-dev python3-setuptools cargo libgtk-3-dev
-          sudo apt-get install -y lld-14 llvm-14 llvm-14-dev clang-14 || sudo apt-get install -y lld llvm llvm-dev clang
+          sudo apt-get install -y lld-18 llvm-18 llvm-18-dev clang-18 || sudo apt-get install -y lld llvm llvm-dev clang
           sudo apt-get install -y gcc-$(gcc --version|head -n1|sed 's/\..*//'|sed 's/.* //')-plugin-dev libstdc++-$(gcc --version|head -n1|sed 's/\..*//'|sed 's/.* //')-dev
-
       - name: Install DuckDB dependencies
         run: |
           sudo apt-get install -y ninja-build
@@ -201,18 +200,13 @@ jobs:
           echo "duckdb_version=$(./build/release/duckdb --version)" >> "$GITHUB_OUTPUT"
           echo "duckdb_sha=$(git -P log -n 1 --pretty=format:%H)" >> "$GITHUB_OUTPUT"
 
-      - name: Scrape SQL corpus from sqllogic tests
+      - name: create corpus
         working-directory: ${{ env.DUCKDB_AFLPLUSPLUS_DIR }}
         run: |
-          ./scripts/corpus_creation/create_sql_corpus.py ${{ env.DUCKDB_DIR }}
-
-      - name: Minify corpus with afl-cmin
-        working-directory: ${{ env.DUCKDB_AFLPLUSPLUS_DIR }}
-        run: |
-          ${{ github.workspace }}/bin/afl-cmin \
-          -i $DUCKDB_AFLPLUSPLUS_DIR/corpus/sql \
-          -o $DUCKDB_AFLPLUSPLUS_DIR/corpus/sql_cmin \
-          $DUCKDB_DIR/build/release/duckdb -f @@
+          export PATH="${{ env.DUCKDB_DIR }}/build/release:$PATH"
+          which duckdb
+          duckdb --version
+          ./scripts/corpus_creation/create_duckdb_file_corpus.sh "./scripts/corpus_creation/duckdb_corpus_init" "./corpus/duckdbfiles"
 
       - name: Start fuzzing
         env:
@@ -220,29 +214,27 @@ jobs:
         run: |
           ${{ github.workspace }}/bin/afl-fuzz \
           -V ${{ inputs.fuzzTime }} \
-          -i $DUCKDB_AFLPLUSPLUS_DIR/corpus/sql_cmin \
-          -o $DUCKDB_AFLPLUSPLUS_DIR/fuzz_results/sql_fuzzer \
-          -a text \
-          -x $DUCKDB_AFLPLUSPLUS_DIR/scripts/fuzz_utils/duckdb_sql.dict \
+          -i $DUCKDB_AFLPLUSPLUS_DIR/corpus/duckdbfiles \
+          -o $DUCKDB_AFLPLUSPLUS_DIR/fuzz_results/storage_fuzzer \
           -- $DUCKDB_DIR/build/release/duckdb -f @@
 
       - name: Archive fuzz results
         run: |
-          tar -cf ${{ github.workspace }}/fuzz_results.tar -C $DUCKDB_AFLPLUSPLUS_DIR fuzz_results/sql_fuzzer
+          tar -cf ${{ github.workspace }}/fuzz_results.tar -C $DUCKDB_AFLPLUSPLUS_DIR fuzz_results/storage_fuzzer
 
       - name: Store fuzz result as artifact
         uses: actions/upload-artifact@v6
         with:
-          name: sql_fuzzer-${{ steps.get_duckdb_version.outputs.duckdb_sha }}-fuzz_results
+          name: storage_fuzzer-${{ steps.get_duckdb_version.outputs.duckdb_sha }}-fuzz_results
           path: fuzz_results.tar
 
       - name: Add summary statistics
         id: define_statistics
         working-directory: ${{ env.DUCKDB_AFLPLUSPLUS_DIR }}
         run: |
-          NUM_CRASHES=$(ls -l fuzz_results/sql_fuzzer/default/crashes | grep id: | wc -l | sed 's/ *//')
-          NUM_HANGS=$(ls -l fuzz_results/sql_fuzzer/default/hangs | grep id: | wc -l | sed 's/ *//')
-          QUEUE_LENGTH=$(ls -l fuzz_results/sql_fuzzer/default/queue | grep id: | wc -l | sed 's/ *//')
+          NUM_CRASHES=$(ls -l fuzz_results/storage_fuzzer/default/crashes | grep id: | wc -l | sed 's/ *//')
+          NUM_HANGS=$(ls -l fuzz_results/storage_fuzzer/default/hangs | grep id: | wc -l | sed 's/ *//')
+          QUEUE_LENGTH=$(ls -l fuzz_results/storage_fuzzer/default/queue | grep id: | wc -l | sed 's/ *//')
           echo "::notice::crashes found: $NUM_CRASHES"
           echo "::notice::hangs found: $NUM_HANGS"
           echo "::notice::queue length: $QUEUE_LENGTH"
@@ -258,11 +250,11 @@ jobs:
   reproduce_and_create_issues:
     name: Reproduce and create issues
     runs-on: ubuntu-24.04
-    needs: aflplusplus-sql-fuzz-run
+    needs: aflplusplus-storage-fuzz-run
     if: >-
       ${{ inputs.createIssues == 'YesIndeed' &&
-      (needs.aflplusplus-sql-fuzz-run.outputs.num_crashes != '0' ||
-      needs.aflplusplus-sql-fuzz-run.outputs.num_hangs != '0') }}
+      (needs.aflplusplus-storage-fuzz-run.outputs.num_crashes != '0' ||
+      needs.aflplusplus-storage-fuzz-run.outputs.num_hangs != '0') }}
     steps:
       - name: Checkout duckdb
         uses: actions/checkout@v6
@@ -278,12 +270,40 @@ jobs:
           repository: duckdblabs/duckdb-aflplusplus
           path: duckdb_aflplusplus
 
+      - name: Check availability of FUZZEROFDUCKSKEY
+        id: check-token
+        env:
+          FUZZEROFDUCKSKEY: ${{ secrets.FUZZEROFDUCKSKEY }}
+        run: |
+          if [ -n "$FUZZEROFDUCKSKEY" ]; then
+            echo "FUZZEROFDUCKSKEY is available"
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "FUZZEROFDUCKSKEY is not available; continue in dry_run mode ..."
+          fi
+
+      - name: Checkout duckdb-fuzzer
+        if: steps.check-token.outputs.available == 'true'
+        uses: actions/checkout@v6
+        with:
+          repository: duckdb/duckdb-fuzzer
+          path: duckdb-fuzzer
+          token: ${{ secrets.FUZZEROFDUCKSKEY }}
+
+      # Note: this will only work if the repo is public (which it is atm)
+      - name: Checkout duckdb-fuzzer no token
+        if: steps.check-token.outputs.available != 'true'
+        uses: actions/checkout@v6
+        with:
+          repository: duckdb/duckdb-fuzzer
+          path: duckdb-fuzzer
+
       - uses: ./duckdb/.github/actions/cleanup_runner
 
       - name: download fuzz-results (created by previous job)
         uses: actions/download-artifact@v6
         with:
-          name: sql_fuzzer-${{ needs.aflplusplus-sql-fuzz-run.outputs.duckdb_sha }}-fuzz_results
+          name: storage_fuzzer-${{ needs.aflplusplus-storage-fuzz-run.outputs.duckdb_sha }}-fuzz_results
 
       - name: extract fuzz-results
         run: |
@@ -295,6 +315,8 @@ jobs:
 
       - name: Setup Ccache
         uses: hendrikmuhs/ccache-action@main
+        with:
+          key: ${{ github.job }}
 
       - name: Build DuckDB debug to reproduce issues
         working-directory: duckdb
@@ -311,11 +333,41 @@ jobs:
         run: |
           ./build/debug/duckdb --version
 
-      - name: Reproduce and create issues
-        env:
-          DUCKDB_SHA: ${{ needs.aflplusplus-sql-fuzz-run.outputs.duckdb_sha }}
-          FUZZEROFDUCKSKEY: ${{ secrets.FUZZEROFDUCKSKEY }}
+      # note: fuzzer adds readme.txt to crash dir, which should be ignored
+      - name: Post process DB files (fixup checksums)
         run: |
-          python3 ${{ github.workspace }}/duckdb_aflplusplus/scripts/register_issues/reproduce_and_file_sql_issues.py \
-          ${{ github.workspace }}/fuzz_results/sql_fuzzer/default \
-          ${{ github.workspace }}/duckdb/build/debug/duckdb
+          crash_dir=${{ github.workspace }}/fuzz_results/storage_fuzzer/default/crashes
+          echo "crash directory: $crash_dir"
+          rm -f $crash_dir/readme.txt
+          echo "number of crashes: $(ls $crash_dir | wc -l | sed 's/^ *//')"
+          for db_file in $(ls $crash_dir ); \
+          do \
+            echo "fixup file: $crash_dir/$db_file"; \
+            python3 ./duckdb_aflplusplus/scripts/fuzz_utils/fix_duckdb_file.py $crash_dir/$db_file; \
+          done
+          hangs_dir=${{ github.workspace }}/fuzz_results/storage_fuzzer/default/hangs
+          echo "hangs directory: $hangs_dir"
+          rm -f $hangs_dir/readme.txt
+          echo "number of hangs: $(ls $hangs_dir | wc -l | sed 's/^ *//')"
+          for db_file in $(ls $hangs_dir ); \
+          do \
+            echo "fixup file: $hangs_dir/$db_file"; \
+            python3 ./duckdb_aflplusplus/scripts/fuzz_utils/fix_duckdb_file.py $hangs_dir/$db_file; \
+          done
+
+      # Note: if FUZZEROFDUCKSKEY is missing, the python script will reproduce but not file the issues
+      - name: Reproduce and file issues
+        env:
+          DUCKDB_SHA: ${{ needs.aflplusplus-storage-fuzz-run.outputs.duckdb_sha }}
+          FUZZ_SCENARIO: 'storage_fuzzer'
+          FUZZ_RUN_ID: ${{ github.run_id }}
+          FUZZEROFDUCKSKEY: ${{ secrets.FUZZEROFDUCKSKEY }}
+        working-directory: duckdb-fuzzer
+        run: |
+          git config user.name "fuzzerofducks"
+          git config user.email "fuzzerofducks@duckdblabs.com"
+          git pull
+          python3 ${{ github.workspace }}/duckdb_aflplusplus/scripts/register_issues/reproduce_and_file_storage_issues.py \
+            ${{ github.workspace }}/fuzz_results/storage_fuzzer/default \
+            ${{ github.workspace }}/duckdb/build/debug/duckdb \
+            "."
