@@ -47,7 +47,29 @@ DUCKDB_EXT=$(DUCKDB_DIR)/build/release/extension/libduckdb_generated_extension_l
 	$(DUCKDB_DIR)/build/release/extension/parquet/libparquet_extension.a \
 	$(DUCKDB_DIR)/build/release/extension/json/libjson_extension.a
 
-INC =-I$(DUCKDB_DIR)/src/include
+# include list copied from duckdb/duckdb -> CMakeLists.txt
+INC =-I$(DUCKDB_DIR)/src/include \
+	-I$(DUCKDB_DIR)/third_party/fsst \
+	-I$(DUCKDB_DIR)/third_party/fmt/include \
+	-I$(DUCKDB_DIR)/third_party/hyperloglog \
+	-I$(DUCKDB_DIR)/third_party/fastpforlib \
+	-I$(DUCKDB_DIR)/third_party/skiplist \
+	-I$(DUCKDB_DIR)/third_party/ska_sort \
+	-I$(DUCKDB_DIR)/third_party/fast_float \
+	-I$(DUCKDB_DIR)/third_party/re2 \
+	-I$(DUCKDB_DIR)/third_party/miniz \
+	-I$(DUCKDB_DIR)/third_party/utf8proc/include \
+	-I$(DUCKDB_DIR)/third_party/concurrentqueue \
+	-I$(DUCKDB_DIR)/third_party/pcg \
+	-I$(DUCKDB_DIR)/third_party/pdqsort \
+	-I$(DUCKDB_DIR)/third_party/tdigest \
+	-I$(DUCKDB_DIR)/third_party/mbedtls/include \
+	-I$(DUCKDB_DIR)/third_party/httplib \
+	-I$(DUCKDB_DIR)/third_party/jaro_winkler \
+	-I$(DUCKDB_DIR)/third_party/vergesort \
+	-I$(DUCKDB_DIR)/third_party/yyjson/include \
+	-I$(DUCKDB_DIR)/third_party/zstd/include
+
 CXXFLAGS = -std=c++17 -DDUCKDB_DIR=\"$(DUCKDB_DIR)\" -DDUCKDB_AFLPLUSPLUS_DIR=\"$(DUCKDB_AFLPLUSPLUS_DIR)\"
 
 ifeq (${BUILD_JEMALLOC}, 1)
