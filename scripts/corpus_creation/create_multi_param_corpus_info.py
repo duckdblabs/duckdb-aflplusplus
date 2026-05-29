@@ -40,7 +40,7 @@ def main(argv: list):
             functions_to_scrape = ['read_json', 'read_json_auto']
         case 'read_parquet':
             corpus_json_path = PARQUET_CORPUS_JSON
-            functions_to_scrape = ['read_parquet']
+            functions_to_scrape = ['read_parquet', 'parquet_scan']
         case _:
             raise ValueError(f"invalid input: {function_to_scrape}")
 
@@ -101,6 +101,9 @@ def find_function_expressions(text: str, function_str: str) -> list[str]:
 
 
 def create_file_reader_dict(file_and_argument_str: str, scenario_id: int) -> dict | None:
+    if not file_and_argument_str:
+        # file reader function call without arguments: e.g. read_parquet()
+        return None
     if file_and_argument_str[0] == '[':
         # skip for now: multiple files
         return None
